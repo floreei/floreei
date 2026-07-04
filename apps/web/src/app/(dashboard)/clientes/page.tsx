@@ -1,0 +1,177 @@
+"use client";
+
+import type { Customer } from "@sistema-flores/types";
+import { MoreHorizontal, Plus, Search, Users } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { CustomerDialog } from "@/components/customers/customer-dialog";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { EmptyState } from "@/components/shared/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useCustomers, useDeleteCustomer } from "@/lib/api/customers";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useDebounce } from "@/lib/use-debounce";
+
+export default function CustomersPage() {
+  const params = useSearchParams();
+  const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const debounced = useDebounce(search);
+  const { data, isLoading } = useCustomers({ search: debounced });
+  const remove = useDeleteCustomer();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    if (params.get("novo")) {
+      setEditing(null);
+      setDialogOpen(true);
+    }
+  }, [params]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Clientes" description="Quem compra flores e contrata eventos.">
+        <Button onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          Novo cliente
+        </Button>
+      </PageHeader>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nome, e-mail, telefone…"
+          className="pl-9"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <Card>
+        {isLoading ? (
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : data && data.data.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Contato</TableHead>
+                <TableHead className="hidden sm:table-cell">Documento</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.data.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/clientes/${customer.id}`}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {customer.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {customer.whatsapp || customer.phone || customer.email || "—"}
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    {customer.document || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Ações">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditing(customer);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          Editar
+                        </DropdownMenuItem>
+                        {user?.role === "ADMIN" ? (
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeleting(customer)}
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        ) : null}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <EmptyState
+            className="border-0"
+            icon={<Users />}
+            title="Nenhum cliente encontrado"
+            description="Cadastre seu primeiro cliente para começar a criar orçamentos."
+            action={
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Novo cliente
+              </Button>
+            }
+          />
+        )}
+      </Card>
+
+      <CustomerDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        customer={editing}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onOpenChange={(o) => !o && setDeleting(null)}
+        title="Excluir cliente"
+        description={`Tem certeza que deseja excluir "${deleting?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={async () => {
+          await remove.mutateAsync(deleting!.id);
+          toast.success("Cliente excluído.");
+        }}
+      />
+    </div>
+  );
+}

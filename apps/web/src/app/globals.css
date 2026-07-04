@@ -2,79 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Tokens — espelho do design system "Sistema Flores" (skill sistema-flores-design).
+ * Fonte de verdade: tokens/{colors,elevation,typography}.css do DS.
+ */
 @layer base {
   :root {
-    --background: 48 33% 99%;
-    --foreground: 160 14% 12%;
-
+    /* Superfícies e texto */
+    --background: 140 16% 98%;
+    --foreground: 165 16% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 160 14% 12%;
-
+    --card-foreground: 165 16% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 160 14% 12%;
+    --popover-foreground: 165 16% 15%;
 
-    --primary: 152 47% 30%;
-    --primary-foreground: 150 40% 98%;
+    /* Marca */
+    --primary: 160 34% 28%;
+    --primary-foreground: 140 30% 98%;
 
-    --secondary: 150 18% 95%;
-    --secondary-foreground: 152 30% 22%;
+    /* Neutros suaves */
+    --secondary: 146 20% 93%;
+    --secondary-foreground: 165 16% 15%;
+    --muted: 144 16% 95%;
+    --muted-foreground: 158 8% 40%;
 
-    --muted: 150 12% 96%;
-    --muted-foreground: 150 6% 44%;
+    /* Argila (terracota discreto) */
+    --accent: 22 44% 92%;
+    --accent-foreground: 16 40% 24%;
+    --clay: 16 54% 55%;
+    --clay-foreground: 0 0% 100%;
 
-    --accent: 150 30% 94%;
-    --accent-foreground: 152 40% 22%;
+    /* Estados semânticos */
+    --success: 152 40% 34%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 72% 48%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 4 62% 52%;
+    --destructive-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 48%;
-    --destructive-foreground: 0 0% 98%;
+    /* Contorno e foco */
+    --border: 146 14% 90%;
+    --input: 146 14% 86%;
+    --ring: 160 34% 28%;
 
-    --success: 142 60% 36%;
-    --success-foreground: 0 0% 98%;
+    /* Gráficos (Recharts) */
+    --chart-1: 160 34% 28%;
+    --chart-2: 16 54% 55%;
+    --chart-3: 192 42% 38%;
+    --chart-4: 38 78% 52%;
+    --chart-5: 268 32% 60%;
 
-    --warning: 35 92% 50%;
-    --warning-foreground: 30 40% 12%;
+    /* Raio por elemento */
+    --radius: 0.8rem;
+    --radius-sm: calc(var(--radius) - 0.35rem); /* ~7px — inputs, badges */
+    --radius-md: calc(var(--radius) - 0.2rem); /* ~10px — botões */
+    --radius-lg: var(--radius); /* ~13px — cards */
+    --radius-xl: calc(var(--radius) + 0.4rem); /* ~19px — dialogs, sheets */
 
-    --border: 150 12% 90%;
-    --input: 150 12% 90%;
-    --ring: 152 47% 30%;
+    /* Sombras em camadas (tom verde-frio, não preto puro) */
+    --shadow-xs: 0 1px 2px 0 hsl(165 20% 15% / 0.05);
+    --shadow-card: 0 1px 2px 0 hsl(165 20% 15% / 0.04),
+      0 4px 12px -2px hsl(165 20% 15% / 0.06),
+      0 12px 28px -8px hsl(165 20% 15% / 0.05);
+    --shadow-lg: 0 2px 4px 0 hsl(165 20% 15% / 0.05),
+      0 8px 24px -4px hsl(165 20% 15% / 0.08),
+      0 24px 48px -12px hsl(165 20% 15% / 0.1);
 
-    --radius: 0.625rem;
+    /* Foco (WCAG — sempre visível) */
+    --focus-ring: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.7);
+
+    /* Motion */
+    --ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);
+    --duration-fast: 120ms;
+    --duration-base: 200ms;
+    --duration-slow: 320ms;
   }
 
   .dark {
-    --background: 160 18% 8%;
-    --foreground: 150 12% 92%;
+    --background: 165 18% 9%;
+    --foreground: 140 16% 94%;
+    --card: 166 16% 12%;
+    --card-foreground: 140 16% 94%;
+    --popover: 166 16% 12%;
+    --popover-foreground: 140 16% 94%;
 
-    --card: 160 16% 11%;
-    --card-foreground: 150 12% 92%;
+    --primary: 152 40% 62%;
+    --primary-foreground: 165 30% 10%;
 
-    --popover: 160 16% 11%;
-    --popover-foreground: 150 12% 92%;
+    --secondary: 165 12% 18%;
+    --secondary-foreground: 140 16% 94%;
+    --muted: 165 12% 16%;
+    --muted-foreground: 150 8% 62%;
 
-    --primary: 150 46% 52%;
-    --primary-foreground: 160 30% 10%;
+    --accent: 20 22% 22%;
+    --accent-foreground: 22 44% 90%;
+    --clay: 16 58% 62%;
+    --clay-foreground: 165 30% 10%;
 
-    --secondary: 160 12% 18%;
-    --secondary-foreground: 150 12% 92%;
+    --success: 152 44% 52%;
+    --success-foreground: 165 30% 10%;
+    --warning: 34 74% 58%;
+    --warning-foreground: 165 30% 10%;
+    --destructive: 4 66% 62%;
+    --destructive-foreground: 165 30% 10%;
 
-    --muted: 160 12% 16%;
-    --muted-foreground: 150 8% 60%;
+    --border: 165 10% 22%;
+    --input: 165 10% 24%;
+    --ring: 152 40% 62%;
 
-    --accent: 160 14% 20%;
-    --accent-foreground: 150 12% 92%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
-
-    --success: 142 50% 45%;
-    --success-foreground: 0 0% 98%;
-
-    --warning: 35 85% 55%;
-    --warning-foreground: 30 40% 12%;
-
-    --border: 160 12% 20%;
-    --input: 160 12% 22%;
-    --ring: 150 46% 52%;
+    --chart-1: 152 40% 60%;
+    --chart-2: 16 58% 62%;
+    --chart-3: 192 44% 56%;
+    --chart-4: 38 78% 60%;
+    --chart-5: 268 36% 70%;
   }
 }
 
@@ -83,7 +123,53 @@
     @apply border-border;
   }
   body {
+    /* Papel sage sólido — sem gradientes decorativos (DS). Cards flutuam por sombra. */
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+  }
+
+  /* Serif de exibição (Fraunces): eixos opsz + SOFT, presença sem "fio de cabelo". */
+  .font-serif {
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 40;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  h1.font-serif,
+  h2.font-serif {
+    font-weight: 600;
+  }
+
+  /* Eyebrow / label em maiúsculas com tracking largo. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  /* Campo com erro: destaca o controle em vermelho. */
+  [data-field-invalid="true"] :is(input, textarea),
+  [data-field-invalid="true"] button[role="combobox"] {
+    border-color: hsl(var(--destructive));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
   }
 }
