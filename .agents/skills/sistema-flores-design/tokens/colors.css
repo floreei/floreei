@@ -1,0 +1,90 @@
+/* Sistema Flores — Color tokens
+ * Direção "Atelier botânico": papel sage frio, verde pinho profundo, toque de argila.
+ * Valores em HSL (triplo sem hsl()) no padrão shadcn/Tailwind: use como hsl(var(--token)).
+ * Light mode em :root; dark mode espelhado em .dark.
+ */
+
+:root {
+  /* Superfícies e texto */
+  --background: 140 16% 98%;        /* @kind color */ /* papel sage frio */
+  --foreground: 165 16% 15%;        /* @kind color */ /* tinta pinho quase-preto */
+  --card: 0 0% 100%;                /* @kind color */
+  --card-foreground: 165 16% 15%;   /* @kind color */
+  --popover: 0 0% 100%;             /* @kind color */
+  --popover-foreground: 165 16% 15%;/* @kind color */
+
+  /* Marca */
+  --primary: 160 34% 28%;           /* @kind color */ /* verde pinho profundo */
+  --primary-foreground: 140 30% 98%;/* @kind color */
+
+  /* Neutros suaves */
+  --secondary: 146 20% 93%;         /* @kind color */
+  --secondary-foreground: 165 16% 15%; /* @kind color */
+  --muted: 144 16% 95%;             /* @kind color */
+  --muted-foreground: 158 8% 40%;   /* @kind color */
+
+  /* Argila (terracota discreto) */
+  --accent: 22 44% 92%;             /* @kind color */ /* argila clara */
+  --accent-foreground: 16 40% 24%;  /* @kind color */
+  --clay: 16 54% 55%;               /* @kind color */ /* argila saturada — ênfase */
+  --clay-foreground: 0 0% 100%;     /* @kind color */
+
+  /* Estados semânticos */
+  --success: 152 40% 34%;           /* @kind color */
+  --success-foreground: 0 0% 100%;  /* @kind color */
+  --warning: 32 72% 48%;            /* @kind color */
+  --warning-foreground: 0 0% 100%;  /* @kind color */
+  --destructive: 4 62% 52%;         /* @kind color */
+  --destructive-foreground: 0 0% 100%; /* @kind color */
+
+  /* Contorno e foco */
+  --border: 146 14% 90%;            /* @kind color */
+  --input: 146 14% 86%;             /* @kind color */
+  --ring: 160 34% 28%;              /* @kind color */
+
+  /* Gráficos (Recharts) */
+  --chart-1: 160 34% 28%;           /* @kind color */ /* verde */
+  --chart-2: 16 54% 55%;            /* @kind color */ /* argila */
+  --chart-3: 192 42% 38%;           /* @kind color */ /* azul-petróleo */
+  --chart-4: 38 78% 52%;            /* @kind color */ /* âmbar */
+  --chart-5: 268 32% 60%;           /* @kind color */ /* lilás */
+}
+
+.dark {
+  --background: 165 18% 9%;         /* @kind color */
+  --foreground: 140 16% 94%;        /* @kind color */
+  --card: 166 16% 12%;             /* @kind color */
+  --card-foreground: 140 16% 94%;   /* @kind color */
+  --popover: 166 16% 12%;          /* @kind color */
+  --popover-foreground: 140 16% 94%;/* @kind color */
+
+  --primary: 152 40% 62%;          /* @kind color */
+  --primary-foreground: 165 30% 10%;/* @kind color */
+
+  --secondary: 165 12% 18%;        /* @kind color */
+  --secondary-foreground: 140 16% 94%; /* @kind color */
+  --muted: 165 12% 16%;            /* @kind color */
+  --muted-foreground: 150 8% 62%;  /* @kind color */
+
+  --accent: 20 22% 22%;            /* @kind color */
+  --accent-foreground: 22 44% 90%; /* @kind color */
+  --clay: 16 58% 62%;              /* @kind color */
+  --clay-foreground: 165 30% 10%;  /* @kind color */
+
+  --success: 152 44% 52%;          /* @kind color */
+  --success-foreground: 165 30% 10%;/* @kind color */
+  --warning: 34 74% 58%;           /* @kind color */
+  --warning-foreground: 165 30% 10%;/* @kind color */
+  --destructive: 4 66% 62%;        /* @kind color */
+  --destructive-foreground: 165 30% 10%; /* @kind color */
+
+  --border: 165 10% 22%;           /* @kind color */
+  --input: 165 10% 24%;            /* @kind color */
+  --ring: 152 40% 62%;             /* @kind color */
+
+  --chart-1: 152 40% 60%;          /* @kind color */
+  --chart-2: 16 58% 62%;           /* @kind color */
+  --chart-3: 192 44% 56%;          /* @kind color */
+  --chart-4: 38 78% 60%;           /* @kind color */
+  --chart-5: 268 36% 70%;          /* @kind color */
+}

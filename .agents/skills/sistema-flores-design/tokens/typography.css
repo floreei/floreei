@@ -1,0 +1,43 @@
+/* Sistema Flores — Typography tokens
+ * Hierarquia: serif (Fraunces) p/ página/display, sans (Inter) p/ corpo e seções.
+ * Números com tabular-nums para alinhar em tabelas/financeiro.
+ */
+
+:root {
+  --font-serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Escala tipográfica (rem) */
+  --text-xs: 0.75rem;    /* 12px — legendas, hints */
+  --text-sm: 0.875rem;   /* 14px — labels, texto denso de tabela */
+  --text-base: 1rem;     /* 16px — corpo padrão */
+  --text-lg: 1.125rem;   /* 18px — corpo destacado */
+  --text-xl: 1.25rem;    /* 20px — título de card (sans semibold) */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 2rem;      /* 32px — PageHeader serif */
+  --text-4xl: 2.5rem;    /* 40px — display */
+  --text-5xl: 3.25rem;   /* 52px — hero/marketing */
+
+  /* Pesos */
+  --weight-normal: 400;   /* @kind other */
+  --weight-medium: 500;   /* @kind other */
+  --weight-semibold: 600; /* @kind other */
+  --weight-bold: 700;     /* @kind other */
+
+  /* Line-heights */
+  --leading-none: 1;       /* @kind other */
+  --leading-tight: 1.15;   /* @kind other */ /* títulos serif */
+  --leading-snug: 1.3;     /* @kind other */ /* subtítulos */
+  --leading-normal: 1.55;  /* @kind other */ /* corpo */
+  --leading-relaxed: 1.7;  /* @kind other */ /* texto longo */
+
+  /* Tracking */
+  --tracking-tight: -0.02em;   /* display serif */
+  --tracking-normal: 0em;
+  --tracking-wide: 0.02em;
+  --tracking-caps: 0.08em;     /* eyebrows / labels em maiúsculas */
+
+  /* Eixo SOFT do Fraunces (arredondamento das serifas) */
+  --fraunces-soft-display: 40; /* @kind other */
+  --fraunces-soft-text: 0;     /* @kind other */
+}

@@ -1,0 +1,96 @@
+<!-- @dsCard group="ERP" viewport="1280x760" name="Sistema Flores — ERP" subtitle="Painel, orçamentos e financeiro (interativo)" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sistema Flores — ERP</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: hsl(var(--background)); }
+  #root { height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" src="Icons.jsx" data-presets="react"></script>
+<script type="text/babel" src="Sidebar.jsx" data-presets="react"></script>
+<script type="text/babel" src="Topbar.jsx" data-presets="react"></script>
+<script type="text/babel" src="PainelScreen.jsx" data-presets="react"></script>
+<script type="text/babel" src="OrcamentosScreen.jsx" data-presets="react"></script>
+<script type="text/babel" src="FinanceiroScreen.jsx" data-presets="react"></script>
+<script type="text/babel" data-presets="react">
+  const NS = window.SistemaFloresDesignSystem_d212f4;
+  const { Dialog, Button, Field, Input, Select, CurrencyInput, Textarea } = NS;
+
+  function NovoOrcamento({ open, onClose }) {
+    return (
+      <Dialog open={open} onClose={onClose} title="Novo orçamento"
+        description="Preencha os dados do evento. Você pode salvar como rascunho."
+        width={560}
+        footer={<>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose}>Salvar rascunho</Button>
+          <Button onClick={onClose}>Criar orçamento</Button>
+        </>}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <Field label="Cliente" required hint="Nome completo" style={{ gridColumn: '1 / -1' }}>
+            <Input placeholder="Ex.: Ana & João" />
+          </Field>
+          <Field label="Tipo de evento" required>
+            <Select placeholder="Selecione" options={[
+              { value: 'casamento', label: 'Casamento' },
+              { value: 'corporativo', label: 'Corporativo' },
+              { value: 'festa', label: 'Festa' },
+            ]} />
+          </Field>
+          <Field label="Data do evento" required>
+            <Input inputMode="numeric" placeholder="dd/mm/aaaa" />
+          </Field>
+          <Field label="Valor estimado" required>
+            <CurrencyInput defaultValue={0} />
+          </Field>
+          <Field label="Telefone" optional>
+            <Input inputMode="tel" placeholder="(00) 00000-0000" />
+          </Field>
+          <Field label="Observações" optional style={{ gridColumn: '1 / -1' }}>
+            <Textarea rows={3} placeholder="Detalhes da decoração, cores, restrições…" />
+          </Field>
+        </div>
+      </Dialog>
+    );
+  }
+
+  function App() {
+    const [screen, setScreen] = React.useState('painel');
+    const [novo, setNovo] = React.useState(false);
+    const openNew = () => setNovo(true);
+
+    let content;
+    if (screen === 'painel') content = <PainelScreen />;
+    else if (screen === 'orcamentos') content = <OrcamentosScreen onNew={openNew} />;
+    else if (screen === 'financeiro') content = <FinanceiroScreen />;
+    else content = <PainelScreen />;
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <Sidebar active={screen} onNavigate={setScreen} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Topbar onSearch={() => {}} />
+          <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto' }}>{content}</div>
+          </main>
+        </div>
+        <NovoOrcamento open={novo} onClose={() => setNovo(false)} />
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

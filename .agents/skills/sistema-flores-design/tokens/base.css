@@ -1,0 +1,64 @@
+/* Sistema Flores — Base layer & utility helpers
+ * Aplica os tokens a padrões de elemento e expõe classes utilitárias
+ * usadas pelos componentes e cards (font-serif, tabular, focus-ring…).
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Serif de exibição (Fraunces) com eixos opsz + SOFT */
+.font-serif {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' var(--fraunces-soft-display);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+
+.font-sans { font-family: var(--font-sans); }
+
+/* Números tabulares — obrigatório em valores financeiros */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Eyebrow / label em maiúsculas */
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: hsl(var(--muted-foreground));
+}
+
+/* Foco visível padrão (acessibilidade) */
+.focus-ring:focus-visible,
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

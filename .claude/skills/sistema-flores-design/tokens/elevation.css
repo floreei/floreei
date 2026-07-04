@@ -1,0 +1,32 @@
+/* Sistema Flores — Radius & elevation tokens
+ * Profundidade vem de sombras em camadas, não de bordas duras.
+ */
+
+:root {
+  --radius: 0.8rem;                 /* raio base do sistema */
+  --radius-sm: calc(var(--radius) - 0.35rem);  /* ~7px — inputs, badges */
+  --radius-md: calc(var(--radius) - 0.2rem);   /* ~10px — botões */
+  --radius-lg: var(--radius);       /* ~13px — cards */
+  --radius-xl: calc(var(--radius) + 0.4rem);   /* ~19px — dialogs, sheets */
+  --radius-full: 9999px;            /* @kind radius */ /* pills, avatares */
+
+  /* Sombras em camadas (suaves, tom verde-frio em vez de preto puro) */
+  --shadow-xs: 0 1px 2px 0 hsl(165 20% 15% / 0.05);
+  --shadow-card:
+    0 1px 2px 0 hsl(165 20% 15% / 0.04),
+    0 4px 12px -2px hsl(165 20% 15% / 0.06),
+    0 12px 28px -8px hsl(165 20% 15% / 0.05);
+  --shadow-lg:
+    0 2px 4px 0 hsl(165 20% 15% / 0.05),
+    0 8px 24px -4px hsl(165 20% 15% / 0.08),
+    0 24px 48px -12px hsl(165 20% 15% / 0.10);
+
+  /* Anel de foco (WCAG — sempre visível) */
+  --focus-ring: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.7); /* @kind shadow */
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1); /* @kind other */
+  --duration-fast: 120ms;  /* @kind other */
+  --duration-base: 200ms;  /* @kind other */
+  --duration-slow: 320ms;  /* @kind other */
+}

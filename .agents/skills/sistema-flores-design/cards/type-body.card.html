@@ -1,0 +1,21 @@
+<!-- @dsCard group="Type" viewport="700x210" name="Corpo & Seção — Inter" subtitle="sans p/ corpo, labels e títulos de seção" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 22px 24px; background: hsl(var(--background)); font-family: var(--font-sans); color: hsl(var(--foreground)); }
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 5px 0; }
+  .meta { font-size: 11px; color: hsl(var(--muted-foreground)); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); }
+</style>
+</head>
+<body>
+  <div class="row"><div style="font-size:20px;font-weight:600">Título de card (sans semibold)</div><div class="meta">xl · 20px · 600</div></div>
+  <div class="row"><div style="font-size:18px">Corpo destacado</div><div class="meta">lg · 18px · 400</div></div>
+  <div class="row"><div style="font-size:16px">Texto de corpo padrão — legível para todos os públicos.</div><div class="meta">base · 16px</div></div>
+  <div class="row"><div style="font-size:14px;color:hsl(var(--muted-foreground))">Label / texto denso de tabela</div><div class="meta">sm · 14px</div></div>
+  <div class="row"><div class="eyebrow">Eyebrow / legenda</div><div class="meta">xs · 12px · caps</div></div>
+</body>
+</html>

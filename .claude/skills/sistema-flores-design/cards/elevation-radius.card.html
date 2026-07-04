@@ -1,0 +1,22 @@
+<!-- @dsCard group="Elevation" viewport="700x170" name="Raio de canto" subtitle="base 0.8rem" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 26px 24px; background: hsl(var(--background)); font-family: var(--font-sans); display: flex; gap: 22px; align-items: flex-end; justify-content: center; }
+  .item { text-align: center; }
+  .box { width: 84px; height: 68px; background: hsl(var(--secondary)); border: 1px solid hsl(var(--border)); }
+  .name { font-size: 12px; font-weight: 600; color: hsl(var(--foreground)); margin-top: 8px; }
+  .val { font-size: 11px; color: hsl(var(--muted-foreground)); }
+</style>
+</head>
+<body>
+  <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><div class="name">sm</div><div class="val">~7px · inputs</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><div class="name">md</div><div class="val">~10px · botões</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><div class="name">lg</div><div class="val">~13px · cards</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-xl)"></div><div class="name">xl</div><div class="val">~19px · dialogs</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-full);width:68px"></div><div class="name">full</div><div class="val">pills</div></div>
+</body>
+</html>

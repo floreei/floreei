@@ -1,0 +1,20 @@
+<!-- @dsCard group="Type" viewport="700x120" name="Números tabulares" subtitle="tabular-nums em valores financeiros" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 22px 24px; background: hsl(var(--background)); font-family: var(--font-sans); color: hsl(var(--foreground)); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 40px; font-size: 20px; }
+  .lbl { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.08em; }
+  .tab { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div style="display:flex;gap:60px">
+    <div><div class="lbl">Sem tabular</div><div>R$ 1.111,00</div><div>R$ 8.888,00</div></div>
+    <div><div class="lbl">Com tabular-nums ✓</div><div class="tab">R$ 1.111,00</div><div class="tab">R$ 8.888,00</div></div>
+  </div>
+</body>
+</html>

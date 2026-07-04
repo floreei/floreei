@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Marca — Pinho & Argila" subtitle="primary, accent e clay" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 20px; background: hsl(var(--background)); }
+  .row { display: flex; gap: 14px; }
+  .sw { flex: 1; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-card); }
+  .chip { height: 62px; }
+  .meta { padding: 8px 10px; background: hsl(var(--card)); font-family: var(--font-sans); }
+  .name { font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+  .val { font-size: 11px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:hsl(var(--primary))"></div><div class="meta"><div class="name">primary</div><div class="val">160 34% 28%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--accent))"></div><div class="meta"><div class="name">accent</div><div class="val">22 44% 92%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--clay))"></div><div class="meta"><div class="name">clay</div><div class="val">16 54% 55%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--secondary))"></div><div class="meta"><div class="name">secondary</div><div class="val">146 20% 93%</div></div></div>
+  </div>
+</body>
+</html>
