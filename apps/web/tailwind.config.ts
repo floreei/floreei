@@ -57,14 +57,35 @@ const config: Config = {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        clay: {
+          DEFAULT: "hsl(var(--clay))",
+          foreground: "hsl(var(--clay-foreground))",
+        },
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
+        },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "var(--radius-sm)", /* ~7px — inputs, badges */
+        md: "var(--radius-md)", /* ~10px — botões */
+        lg: "var(--radius-lg)", /* ~13px — cards */
+        xl: "var(--radius-xl)", /* ~19px — dialogs, sheets */
+      },
+      boxShadow: {
+        xs: "var(--shadow-xs)",
+        card: "var(--shadow-card)",
+        lg: "var(--shadow-lg)",
+      },
+      transitionTimingFunction: {
+        standard: "var(--ease-standard)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Georgia", "serif"],
       },
       keyframes: {
         "accordion-down": {
