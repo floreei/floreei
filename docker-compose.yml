@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sistema_flores_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: flores
+      POSTGRES_PASSWORD: flores
+      POSTGRES_DB: sistema_flores
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flores -d sistema_flores"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres_test:
+    image: postgres:16-alpine
+    container_name: sistema_flores_db_test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: flores
+      POSTGRES_PASSWORD: flores
+      POSTGRES_DB: sistema_flores_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flores -d sistema_flores_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

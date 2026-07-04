@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: flores
+          POSTGRES_PASSWORD: flores
+          POSTGRES_DB: sistema_flores_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U flores -d sistema_flores_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_HOST: localhost
+      TEST_DATABASE_PORT: 5433
+      TEST_DATABASE_USER: flores
+      TEST_DATABASE_PASSWORD: flores
+      TEST_DATABASE_NAME: sistema_flores_test
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @sistema-flores/types build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: E2E API tests
+        run: pnpm --filter @sistema-flores/api test:e2e

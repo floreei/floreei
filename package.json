@@ -1,0 +1,34 @@
+{
+  "name": "sistema-flores",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.7.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "migration:run": "pnpm --filter @sistema-flores/api migration:run",
+    "migration:generate": "pnpm --filter @sistema-flores/api migration:generate",
+    "db:seed": "pnpm --filter @sistema-flores/api db:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.4.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "argon2",
+      "esbuild",
+      "unrs-resolver"
+    ]
+  }
+}
