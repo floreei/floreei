@@ -1,0 +1,27 @@
+/* Sistema Flores — Spacing & layout tokens
+ * Base 4px. Alvos de toque generosos (público idoso/leigo): mínimo 44px.
+ */
+
+:root {
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px — gutter padrão de card */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px — padding de card / gap de seção */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px — respiro de página */
+  --space-16: 4rem;     /* 64px */
+
+  /* Alvos de toque (acessibilidade) */
+  --touch-min: 2.75rem;    /* 44px — mínimo absoluto */
+  --touch-comfort: 3rem;   /* 48px — recomendado p/ ações primárias */
+
+  /* Layout */
+  --container-max: 80rem;   /* 1280px */
+  --sidebar-width: 16rem;   /* 256px */
+  --topbar-height: 3.5rem;  /* 56px */
+  --content-pad: 1.5rem;    /* 24px */
+}

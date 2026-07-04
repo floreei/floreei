@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Semânticas — Estado" subtitle="success, warning, destructive" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 20px; background: hsl(var(--background)); }
+  .row { display: flex; gap: 14px; }
+  .sw { flex: 1; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-card); }
+  .chip { height: 62px; }
+  .meta { padding: 8px 10px; background: hsl(var(--card)); font-family: var(--font-sans); }
+  .name { font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+  .val { font-size: 11px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:hsl(var(--success))"></div><div class="meta"><div class="name">success</div><div class="val">152 40% 34%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--warning))"></div><div class="meta"><div class="name">warning</div><div class="val">32 72% 48%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--destructive))"></div><div class="meta"><div class="name">destructive</div><div class="val">4 62% 52%</div></div></div>
+  </div>
+</body>
+</html>

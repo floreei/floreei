@@ -1,0 +1,19 @@
+<!-- @dsCard group="Elevation" viewport="700x200" name="Sombras em camadas" subtitle="xs · card · lg" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 30px 24px; background: hsl(var(--background)); font-family: var(--font-sans); display: flex; gap: 28px; align-items: center; justify-content: center; }
+  .card { width: 150px; height: 96px; background: hsl(var(--card)); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .name { font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+  .use { font-size: 11px; color: hsl(var(--muted-foreground)); }
+</style>
+</head>
+<body>
+  <div class="card" style="box-shadow:var(--shadow-xs)"><div class="name">shadow-xs</div><div class="use">inputs, hover sutil</div></div>
+  <div class="card" style="box-shadow:var(--shadow-card)"><div class="name">shadow-card</div><div class="use">cards</div></div>
+  <div class="card" style="box-shadow:var(--shadow-lg)"><div class="name">shadow-lg</div><div class="use">dialogs, popovers</div></div>
+</body>
+</html>

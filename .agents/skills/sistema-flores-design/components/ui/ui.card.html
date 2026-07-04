@@ -1,0 +1,81 @@
+<!-- @dsCard group="Components" viewport="700x520" name="Primitivas (ui/)" subtitle="Button, Input, Select, Badge, Table, Tabs…" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; padding: 24px; background: hsl(var(--background)); font-family: var(--font-sans); }
+  .grid { display: flex; flex-direction: column; gap: 20px; }
+  .sec { }
+  .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: hsl(var(--muted-foreground)); margin-bottom: 10px; }
+  .rowf { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+  const NS = window.SistemaFloresDesignSystem_d212f4;
+  const { Button, Input, Select, Badge, StatusBadge, Tabs, Table, Avatar, Field, CurrencyInput } = NS;
+  function Demo() {
+    return (
+      <div className="grid">
+        <div className="sec">
+          <div className="lbl">Button — variantes & tamanhos</div>
+          <div className="rowf">
+            <Button>Novo orçamento</Button>
+            <Button variant="clay">Ênfase</Button>
+            <Button variant="outline">Cancelar</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button variant="destructive">Excluir</Button>
+            <Button loading>Salvando</Button>
+            <Button size="sm">Pequeno</Button>
+          </div>
+        </div>
+        <div className="sec">
+          <div className="lbl">Formulário — Field, Input, Select, CurrencyInput</div>
+          <div className="rowf" style={{ alignItems: 'flex-start' }}>
+            <Field label="Cliente" required hint="Nome completo" style={{ width: 200 }}><Input placeholder="Maria Silva" /></Field>
+            <Field label="Status" style={{ width: 180 }}><Select placeholder="Selecione" options={[{value:'p',label:'Pago'},{value:'x',label:'Pendente'}]} /></Field>
+            <Field label="Valor" required style={{ width: 150 }}><CurrencyInput defaultValue={123456} /></Field>
+          </div>
+        </div>
+        <div className="sec">
+          <div className="lbl">Badge & StatusBadge</div>
+          <div className="rowf">
+            <Badge variant="primary">Novo</Badge>
+            <Badge variant="outline">Rascunho</Badge>
+            <StatusBadge status="pago" />
+            <StatusBadge status="pendente" />
+            <StatusBadge status="atrasado" />
+            <Avatar name="Maria Silva" />
+          </div>
+        </div>
+        <div className="sec">
+          <div className="lbl">Tabs & Table</div>
+          <Tabs defaultValue="receber" items={[{value:'receber',label:'A receber'},{value:'pagar',label:'A pagar'},{value:'caixa',label:'Caixa'}]} />
+          <div style={{ marginTop: 12 }}>
+            <Table
+              columns={[
+                { key: 'cliente', header: 'Cliente' },
+                { key: 'valor', header: 'Valor', align: 'right', tabular: true },
+                { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+              ]}
+              data={[
+                { id: 1, cliente: 'Buffê Jardim', valor: 'R$ 2.400,00', status: 'pago' },
+                { id: 2, cliente: 'Casamento Ana', valor: 'R$ 5.180,00', status: 'pendente' },
+              ]}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

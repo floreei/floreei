@@ -8,13 +8,15 @@
   },
   "scripts": {
     "dev": "turbo run dev",
+    "dev:all": "pnpm db:up && pnpm migration:run && pnpm dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && pnpm db:up && pnpm migration:run && pnpm db:seed",
     "migration:run": "pnpm --filter @sistema-flores/api migration:run",
     "migration:generate": "pnpm --filter @sistema-flores/api migration:generate",
     "db:seed": "pnpm --filter @sistema-flores/api db:seed"
@@ -26,7 +28,6 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@nestjs/core",
-      "argon2",
       "esbuild",
       "unrs-resolver"
     ]

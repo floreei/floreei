@@ -1,0 +1,7 @@
+/* Sistema Flores — Webfonts
+ * Fraunces (variable: opsz + wght + SOFT, old-style serif) = títulos/display
+ * Inter (variable: wght) = corpo
+ * Loaded from Google Fonts. If you need self-hosted binaries, swap these
+ * @import lines for local @font-face rules pointing at ./assets/fonts/*.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,0..100&family=Inter:wght@300..700&display=swap');

@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Neutros & Superfícies" subtitle="background, card, muted, border" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 20px; background: hsl(var(--background)); }
+  .row { display: flex; gap: 14px; }
+  .sw { flex: 1; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-card); }
+  .chip { height: 62px; border: 1px solid hsl(var(--border)); }
+  .meta { padding: 8px 10px; background: hsl(var(--card)); font-family: var(--font-sans); }
+  .name { font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+  .val { font-size: 11px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:hsl(var(--background))"></div><div class="meta"><div class="name">background</div><div class="val">140 16% 98%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--card))"></div><div class="meta"><div class="name">card</div><div class="val">0 0% 100%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--muted))"></div><div class="meta"><div class="name">muted</div><div class="val">144 16% 95%</div></div></div>
+    <div class="sw"><div class="chip" style="background:hsl(var(--border))"></div><div class="meta"><div class="name">border</div><div class="val">146 14% 90%</div></div></div>
+  </div>
+</body>
+</html>
