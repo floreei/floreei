@@ -1,0 +1,53 @@
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import type { EventQuery, Paginated } from "@sistema-flores/types";
+import { Repository } from "typeorm";
+import { paginate } from "../../../common/database/paginate";
+import { TenantScopedRepository } from "../../../common/database/tenant-scoped.repository";
+import { TenantContextService } from "../../../common/tenant/tenant-context.service";
+import { EventEntity } from "./event.entity";
+
+@Injectable()
+export class EventRepository extends TenantScopedRepository<EventEntity> {
+  constructor(
+    @InjectRepository(EventEntity) repo: Repository<EventEntity>,
+    tenant: TenantContextService,
+  ) {
+    super(repo, tenant, "Evento");
+  }
+
+  findDetailed(id: string): Promise<EventEntity | null> {
+    return this.findById(id, ["customer"]);
+  }
+
+  async search(query: EventQuery): Promise<Paginated<EventEntity>> {
+    const qb = this.qb("event")
+      .leftJoinAndSelect("event.customer", "customer")
+      .orderBy("event.date", "DESC");
+
+    if (query.type) {
+      qb.andWhere("event.type = :type", { type: query.type });
+    }
+    if (query.status) {
+      qb.andWhere("event.status = :status", { status: query.status });
+    }
+    if (query.customerId) {
+      qb.andWhere("event.customer_id = :customerId", {
+        customerId: query.customerId,
+      });
+    }
+    if (query.from) {
+      qb.andWhere("event.date >= :from", { from: query.from });
+    }
+    if (query.to) {
+      qb.andWhere("event.date <= :to", { to: query.to });
+    }
+    if (query.search) {
+      qb.andWhere("(event.title ILIKE :s OR customer.name ILIKE :s)", {
+        s: `%${query.search}%`,
+      });
+    }
+
+    return paginate(qb, query.page, query.pageSize);
+  }
+}
