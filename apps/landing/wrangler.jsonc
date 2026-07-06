@@ -1,7 +1,7 @@
 {
   // Landing estática (Next export) servida como Workers Static Assets.
   // Sem `main`: é um site 100% estático, sem código de Worker.
-  "name": "floreei-landing",
+  "name": "floreei",
   "compatibility_date": "2025-06-01",
   // `directory` é relativo a este arquivo → apps/landing/out (saída do next export).
   "assets": { "directory": "./out" }
