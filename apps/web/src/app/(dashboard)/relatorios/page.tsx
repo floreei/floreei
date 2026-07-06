@@ -1,228 +1,134 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { PeriodFilter } from "@/components/finance/period-filter";
+import { RankingList, type RankRow } from "@/components/reports/ranking-list";
+import { ReportKpis } from "@/components/reports/report-kpis";
+import { RevenueProfitChart } from "@/components/reports/revenue-profit-chart";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useReport } from "@/lib/api/reports";
+import { resolvePeriod, type PeriodPreset } from "@/lib/finance-period";
 import { formatCurrency } from "@/lib/utils";
 
+const num = (n: number) => n.toLocaleString("pt-BR");
+const plural = (n: number, one: string, many: string) =>
+  `${num(n)} ${n === 1 ? one : many}`;
+
 export default function ReportsPage() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const { data, isLoading } = useReport(from || undefined, to || undefined);
+  const [preset, setPreset] = useState<PeriodPreset>("thisMonth");
+  const [custom, setCustom] = useState({ from: "", to: "" });
+  const range = useMemo(() => resolvePeriod(preset, custom), [preset, custom]);
+
+  const { data, isLoading } = useReport(range.from, range.to);
+  const { data: prev } = useReport(range.prevFrom, range.prevTo);
+
+  const productRows: RankRow[] = (data?.topProducts ?? []).map((p) => {
+    const margin = p.revenue > 0 ? Math.round((p.profit / p.revenue) * 100) : 0;
+    return {
+      id: p.productId,
+      name: p.name,
+      value: p.revenue,
+      valueLabel: formatCurrency(p.revenue),
+      sub: `${plural(p.quantity, "un", "un")} · lucro ${formatCurrency(p.profit)} · margem ${margin}%`,
+    };
+  });
+
+  const customerRows: RankRow[] = (data?.customers ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    value: c.total,
+    valueLabel: formatCurrency(c.total),
+    sub: plural(c.count, "evento", "eventos"),
+  }));
+
+  const supplierRows: RankRow[] = (data?.suppliers ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    value: s.total,
+    valueLabel: formatCurrency(s.total),
+    sub: plural(s.count, "compra", "compras"),
+  }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Relatórios"
         description="O desempenho do seu negócio no período — receita, lucro e rankings."
-      >
-        <div className="flex items-end gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="from" className="text-xs">De</Label>
-            <Input
-              id="from"
-              type="date"
-              className="h-9"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="to" className="text-xs">Até</Label>
-            <Input
-              id="to"
-              type="date"
-              className="h-9"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </div>
-        </div>
-      </PageHeader>
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Receita" value={data?.summary.revenue} loading={isLoading} />
-        <SummaryCard
-          label="Custo de compras"
-          value={data?.summary.purchasesCost}
-          loading={isLoading}
-        />
-        <SummaryCard
-          label="Lucro bruto"
-          value={data?.summary.grossProfit}
-          loading={isLoading}
-          accent
-        />
-        <SummaryCard
-          label="Eventos"
-          value={data?.summary.eventsCount}
-          loading={isLoading}
-          money={false}
-        />
-      </div>
+      <PeriodFilter
+        preset={preset}
+        from={range.from}
+        to={range.to}
+        onPreset={setPreset}
+        onCustom={(from, to) => {
+          setPreset("custom");
+          setCustom({ from, to });
+        }}
+      />
+
+      <ReportKpis
+        summary={data?.summary}
+        prevSummary={prev?.summary}
+        loading={isLoading}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Produtos mais vendidos</CardTitle>
+          <CardTitle className="text-base">Receita e lucro por mês</CardTitle>
         </CardHeader>
         <CardContent>
-          <RankTable
+          <RevenueProfitChart
+            monthly={data?.monthly ?? []}
+            from={range.from}
+            to={range.to}
             loading={isLoading}
-            empty="Sem vendas no período."
-            head={["Produto", "Qtd.", "Receita", "Lucro"]}
-            rows={
-              data?.topProducts.map((p) => [
-                p.name,
-                String(p.quantity),
-                formatCurrency(p.revenue),
-                formatCurrency(p.profit),
-              ]) ?? []
-            }
           />
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Produtos mais vendidos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RankingList
+            rows={productRows}
+            loading={isLoading}
+            empty="Sem vendas no período."
+          />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Clientes que mais compraram</CardTitle>
+            <CardTitle className="text-base">Clientes que mais compraram</CardTitle>
           </CardHeader>
           <CardContent>
-            <RankTable
+            <RankingList
+              rows={customerRows}
               loading={isLoading}
               empty="Sem clientes no período."
-              head={["Cliente", "Eventos", "Total"]}
-              rows={
-                data?.customers.map((c) => [
-                  c.name,
-                  String(c.count),
-                  formatCurrency(c.total),
-                ]) ?? []
-              }
+              tone="clay"
             />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Compras por fornecedor</CardTitle>
+            <CardTitle className="text-base">Compras por fornecedor</CardTitle>
           </CardHeader>
           <CardContent>
-            <RankTable
+            <RankingList
+              rows={supplierRows}
               loading={isLoading}
               empty="Sem compras no período."
-              head={["Fornecedor", "Compras", "Total"]}
-              rows={
-                data?.suppliers.map((s) => [
-                  s.name,
-                  String(s.count),
-                  formatCurrency(s.total),
-                ]) ?? []
-              }
+              tone="chart-3"
             />
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  loading,
-  accent,
-  money = true,
-}: {
-  label: string;
-  value: number | undefined;
-  loading: boolean;
-  accent?: boolean;
-  money?: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="space-y-1 p-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        {loading ? (
-          <Skeleton className="h-7 w-24" />
-        ) : (
-          <p
-            className={`text-2xl font-semibold tracking-tight ${accent ? "text-success" : ""}`}
-          >
-            {money ? formatCurrency(value ?? 0) : (value ?? 0)}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function RankTable({
-  loading,
-  head,
-  rows,
-  empty,
-}: {
-  loading: boolean;
-  head: string[];
-  rows: string[][];
-  empty: string;
-}) {
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    );
-  }
-  if (rows.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>;
-  }
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {head.map((h, i) => (
-            <TableHead key={h} className={i === 0 ? "" : "text-right"}>
-              {h}
-            </TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row, ri) => (
-          <TableRow key={ri}>
-            {row.map((cell, ci) => (
-              <TableCell
-                key={ci}
-                className={
-                  ci === 0
-                    ? "font-medium"
-                    : "text-right tabular-nums text-muted-foreground"
-                }
-              >
-                {cell}
-              </TableCell>
-            ))}
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
   );
 }

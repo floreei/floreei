@@ -2,7 +2,8 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
-  "setupFiles": ["reflect-metadata"],
+  "setupFiles": ["reflect-metadata", "<rootDir>/setup-env.ts"],
+  "testTimeout": 20000,
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]

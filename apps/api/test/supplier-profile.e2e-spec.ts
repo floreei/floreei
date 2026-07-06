@@ -13,6 +13,7 @@ describe("Perfil do fornecedor (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@fp.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -20,8 +21,7 @@ describe("Perfil do fornecedor (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@fp.com" })).accessToken;
+    await ctx.resetBusiness();
     supplierId = (
       await http.post("/api/suppliers").set(auth()).send({ name: "Ceasa" }).expect(201)
     ).body.id;

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Customer } from "@sistema-flores/types";
-import { MoreHorizontal, Plus, Search, Users } from "lucide-react";
+import { Eye, MoreHorizontal, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -89,6 +89,7 @@ export default function CustomersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead className="hidden sm:table-cell">Documento</TableHead>
+                <TableHead />
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -108,6 +109,14 @@ export default function CustomersPage() {
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">
                     {customer.document || "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/clientes/${customer.id}`}>
+                        <Eye className="h-4 w-4" />
+                        Ver detalhes
+                      </Link>
+                    </Button>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

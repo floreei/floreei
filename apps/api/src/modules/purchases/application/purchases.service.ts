@@ -76,6 +76,7 @@ export class PurchasesService {
         input.items.map((i) => ({
           productId: i.productId ?? null,
           quantity: i.quantity,
+          unitPrice: i.unitPrice,
         })),
       );
     }
@@ -124,6 +125,7 @@ export class PurchasesService {
         input.items.map((i) => ({
           productId: i.productId ?? null,
           quantity: i.quantity,
+          unitPrice: i.unitPrice,
         })),
       );
     }
@@ -144,6 +146,7 @@ export class PurchasesService {
       purchase.items.map((i) => ({
         productId: i.productId ?? null,
         quantity: i.quantity,
+        unitPrice: i.unitPrice,
       })),
     );
     return this.findOne(id);

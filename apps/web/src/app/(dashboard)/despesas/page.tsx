@@ -1,10 +1,17 @@
 "use client";
 
-import type { Expense } from "@sistema-flores/types";
-import { MoreHorizontal, Plus, Receipt } from "lucide-react";
+import type { Expense, ExpenseQuery } from "@sistema-flores/types";
+import {
+  FileText,
+  MoreHorizontal,
+  Plus,
+  Receipt,
+  Repeat,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ExpenseDialog } from "@/components/expenses/expense-dialog";
+import { MarkPaidDialog } from "@/components/expenses/mark-paid-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -26,23 +33,52 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useDeleteExpense, useExpenses } from "@/lib/api/expenses";
+import {
+  useDeleteExpense,
+  useExpenses,
+  useUnpayExpense,
+} from "@/lib/api/expenses";
 import { useAuth } from "@/lib/auth/auth-context";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+
+type StatusFilter = NonNullable<ExpenseQuery["status"]>;
+
+const filters: Array<[StatusFilter, string]> = [
+  ["all", "Todas"],
+  ["unpaid", "A pagar"],
+  ["overdue", "Vencidas"],
+  ["paid", "Pagas"],
+];
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function StatusBadge({ expense }: { expense: Expense }) {
+  if (expense.paid) return <Badge variant="success">Paga</Badge>;
+  if (expense.dueDate < todayStr())
+    return <Badge variant="destructive">Vencida</Badge>;
+  return <Badge variant="warning">A pagar</Badge>;
+}
 
 export default function ExpensesPage() {
   const { user } = useAuth();
-  const { data, isLoading } = useExpenses();
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const { data, isLoading } = useExpenses({ status });
   const remove = useDeleteExpense();
+  const unpay = useUnpayExpense();
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [paying, setPaying] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<Expense | null>(null);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Despesas"
-        description="Custos operacionais (aluguel, transporte, salários…) que entram na DRE."
+        description="Contas a pagar e pagas — vencimento, comprovantes e resultado (DRE)."
       >
         <Button
           onClick={() => {
@@ -54,6 +90,23 @@ export default function ExpensesPage() {
           Nova despesa
         </Button>
       </PageHeader>
+
+      <div className="flex flex-wrap gap-2">
+        {filters.map(([value, labelText]) => (
+          <button
+            key={value}
+            onClick={() => setStatus(value)}
+            className={cn(
+              "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+              status === value
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {labelText}
+          </button>
+        ))}
+      </div>
 
       <Card>
         {isLoading ? (
@@ -68,7 +121,9 @@ export default function ExpensesPage() {
               <TableRow>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="hidden sm:table-cell">Categoria</TableHead>
-                <TableHead className="hidden md:table-cell">Data</TableHead>
+                <TableHead className="hidden md:table-cell">Vencimento</TableHead>
+                <TableHead>Situação</TableHead>
+                <TableHead className="hidden lg:table-cell">Anexos</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
@@ -76,12 +131,45 @@ export default function ExpensesPage() {
             <TableBody>
               {data.data.map((expense) => (
                 <TableRow key={expense.id}>
-                  <TableCell className="font-medium">{expense.description}</TableCell>
+                  <TableCell className="font-medium">
+                    <span className="flex items-center gap-1.5">
+                      {expense.description}
+                      {expense.recurring ? (
+                        <Repeat
+                          className="h-3.5 w-3.5 text-muted-foreground"
+                          aria-label="Recorrente"
+                        />
+                      ) : null}
+                    </span>
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Badge variant="secondary">{expense.costCenter}</Badge>
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground md:table-cell">
-                    {formatDate(expense.date)}
+                    {formatDate(expense.dueDate)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge expense={expense} />
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <div className="flex gap-1.5">
+                      {expense.attachments.map((a) => (
+                        <a
+                          key={a.id}
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={a.kind === "BILL" ? "Conta" : "Comprovante"}
+                          className="text-muted-foreground transition-colors hover:text-primary"
+                        >
+                          {a.kind === "BILL" ? (
+                            <FileText className="h-4 w-4" />
+                          ) : (
+                            <Receipt className="h-4 w-4" />
+                          )}
+                        </a>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums font-medium">
                     {formatCurrency(expense.amount)}
@@ -94,6 +182,20 @@ export default function ExpensesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {expense.paid ? (
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              await unpay.mutateAsync(expense.id);
+                              toast.success("Pagamento desfeito (voltou para 'a pagar').");
+                            }}
+                          >
+                            Desfazer pagamento
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => setPaying(expense)}>
+                            Marcar como pago
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => {
                             setEditing(expense);
@@ -122,7 +224,7 @@ export default function ExpensesPage() {
             className="border-0"
             icon={<Receipt />}
             title="Nenhuma despesa"
-            description="Registre custos operacionais para ver o resultado real no DRE."
+            description="Registre contas a pagar (aluguel, energia, fornecedores…) com vencimento e comprovante."
             action={
               <Button
                 onClick={() => {
@@ -139,6 +241,11 @@ export default function ExpensesPage() {
       </Card>
 
       <ExpenseDialog open={dialogOpen} onOpenChange={setDialogOpen} expense={editing} />
+      <MarkPaidDialog
+        open={Boolean(paying)}
+        onOpenChange={(o) => !o && setPaying(null)}
+        expense={paying}
+      />
       <ConfirmDialog
         open={Boolean(deleting)}
         onOpenChange={(o) => !o && setDeleting(null)}

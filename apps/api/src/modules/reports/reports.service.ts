@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type {
+  MonthlyReportPoint,
   PartyRanking,
   ProductRanking,
   ReportData,
@@ -44,24 +45,50 @@ export class ReportsService {
   async generate(fromInput?: string, toInput?: string): Promise<ReportData> {
     const { from, to } = this.defaultRange(fromInput, toInput);
 
-    const [summary, topProducts, suppliers, customers] = await Promise.all([
-      this.summary(from, to),
-      this.topProducts(from, to),
-      this.supplierRanking(from, to),
-      this.customerRanking(from, to),
-    ]);
+    const [summary, monthly, topProducts, suppliers, customers] =
+      await Promise.all([
+        this.summary(from, to),
+        this.monthlySeries(from, to),
+        this.topProducts(from, to),
+        this.supplierRanking(from, to),
+        this.customerRanking(from, to),
+      ]);
 
-    return { from, to, summary, topProducts, suppliers, customers };
+    return { from, to, summary, monthly, topProducts, suppliers, customers };
+  }
+
+  /** Receita, custo e lucro agregados por mês do período (vendas/eventos). */
+  private async monthlySeries(
+    from: string,
+    to: string,
+  ): Promise<MonthlyReportPoint[]> {
+    const rows = await this.events
+      .qb("event")
+      .select("TO_CHAR(event.date, 'YYYY-MM')", "ym")
+      .addSelect("COALESCE(SUM(event.sold_value),0)", "revenue")
+      .addSelect("COALESCE(SUM(event.cost),0)", "cogs")
+      .andWhere("event.status <> 'CANCELED'")
+      .andWhere("event.date BETWEEN :from AND :to", { from, to })
+      .groupBy("TO_CHAR(event.date, 'YYYY-MM')")
+      .orderBy("TO_CHAR(event.date, 'YYYY-MM')", "ASC")
+      .getRawMany<{ ym: string; revenue: string; cogs: string }>();
+
+    return rows.map((r) => {
+      const revenue = roundMoney(Number(r.revenue ?? 0));
+      const cogs = roundMoney(Number(r.cogs ?? 0));
+      return { ym: r.ym, revenue, cogs, grossProfit: roundMoney(revenue - cogs) };
+    });
   }
 
   private async summary(from: string, to: string): Promise<ReportSummary> {
     const eventAgg = await this.events
       .qb("event")
       .select("COALESCE(SUM(event.sold_value),0)", "revenue")
+      .addSelect("COALESCE(SUM(event.cost),0)", "cogs")
       .addSelect("COUNT(*)", "count")
       .andWhere("event.status <> 'CANCELED'")
       .andWhere("event.date BETWEEN :from AND :to", { from, to })
-      .getRawOne<{ revenue: string; count: string }>();
+      .getRawOne<{ revenue: string; cogs: string; count: string }>();
 
     const purchaseAgg = await this.purchases
       .qb("purchase")
@@ -76,12 +103,13 @@ export class ReportsService {
     ]);
 
     const revenue = roundMoney(Number(eventAgg?.revenue ?? 0));
-    const purchasesCost = roundMoney(Number(purchaseAgg?.cost ?? 0));
+    const cogs = roundMoney(Number(eventAgg?.cogs ?? 0));
 
     return {
       revenue,
-      purchasesCost,
-      grossProfit: roundMoney(revenue - purchasesCost),
+      cogs,
+      purchasesCost: roundMoney(Number(purchaseAgg?.cost ?? 0)),
+      grossProfit: roundMoney(revenue - cogs),
       eventsCount: Number(eventAgg?.count ?? 0),
       received,
       paid,

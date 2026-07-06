@@ -4,7 +4,12 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { ProvisionInput, PublicUser } from "@sistema-flores/types";
+import {
+  type ProvisionInput,
+  type PublicUser,
+  resolveCompanyAccess,
+  TRIAL_LENGTH_DAYS,
+} from "@sistema-flores/types";
 import { DataSource, Repository } from "typeorm";
 import type { FirebaseIdentity } from "../../../common/auth/firebase-token.guard";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
@@ -30,11 +35,31 @@ export class AuthService {
     private readonly companies: Repository<CompanyEntity>,
   ) {}
 
-  private async withCompanyName(user: PublicUser): Promise<PublicUser> {
+  private async withCompanyInfo(user: PublicUser): Promise<PublicUser> {
     const company = await this.companies.findOne({
       where: { id: user.companyId },
     });
-    return { ...user, companyName: company?.name };
+    if (!company) return user;
+    const resolved = resolveCompanyAccess(
+      {
+        plan: company.plan,
+        suspended: company.suspended,
+        trialEndsAt: company.trialEndsAt,
+      },
+      new Date(),
+    );
+    return {
+      ...user,
+      companyName: company.name,
+      access: {
+        plan: company.plan,
+        status: resolved.status,
+        trialDaysLeft: resolved.trialDaysLeft,
+        trialEndsAt: company.trialEndsAt
+          ? company.trialEndsAt.toISOString()
+          : null,
+      },
+    };
   }
 
   /**
@@ -55,9 +80,17 @@ export class AuthService {
       throw new ConflictException("Já existe uma conta com este e-mail.");
     }
 
+    const now = new Date();
     const user = await this.dataSource.transaction(async (manager) => {
       const company = await manager.save(
-        manager.create(CompanyEntity, { name: input.companyName }),
+        manager.create(CompanyEntity, {
+          name: input.companyName,
+          // Trial começa no cadastro (= primeiro acesso).
+          plan: "TRIAL",
+          firstAccessAt: now,
+          trialEndsAt: new Date(now.getTime() + TRIAL_LENGTH_DAYS * 86_400_000),
+          lastSeenAt: now,
+        }),
       );
       return manager.save(
         manager.create(UserEntity, {
@@ -71,13 +104,13 @@ export class AuthService {
       );
     });
 
-    return this.withCompanyName(toPublicUser(user));
+    return this.withCompanyInfo(toPublicUser(user));
   }
 
   /** Retorna o perfil do usuário autenticado. */
   async me(userId: string): Promise<PublicUser> {
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    return this.withCompanyName(toPublicUser(user));
+    return this.withCompanyInfo(toPublicUser(user));
   }
 }

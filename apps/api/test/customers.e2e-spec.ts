@@ -1,5 +1,10 @@
 import request from "supertest";
-import { bearer, loginAs, registerCompany } from "./utils/auth-helper";
+import {
+  bearer,
+  loginAs,
+  registerCompany,
+  uniqueEmail,
+} from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
 describe("Clientes (e2e)", () => {
@@ -10,6 +15,7 @@ describe("Clientes (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, {})).accessToken;
   });
 
   afterAll(async () => {
@@ -17,9 +23,7 @@ describe("Clientes (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    const auth = await registerCompany(http, { email: "dono@flor.com" });
-    token = auth.accessToken;
+    await ctx.resetBusiness();
   });
 
   it("exige autenticação", async () => {
@@ -81,7 +85,7 @@ describe("Clientes (e2e)", () => {
       .send({ name: "Cliente Empresa A" })
       .expect(201);
 
-    const other = await registerCompany(http, { email: "dono@outra.com" });
+    const other = await registerCompany(http, {});
     const list = await http
       .get("/api/customers")
       .set(bearer(other.accessToken))
@@ -96,12 +100,13 @@ describe("Clientes (e2e)", () => {
       .send({ name: "Para excluir" })
       .expect(201);
 
+    const opEmail = uniqueEmail("op");
     await http
       .post("/api/users")
       .set(bearer(token))
-      .send({ name: "Op", email: "op@flor.com", password: "segredo123" })
+      .send({ name: "Op", email: opEmail, password: "Segredo123!" })
       .expect(201);
-    const operator = await loginAs(http, "op@flor.com", "segredo123");
+    const operator = await loginAs(http, opEmail, "Segredo123!");
 
     await http
       .delete(`/api/customers/${created.body.id}`)

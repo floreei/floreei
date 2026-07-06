@@ -1,0 +1,14 @@
+{
+  "name": "Floreei — Console do gestor",
+  "short_name": "Console",
+  "description": "Painel do gestor da plataforma Floreei.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4FAF6",
+  "theme_color": "#2F6050",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

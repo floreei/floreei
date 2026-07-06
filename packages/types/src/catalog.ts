@@ -17,15 +17,33 @@ export interface Category {
   updatedAt: string;
 }
 
-/** Produto do catálogo (flor/folhagem/insumo). */
+/**
+ * Produto do catálogo (flor/folhagem/insumo/material).
+ * - `unit` é a **unidade-base** de consumo/estoque (ex.: HASTE).
+ * - `purchaseUnit` + `packSize` descrevem a **embalagem de compra** (ex.: 1 MACO
+ *   contém 5 hastes). `currentUnitCost` é o custo por unidade-base (última compra).
+ */
 export const productInputSchema = z.object({
   categoryId: idSchema,
   name: z.string().trim().min(2, "Informe o nome do produto").max(160),
   unit: productUnitSchema.default("UNIDADE"),
+  purchaseUnit: productUnitSchema.default("UNIDADE"),
+  packSize: z.coerce
+    .number()
+    .positive("O conteúdo do pacote deve ser maior que zero")
+    .default(1),
   defaultPurchasePrice: moneySchema.default(0),
   defaultSalePrice: moneySchema.default(0),
+  currentUnitCost: moneySchema.default(0),
   minStock: z.coerce.number().int().min(0).default(0),
   active: z.boolean().default(true),
+  /** URL da imagem do item (Firebase Storage) — opcional. */
+  imageUrl: z
+    .string()
+    .max(1000)
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
 
@@ -42,11 +60,20 @@ export interface Product {
   categoryId: string;
   category?: Category;
   name: string;
+  /** Unidade-base de consumo/estoque (ex.: HASTE). */
   unit: ProductUnit;
+  /** Unidade de compra (embalagem, ex.: MACO). */
+  purchaseUnit: ProductUnit;
+  /** Quantas unidades-base vêm em 1 unidade de compra (ex.: 5 hastes por maço). */
+  packSize: number;
   defaultPurchasePrice: number;
   defaultSalePrice: number;
+  /** Custo por unidade-base (última compra ÷ packSize). */
+  currentUnitCost: number;
   minStock: number;
   active: boolean;
+  /** URL da imagem do item (Firebase Storage) ou null. */
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

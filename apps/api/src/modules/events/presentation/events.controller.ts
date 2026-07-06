@@ -10,7 +10,11 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
-import { attachmentInputSchema, quickSaleSchema } from "@sistema-flores/types";
+import {
+  attachmentInputSchema,
+  editSaleItemsSchema,
+  quickSaleSchema,
+} from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { Roles } from "../../../common/auth/roles.decorator";
 import { EventsService } from "../application/events.service";
@@ -23,6 +27,7 @@ import {
 
 class AttachmentInputDto extends createZodDto(attachmentInputSchema) {}
 class QuickSaleDto extends createZodDto(quickSaleSchema) {}
+class EditSaleItemsDto extends createZodDto(editSaleItemsSchema) {}
 
 @Controller("events")
 export class EventsController {
@@ -59,6 +64,15 @@ export class EventsController {
   @Patch(":id")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: EventUpdateDto) {
     return this.events.update(id, dto);
+  }
+
+  @Roles("ADMIN")
+  @Patch(":id/items")
+  editItems(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: EditSaleItemsDto,
+  ) {
+    return this.events.editItems(id, dto);
   }
 
   @Post(":id/cancel")

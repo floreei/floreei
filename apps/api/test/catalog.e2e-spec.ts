@@ -13,6 +13,7 @@ describe("Catálogo (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@catalogo.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -20,13 +21,29 @@ describe("Catálogo (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@catalogo.com" })).accessToken;
+    await ctx.resetBusiness();
   });
 
   it("cria categoria e impede nome duplicado", async () => {
     await createCategory("Rosas").expect(201);
     await createCategory("Rosas").expect(409);
+  });
+
+  it("guarda a imagem (URL) do produto", async () => {
+    const cat = await createCategory("Vinhos").expect(201);
+    const url = "https://storage.googleapis.com/x/companies/y/products/z.jpg";
+    const created = await http
+      .post("/api/products")
+      .set(bearer(token))
+      .send({ categoryId: cat.body.id, name: "Vinho Tinto", imageUrl: url })
+      .expect(201);
+    expect(created.body.imageUrl).toBe(url);
+
+    const fetched = await http
+      .get(`/api/products?categoryId=${cat.body.id}`)
+      .set(bearer(token))
+      .expect(200);
+    expect(fetched.body.data[0].imageUrl).toBe(url);
   });
 
   it("cria produto vinculado a uma categoria e calcula nada extra", async () => {

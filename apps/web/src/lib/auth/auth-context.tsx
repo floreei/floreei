@@ -1,11 +1,17 @@
 "use client";
 
-import type { LoginInput, PublicUser, RegisterInput } from "@sistema-flores/types";
+import {
+  ACCESS_DENIED_CODES,
+  type LoginInput,
+  type PublicUser,
+  type RegisterInput,
+} from "@sistema-flores/types";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -29,15 +35,32 @@ export interface PendingProvision {
   name: string;
 }
 
+/** Empresa autenticada, mas sem acesso liberado (trial expirado ou suspensa). */
+export interface BlockedAccess {
+  code: string;
+  message: string;
+}
+
+/** Autenticado no Firebase, mas com e-mail ainda não verificado. */
+export interface AwaitingVerification {
+  email: string;
+}
+
 interface AuthContextValue {
   user: PublicUser | null;
   ready: boolean;
   pendingProvision: PendingProvision | null;
+  blocked: BlockedAccess | null;
+  awaitingVerification: AwaitingVerification | null;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   /** Cria empresa + conta local para um usuário já autenticado no Firebase. */
   provisionCompany: (companyName: string, name: string) => Promise<void>;
+  /** Reenvia o e-mail de verificação. */
+  resendVerification: () => Promise<void>;
+  /** Recarrega o usuário; se verificado, provisiona (se veio de cadastro) e segue. */
+  confirmVerification: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   /** Atualiza campos do usuário em memória (ex.: nome da empresa). */
@@ -81,18 +104,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [pendingProvision, setPendingProvision] =
     useState<PendingProvision | null>(null);
+  const [blocked, setBlocked] = useState<BlockedAccess | null>(null);
+  const [awaitingVerification, setAwaitingVerification] =
+    useState<AwaitingVerification | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
   // Evita marcar "pendingProvision" enquanto um provisionamento explícito roda.
   const provisioningRef = useRef(false);
+  // Dados do cadastro guardados para provisionar após a verificação do e-mail.
+  const pendingRegistration = useRef<{
+    companyName: string;
+    name: string;
+  } | null>(null);
 
   const refreshProfile = useCallback(async (): Promise<void> => {
     try {
       setUser(await api.get<PublicUser>("/auth/me"));
       setPendingProvision(null);
+      setBlocked(null);
+      setAwaitingVerification(null);
     } catch (error) {
-      // 401 = autenticado no Firebase mas ainda sem conta local.
       if (error instanceof ApiError && error.status === 401) {
+        // 401 = autenticado no Firebase mas ainda sem conta local.
         setUser(null);
         const fb = auth.currentUser;
         if (fb && !provisioningRef.current) {
@@ -101,6 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: fb.displayName ?? "",
           });
         }
+      } else if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        error.code === ACCESS_DENIED_CODES.EMAIL_NOT_VERIFIED
+      ) {
+        // E-mail ainda não verificado.
+        setUser(null);
+        setAwaitingVerification({ email: auth.currentUser?.email ?? "" });
+      } else if (error instanceof ApiError && error.status === 403 && error.code) {
+        // 403 com outro código = empresa sem acesso (trial expirado ou suspensa).
+        setUser(null);
+        setBlocked({ code: error.code, message: error.message });
       } else {
         throw error;
       }
@@ -114,6 +159,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setPendingProvision(null);
+        setBlocked(null);
+        setAwaitingVerification(null);
       }
       setReady(true);
     });
@@ -133,26 +180,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(
     async ({ companyName, name, email, password }: RegisterInput) => {
-      provisioningRef.current = true;
       try {
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-        } catch (error) {
-          throw mapFirebaseError(error);
-        }
-        try {
-          await api.post<PublicUser>("/auth/provision", { companyName, name });
-        } catch (error) {
-          // Desfaz o cadastro no Firebase se o provisionamento falhar.
-          await auth.currentUser?.delete().catch(() => undefined);
-          throw error;
-        }
-        await refreshProfile();
-      } finally {
-        provisioningRef.current = false;
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        throw mapFirebaseError(error);
       }
+      // Guarda os dados para provisionar depois da verificação e envia o link.
+      pendingRegistration.current = { companyName, name };
+      try {
+        if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+      } catch {
+        // Falha ao enviar não bloqueia — há o botão de reenviar.
+      }
+      setAwaitingVerification({ email });
     },
-    [refreshProfile],
+    [],
   );
 
   const loginWithGoogle = useCallback(async () => {
@@ -169,6 +211,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       throw mapFirebaseError(error);
     }
+    await refreshProfile();
+  }, [refreshProfile]);
+
+  const resendVerification = useCallback(async () => {
+    if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+  }, []);
+
+  const confirmVerification = useCallback(async () => {
+    const fb = auth.currentUser;
+    if (!fb) throw new Error("Sessão perdida. Entre novamente.");
+    await fb.reload();
+    if (!fb.emailVerified) {
+      throw new Error(
+        "Ainda não confirmamos seu e-mail. Clique no link que enviamos e tente de novo.",
+      );
+    }
+    // Novo ID token já com email_verified=true, para as chamadas seguintes.
+    await fb.getIdToken(true);
+    provisioningRef.current = true;
+    try {
+      if (pendingRegistration.current) {
+        await api.post<PublicUser>(
+          "/auth/provision",
+          pendingRegistration.current,
+        );
+        pendingRegistration.current = null;
+      }
+    } finally {
+      provisioningRef.current = false;
+    }
+    setAwaitingVerification(null);
     await refreshProfile();
   }, [refreshProfile]);
 
@@ -190,6 +263,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
     setUser(null);
     setPendingProvision(null);
+    setBlocked(null);
+    setAwaitingVerification(null);
+    pendingRegistration.current = null;
     queryClient.clear();
     router.push("/login");
   }, [queryClient, router]);
@@ -214,10 +290,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         ready,
         pendingProvision,
+        blocked,
+        awaitingVerification,
         login,
         register,
         loginWithGoogle,
         provisionCompany,
+        resendVerification,
+        confirmVerification,
         logout,
         resetPassword,
         patchUser,

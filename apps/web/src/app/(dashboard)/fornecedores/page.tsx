@@ -1,7 +1,7 @@
 "use client";
 
 import type { Supplier } from "@sistema-flores/types";
-import { MoreHorizontal, Plus, Search, Truck } from "lucide-react";
+import { Eye, MoreHorizontal, Plus, Search, Truck } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -81,6 +81,7 @@ export default function SuppliersPage() {
                 <TableHead>Cidade</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Pagamento</TableHead>
+                <TableHead />
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -103,6 +104,14 @@ export default function SuppliersPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {supplier.paymentTerms || "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/fornecedores/${supplier.id}`}>
+                        <Eye className="h-4 w-4" />
+                        Ver detalhes
+                      </Link>
+                    </Button>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

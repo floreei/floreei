@@ -1,5 +1,10 @@
 import request from "supertest";
-import { bearer, loginAs, registerCompany } from "./utils/auth-helper";
+import {
+  bearer,
+  loginAs,
+  registerCompany,
+  uniqueEmail,
+} from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
 describe("Dados da empresa (e2e)", () => {
@@ -22,7 +27,6 @@ describe("Dados da empresa (e2e)", () => {
     await ctx.reset();
     token = (
       await registerCompany(http, {
-        email: "dono@empresa.com",
         companyName: "Floricultura Bela Flor",
       })
     ).accessToken;
@@ -52,12 +56,13 @@ describe("Dados da empresa (e2e)", () => {
   });
 
   it("apenas ADMIN pode atualizar", async () => {
+    const opEmail = uniqueEmail("op");
     await http
       .post("/api/users")
       .set(auth())
-      .send({ name: "Op", email: "op@empresa.com", password: "segredo123" })
+      .send({ name: "Op", email: opEmail, password: "Segredo123!" })
       .expect(201);
-    const operator = await loginAs(http, "op@empresa.com", "segredo123");
+    const operator = await loginAs(http, opEmail, "Segredo123!");
 
     await http
       .patch("/api/company")

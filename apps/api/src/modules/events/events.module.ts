@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { ArrangementsModule } from "../arrangements/arrangements.module";
 import { CatalogModule } from "../catalog/catalog.module";
 import { CustomersModule } from "../customers/customers.module";
 import { QuotesModule } from "../quotes/quotes.module";
@@ -23,6 +24,7 @@ import { EventsController } from "./presentation/events.controller";
     QuotesModule,
     StockModule,
     CatalogModule,
+    ArrangementsModule,
   ],
   controllers: [EventsController],
   providers: [EventsService, EventRepository, EventAttachmentRepository],

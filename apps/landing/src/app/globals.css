@@ -1,0 +1,335 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens — design system "Sistema Flores" (mesmo do produto). Landing em light mode. */
+@layer base {
+  :root {
+    --background: 140 16% 98%;
+    --foreground: 165 16% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 165 16% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 165 16% 15%;
+
+    --primary: 160 34% 28%;
+    --primary-foreground: 140 30% 98%;
+
+    --secondary: 146 20% 93%;
+    --secondary-foreground: 165 16% 15%;
+    --muted: 144 16% 95%;
+    --muted-foreground: 158 8% 40%;
+
+    --accent: 22 44% 92%;
+    --accent-foreground: 16 40% 24%;
+    --clay: 16 54% 55%;
+    --clay-foreground: 0 0% 100%;
+
+    --success: 152 40% 34%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 72% 48%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 4 62% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 146 14% 90%;
+    --input: 146 14% 86%;
+    --ring: 160 34% 28%;
+
+    --chart-1: 160 34% 28%;
+    --chart-2: 16 54% 55%;
+    --chart-3: 192 42% 38%;
+    --chart-4: 38 78% 52%;
+    --chart-5: 268 32% 60%;
+
+    --radius: 0.8rem;
+    --radius-sm: calc(var(--radius) - 0.35rem);
+    --radius-md: calc(var(--radius) - 0.2rem);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 0.4rem);
+
+    --shadow-xs: 0 1px 2px 0 hsl(165 20% 15% / 0.05);
+    --shadow-card: 0 1px 2px 0 hsl(165 20% 15% / 0.04),
+      0 4px 12px -2px hsl(165 20% 15% / 0.06),
+      0 12px 28px -8px hsl(165 20% 15% / 0.05);
+    --shadow-lg: 0 2px 4px 0 hsl(165 20% 15% / 0.05),
+      0 8px 24px -4px hsl(165 20% 15% / 0.08),
+      0 24px 48px -12px hsl(165 20% 15% / 0.1);
+
+    --focus-ring: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.7);
+    --ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);
+    --duration-fast: 120ms;
+    --duration-base: 200ms;
+    --tracking-tight: -0.02em;
+    --tracking-caps: 0.08em;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+  }
+  :where(a, button, input, select, [tabindex]):focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* Utilitários e classes de apoio — portados do protótipo do handoff. */
+.font-serif,
+.sf-serif {
+  font-family: var(--font-serif, Georgia, serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 40, "SOFT" 40;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  font-size: 12px;
+  font-weight: 700;
+  color: hsl(var(--clay));
+}
+.sf-wrap {
+  max-width: 1200px;
+  /* margin-inline (não `margin: 0 auto`) para não zerar margens verticais
+     de utilitários como `mt-*` aplicados no próprio .sf-wrap. */
+  margin-inline: auto;
+  padding: 0 clamp(1.25rem, 3vw, 2rem);
+  width: 100%;
+}
+
+/* Respiro vertical de seção — fluido (56px no mobile → 80px no desktop). */
+.section-y {
+  padding-top: clamp(3.5rem, 6vw, 5rem);
+  padding-bottom: clamp(3.5rem, 6vw, 5rem);
+}
+
+/* Tipografia display fluida — escala suave, sem estourar em larguras médias. */
+.t-hero {
+  font-size: clamp(2.5rem, 5.2vw, 3.5rem);
+}
+.t-section {
+  font-size: clamp(2rem, 3.6vw, 2.625rem);
+}
+.t-h3 {
+  font-size: clamp(1.5rem, 2.4vw, 1.75rem);
+}
+.t-cta {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+}
+
+/* CTAs */
+.sf-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 52px;
+  padding: 0 26px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  border: none;
+  transition: background var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+.sf-cta:hover {
+  transform: translateY(-1px);
+}
+.sf-cta-primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: var(--shadow-card);
+}
+.sf-cta-primary:hover {
+  background: hsl(160 36% 23%);
+}
+.sf-cta-clay {
+  background: hsl(var(--clay));
+  color: hsl(var(--clay-foreground));
+  box-shadow: var(--shadow-card);
+}
+.sf-cta-clay:hover {
+  background: hsl(16 56% 48%);
+}
+.sf-cta-outline {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--input));
+  box-shadow: var(--shadow-xs);
+}
+.sf-cta-outline:hover {
+  background: hsl(var(--secondary));
+}
+.sf-link {
+  color: hsl(var(--muted-foreground));
+  font-size: 15px;
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+.sf-link:hover {
+  color: hsl(var(--primary));
+}
+
+/* Cards / hover */
+.sf-feat {
+  transition: box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+.sf-feat:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+.sf-plan {
+  transition: box-shadow var(--duration-base) var(--ease-standard);
+}
+.sf-plan:hover {
+  box-shadow: var(--shadow-lg);
+}
+.sf-chk {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  font-size: 15px;
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+}
+
+/* Sliders (range) */
+.sf-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(var(--secondary));
+  outline: none;
+}
+.sf-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  border: 3px solid hsl(var(--card));
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.sf-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  border: 3px solid hsl(var(--card));
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.sf-slider-light {
+  background: hsl(0 0% 100% / 0.22);
+}
+.sf-slider-light::-webkit-slider-thumb {
+  background: hsl(var(--clay));
+  border-color: hsl(var(--primary));
+}
+.sf-slider-light::-moz-range-thumb {
+  background: hsl(var(--clay));
+  border-color: hsl(var(--primary));
+}
+
+/* Reveal / decoração */
+@keyframes sfIn {
+  from {
+    opacity: 0.4;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.sf-rv {
+  opacity: 0;
+}
+.sf-rv.sf-in {
+  animation: sfIn 0.8s var(--ease-standard) both;
+}
+@keyframes sfFloat {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-14px, -18px);
+  }
+}
+@keyframes sfFloat2 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(16px, 12px);
+  }
+}
+@keyframes sfPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--clay) / 0);
+  }
+  50% {
+    box-shadow: 0 0 0 7px hsl(var(--clay) / 0.12);
+  }
+}
+.sf-blob {
+  animation: sfFloat 9s var(--ease-standard) infinite;
+}
+.sf-blob2 {
+  animation: sfFloat2 11s var(--ease-standard) infinite;
+}
+.sf-pulse {
+  animation: sfPulse 2.6s var(--ease-standard) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .sf-rv {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .sf-blob,
+  .sf-blob2,
+  .sf-pulse {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -32,6 +32,23 @@ export const stockMovementInputSchema = z.object({
 });
 export type StockMovementInput = z.infer<typeof stockMovementInputSchema>;
 
+/**
+ * Ajuste manual de saldo: informa a **quantidade real** em estoque (contagem
+ * física) e o sistema registra a correção (para cima = AJUSTE; para baixo = saída
+ * de correção, neutra no DRE — perdas reais usam o tipo PERDA no movimento).
+ */
+export const stockAdjustSchema = z.object({
+  productId: idSchema,
+  balance: z.coerce.number().min(0, "Saldo não pode ser negativo"),
+  notes: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+export type StockAdjustInput = z.infer<typeof stockAdjustSchema>;
+
 export const stockMovementQuerySchema = z.object({
   productId: idSchema.optional(),
 });
@@ -58,6 +75,10 @@ export interface StockLevel {
   categoryName: string | null;
   unit: ProductUnit;
   onHand: number;
+  /** Custo por unidade-base (última compra). */
+  unitCost: number;
+  /** onHand × unitCost (estoque valorizado). */
+  value: number;
   minStock: number;
   low: boolean;
 }
@@ -74,5 +95,7 @@ export interface ExpiringLot {
 export interface StockOverview {
   levels: StockLevel[];
   lowCount: number;
+  /** Soma de todos os `value` (estoque valorizado total). */
+  totalValue: number;
   expiringSoon: ExpiringLot[];
 }

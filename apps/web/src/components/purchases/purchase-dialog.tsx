@@ -36,6 +36,7 @@ import { ApiError } from "@/lib/api/client";
 import { useProducts } from "@/lib/api/catalog";
 import { useSavePurchase } from "@/lib/api/purchases";
 import { useSuppliers } from "@/lib/api/suppliers";
+import { unitLabels } from "@/lib/labels";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type ItemForm = {
@@ -133,8 +134,9 @@ export function PurchaseDialog({
     if (!product) return;
     form.setValue(`items.${index}.productId`, product.id);
     form.setValue(`items.${index}.description`, product.name);
-    form.setValue(`items.${index}.unit`, product.unit);
-    // Preenche o preço padrão do catálogo — editável caso tenha mudado.
+    // A quantidade é em EMBALAGENS de compra; o estoque converte por packSize.
+    form.setValue(`items.${index}.unit`, product.purchaseUnit);
+    // Preenche o preço padrão do catálogo (por embalagem) — editável.
     if (!form.getValues(`items.${index}.unitPrice`)) {
       form.setValue(`items.${index}.unitPrice`, product.defaultPurchasePrice);
     }
@@ -146,8 +148,8 @@ export function PurchaseDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar compra" : "Nova compra"}</DialogTitle>
           <DialogDescription>
-            Escolha o fornecedor, liste as flores (do catálogo, para atualizar o
-            estoque), informe a entrega e o valor.
+            Escolha o fornecedor, liste os itens (do catálogo, para atualizar o
+            estoque) — flores, materiais, doces, decorativos — a entrega e o valor.
           </DialogDescription>
         </DialogHeader>
 
@@ -200,16 +202,21 @@ export function PurchaseDialog({
           {/* Itens (flores) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Flores / insumos</Label>
+              <Label>Itens do catálogo</Label>
               <span className="text-xs text-muted-foreground">
                 Ligue ao catálogo para entrar no estoque
               </span>
             </div>
             <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
               {fields.map((row, index) => {
-                const line =
-                  (Number(items?.[index]?.quantity) || 0) *
-                  (Number(items?.[index]?.unitPrice) || 0);
+                const qty = Number(items?.[index]?.quantity) || 0;
+                const unitPrice = Number(items?.[index]?.unitPrice) || 0;
+                const line = qty * unitPrice;
+                const prod = products?.data.find(
+                  (p) => p.id === items?.[index]?.productId,
+                );
+                const perUnit =
+                  prod && prod.packSize > 1 ? unitPrice / prod.packSize : null;
                 return (
                   <div
                     key={row.id}
@@ -293,6 +300,14 @@ export function PurchaseDialog({
                         </span>
                       </div>
                     </div>
+                    {perUnit != null && prod ? (
+                      <p className="text-right text-xs text-muted-foreground">
+                        ≈ {formatCurrency(perUnit)}/
+                        {unitLabels[prod.unit].toLowerCase()} ({prod.packSize}{" "}
+                        {unitLabels[prod.unit].toLowerCase()} por{" "}
+                        {unitLabels[prod.purchaseUnit].toLowerCase()})
+                      </p>
+                    ) : null}
                   </div>
                 );
               })}
@@ -304,7 +319,7 @@ export function PurchaseDialog({
               onClick={() => append({ ...emptyItem })}
             >
               <Plus className="h-4 w-4" />
-              Adicionar flor
+              Adicionar item
             </Button>
           </div>
 

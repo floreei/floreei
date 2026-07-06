@@ -1,5 +1,5 @@
 import request from "supertest";
-import { loginAs, registerCompany } from "./utils/auth-helper";
+import { loginAs, registerCompany, uniqueEmail } from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
 describe("Usuários + RBAC (e2e)", () => {
@@ -20,20 +20,21 @@ describe("Usuários + RBAC (e2e)", () => {
   });
 
   it("admin cria operador; operador não pode criar usuários (403)", async () => {
-    const admin = await registerCompany(http, { email: "admin@a.com" });
+    const admin = await registerCompany(http, {});
+    const opEmail = uniqueEmail("op");
 
     await http
       .post("/api/users")
       .set("Authorization", `Bearer ${admin.accessToken}`)
       .send({
         name: "Operador",
-        email: "op@a.com",
-        password: "segredo123",
+        email: opEmail,
+        password: "Segredo123!",
         role: "OPERATOR",
       })
       .expect(201);
 
-    const operator = await loginAs(http, "op@a.com", "segredo123");
+    const operator = await loginAs(http, opEmail, "Segredo123!");
 
     // operador pode listar
     await http
@@ -47,22 +48,23 @@ describe("Usuários + RBAC (e2e)", () => {
       .set("Authorization", `Bearer ${operator.accessToken}`)
       .send({
         name: "Outro",
-        email: "outro@a.com",
-        password: "segredo123",
+        email: uniqueEmail("outro"),
+        password: "Segredo123!",
         role: "OPERATOR",
       })
       .expect(403);
   });
 
   it("isola usuários por empresa no endpoint HTTP", async () => {
-    const a = await registerCompany(http, { email: "admin@empresaA.com" });
+    const a = await registerCompany(http, {});
+    const opaEmail = uniqueEmail("opa");
     await http
       .post("/api/users")
       .set("Authorization", `Bearer ${a.accessToken}`)
-      .send({ name: "Op A", email: "opa@a.com", password: "segredo123" })
+      .send({ name: "Op A", email: opaEmail, password: "Segredo123!" })
       .expect(201);
 
-    const b = await registerCompany(http, { email: "admin@empresaB.com" });
+    const b = await registerCompany(http, {});
 
     const listA = await http
       .get("/api/users")
@@ -76,7 +78,7 @@ describe("Usuários + RBAC (e2e)", () => {
     const emailsA = listA.body.map((u: { email: string }) => u.email).sort();
     const emailsB = listB.body.map((u: { email: string }) => u.email);
 
-    expect(emailsA).toEqual(["admin@empresaa.com", "opa@a.com"]);
-    expect(emailsB).toEqual(["admin@empresab.com"]);
+    expect(emailsA).toEqual([a.email, opaEmail].sort());
+    expect(emailsB).toEqual([b.email]);
   });
 });

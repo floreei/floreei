@@ -33,6 +33,9 @@ jobs:
       TEST_DATABASE_NAME: sistema_flores_test
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
+      # Config pública do Firebase (não é segredo) — o e2e usa o Firebase real.
+      FIREBASE_PROJECT_ID: meuflorista-7dfd5
+      FIREBASE_API_KEY: AIzaSyDZ4ECH6gnuh3f70TryAmIrsQFrZiQuhtY
 
     steps:
       - uses: actions/checkout@v4

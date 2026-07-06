@@ -1,3 +1,5 @@
+import { ArrangementItemEntity } from "../modules/arrangements/infrastructure/arrangement-item.entity";
+import { ArrangementEntity } from "../modules/arrangements/infrastructure/arrangement.entity";
 import { CategoryEntity } from "../modules/catalog/infrastructure/category.entity";
 import { ProductEntity } from "../modules/catalog/infrastructure/product.entity";
 import { CompanyEntity } from "../modules/companies/infrastructure/company.entity";
@@ -5,8 +7,10 @@ import { CustomerEntity } from "../modules/customers/infrastructure/customer.ent
 import { EventAttachmentEntity } from "../modules/events/infrastructure/event-attachment.entity";
 import { EventItemEntity } from "../modules/events/infrastructure/event-item.entity";
 import { EventEntity } from "../modules/events/infrastructure/event.entity";
+import { ExpenseAttachmentEntity } from "../modules/expenses/infrastructure/expense-attachment.entity";
 import { ExpenseEntity } from "../modules/expenses/infrastructure/expense.entity";
 import { PaymentEntity } from "../modules/finance/infrastructure/payment.entity";
+import { PlatformAdminEntity } from "../modules/platform/infrastructure/platform-admin.entity";
 import { PurchaseAttachmentEntity } from "../modules/purchases/infrastructure/purchase-attachment.entity";
 import { PurchaseItemEntity } from "../modules/purchases/infrastructure/purchase-item.entity";
 import { PurchaseEntity } from "../modules/purchases/infrastructure/purchase.entity";
@@ -35,4 +39,8 @@ export const entities = [
   EventAttachmentEntity,
   PurchaseAttachmentEntity,
   EventItemEntity,
+  ArrangementEntity,
+  ArrangementItemEntity,
+  ExpenseAttachmentEntity,
+  PlatformAdminEntity,
 ];

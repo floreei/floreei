@@ -16,6 +16,7 @@ describe("Dashboard (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@dash.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -23,8 +24,7 @@ describe("Dashboard (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@dash.com" })).accessToken;
+    await ctx.resetBusiness();
     const customer = await http
       .post("/api/customers")
       .set(bearer(token))

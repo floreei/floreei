@@ -30,6 +30,9 @@
       "@nestjs/core",
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "multer": "^2.2.0"
+    }
   }
 }

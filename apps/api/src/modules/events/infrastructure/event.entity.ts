@@ -52,6 +52,17 @@ export class EventEntity extends TenantOwnedEntity {
   })
   soldValue!: number;
 
+  /** Custo do que foi vendido (COGS) — soma dos custos das linhas. */
+  @Column({
+    name: "cost",
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
+  cost!: number;
+
   @Column({
     name: "received_value",
     type: "decimal",

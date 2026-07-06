@@ -3,9 +3,12 @@
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { AccessBlocked } from "@/components/auth/access-blocked";
+import { VerifyEmailScreen } from "@/components/auth/verify-email-screen";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { TrialBanner } from "@/components/layout/trial-banner";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export default function DashboardLayout({
@@ -13,12 +16,22 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, ready } = useAuth();
+  const { user, ready, blocked, awaitingVerification } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (ready && !user) router.replace("/login");
-  }, [ready, user, router]);
+    if (ready && !user && !blocked && !awaitingVerification) {
+      router.replace("/login");
+    }
+  }, [ready, user, blocked, awaitingVerification, router]);
+
+  if (ready && awaitingVerification) {
+    return <VerifyEmailScreen email={awaitingVerification.email} />;
+  }
+
+  if (ready && blocked) {
+    return <AccessBlocked blocked={blocked} />;
+  }
 
   if (!ready || !user) {
     return (
@@ -35,6 +48,7 @@ export default function DashboardLayout({
           <SidebarNav />
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
+          <TrialBanner />
           <Topbar />
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
             {children}

@@ -1,9 +1,20 @@
 "use client";
 
-import { ArrowLeft, MapPin, Pencil, Phone } from "lucide-react";
+import type { SupplierPurchaseSummary } from "@sistema-flores/types";
+import {
+  ArrowLeft,
+  MapPin,
+  MessageCircle,
+  Pencil,
+  Phone,
+  Printer,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
+import { MonthlyBars } from "@/components/profile/monthly-bars";
+import { TopItems } from "@/components/profile/top-items";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { SupplierDialog } from "@/components/suppliers/supplier-dialog";
@@ -19,12 +30,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCompany } from "@/lib/api/company";
 import { useSupplierProfile } from "@/lib/api/suppliers";
+import { useAuth } from "@/lib/auth/auth-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  buildOrderMessage,
+  buildStatementMessage,
+  whatsappHref,
+} from "@/lib/whatsapp";
 
 export default function SupplierDetailPage() {
   const params = useParams<{ id: string }>();
   const { data, isLoading } = useSupplierProfile(params.id);
+  const { data: settings } = useCompany();
+  const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
 
   if (isLoading || !data) {
@@ -36,7 +56,46 @@ export default function SupplierDetailPage() {
     );
   }
 
-  const { supplier, stats, purchases } = data;
+  const { supplier, stats, purchases, topItems, monthly, bestMonth } = data;
+  const company = settings?.name ?? user?.companyName ?? "Floreei";
+  const phone = supplier.whatsapp ?? supplier.contact;
+
+  const openWhatsapp = (text: string) => {
+    const href = whatsappHref(phone, text);
+    if (!href) {
+      toast.error("Fornecedor sem WhatsApp cadastrado.");
+      return;
+    }
+    window.open(href, "_blank", "noopener");
+  };
+
+  const sendPurchaseWhatsapp = (purchase: SupplierPurchaseSummary) =>
+    openWhatsapp(
+      buildOrderMessage({
+        company,
+        heading: `Pedido de compra ${purchase.id.slice(0, 8).toUpperCase()}`,
+        dateLabel: formatDate(purchase.date),
+        items: purchase.items,
+        total: purchase.total,
+        paid: purchase.paidAmount,
+        balance: purchase.balanceDue,
+        closing: "Obrigado!",
+      }),
+    );
+
+  const sendStatementWhatsapp = () =>
+    openWhatsapp(
+      buildStatementMessage({
+        company,
+        name: supplier.name,
+        countLabel: `${stats.purchasesCount} ${stats.purchasesCount === 1 ? "compra" : "compras"}`,
+        totalLabel: "Total comprado",
+        total: stats.totalPurchased,
+        balanceLabel: "Saldo a pagar",
+        balance: stats.balanceDue,
+        closing: "Obrigado!",
+      }),
+    );
 
   return (
     <div className="space-y-6">
@@ -52,6 +111,16 @@ export default function SupplierDetailPage() {
           <Pencil className="h-4 w-4" />
           Editar
         </Button>
+        <Button asChild variant="outline">
+          <Link href={`/fornecedores/${supplier.id}/extrato`}>
+            <Printer className="h-4 w-4" />
+            Imprimir extrato
+          </Link>
+        </Button>
+        <Button variant="outline" onClick={sendStatementWhatsapp}>
+          <MessageCircle className="h-4 w-4" />
+          Enviar resumo
+        </Button>
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -63,6 +132,25 @@ export default function SupplierDetailPage() {
           value={formatCurrency(stats.balanceDue)}
           accent={stats.balanceDue > 0}
         />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Itens mais comprados</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 pb-3">
+            <TopItems items={topItems} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Gasto por mês</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 pt-0">
+            <MonthlyBars data={monthly} valueName="Gasto" best={bestMonth} />
+          </CardContent>
+        </Card>
       </div>
 
       {(supplier.whatsapp || supplier.contact || supplier.city) && (
@@ -99,6 +187,7 @@ export default function SupplierDetailPage() {
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Pago</TableHead>
                   <TableHead className="text-right">Saldo</TableHead>
+                  <TableHead className="w-24 text-right">Pedido</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -121,6 +210,30 @@ export default function SupplierDetailPage() {
                       ) : (
                         <Badge variant="success">Pago</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Imprimir pedido"
+                          title="Imprimir pedido de compra"
+                        >
+                          <Link href={`/compras/${purchase.id}/imprimir`}>
+                            <Printer className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Enviar no WhatsApp"
+                          title="Enviar pedido no WhatsApp"
+                          onClick={() => sendPurchaseWhatsapp(purchase)}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

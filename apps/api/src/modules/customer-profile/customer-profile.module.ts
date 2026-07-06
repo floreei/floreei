@@ -9,8 +9,14 @@ import {
 import type {
   Customer,
   CustomerProfile,
+  ProfileOrderItem,
 } from "@sistema-flores/types";
 import { roundMoney } from "../../common/money/money";
+import {
+  aggregateTopItems,
+  bestMonth,
+  monthlySeries,
+} from "../../common/profile/profile-aggregations";
 import { CustomersModule } from "../customers/customers.module";
 import { CustomerEntity } from "../customers/infrastructure/customer.entity";
 import { CustomerRepository } from "../customers/infrastructure/customer.repository";
@@ -48,6 +54,7 @@ export class CustomerProfileService {
 
     const events = await this.events
       .qb("event")
+      .leftJoinAndSelect("event.items", "eitem")
       .andWhere("event.customer_id = :id", { id })
       .orderBy("event.date", "DESC")
       .getMany();
@@ -64,6 +71,17 @@ export class CustomerProfileService {
       active.reduce((acc, e) => acc + e.receivedValue, 0),
     );
 
+    const itemsOf = (e: (typeof events)[number]): ProfileOrderItem[] =>
+      (e.items ?? []).map((it) => ({
+        name: it.description,
+        quantity: it.quantity,
+        lineTotal: it.lineTotal,
+      }));
+
+    const monthly = monthlySeries(
+      active.map((e) => ({ date: e.date, value: e.soldValue })),
+    );
+
     return {
       customer: toCustomer(customer),
       stats: {
@@ -72,6 +90,9 @@ export class CustomerProfileService {
         totalReceived,
         balanceDue: roundMoney(totalSold - totalReceived),
       },
+      topItems: aggregateTopItems(active.flatMap(itemsOf)),
+      monthly,
+      bestMonth: bestMonth(monthly),
       events: events.map((e) => ({
         id: e.id,
         title: e.title,
@@ -79,6 +100,7 @@ export class CustomerProfileService {
         status: e.status,
         soldValue: e.soldValue,
         receivedValue: e.receivedValue,
+        items: itemsOf(e),
       })),
       quotes: quotes.map((q) => ({
         id: q.id,

@@ -1,4 +1,9 @@
 import { z } from "zod";
+import type {
+  ProfileMonthlyPoint,
+  ProfileOrderItem,
+  ProfileTopItem,
+} from "./common";
 import { paginationQuerySchema } from "./common";
 
 const optional = (max: number) =>
@@ -52,10 +57,17 @@ export interface SupplierPurchaseSummary {
   total: number;
   paidAmount: number;
   balanceDue: number;
+  items: ProfileOrderItem[];
 }
 
 export interface SupplierProfile {
   supplier: Supplier;
   stats: SupplierProfileStats;
   purchases: SupplierPurchaseSummary[];
+  /** Itens mais comprados do fornecedor, ranqueados por quantidade. */
+  topItems: ProfileTopItem[];
+  /** Gasto por mês (últimos 12 meses) para o gráfico de colunas. */
+  monthly: ProfileMonthlyPoint[];
+  /** Mês de maior gasto entre os últimos 12; null se não houve compras. */
+  bestMonth: ProfileMonthlyPoint | null;
 }

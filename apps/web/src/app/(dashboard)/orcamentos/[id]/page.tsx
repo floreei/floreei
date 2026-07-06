@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, Ban, CalendarHeart, Copy, Printer, Send } from "lucide-react";
+import { ArrowLeft, CalendarHeart, Copy, MoreHorizontal, Printer, Send } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { QuoteBuilder } from "@/components/quotes/quote-builder";
 import { ConvertDialog } from "@/components/quotes/convert-dialog";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { QuoteStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -16,24 +17,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import {
   useChangeQuoteStatus,
+  useDeleteQuote,
   useDuplicateQuote,
   useQuote,
 } from "@/lib/api/quotes";
+import { useAuth } from "@/lib/auth/auth-context";
 import { unitLabels } from "@/lib/labels";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 
 export default function QuoteDetailPage() {
   const params = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { data: quote, isLoading } = useQuote(params.id);
   const changeStatus = useChangeQuoteStatus();
   const duplicate = useDuplicateQuote();
+  const remove = useDeleteQuote();
   const router = useRouter();
   const [convertOpen, setConvertOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (isLoading || !quote) {
     return (
@@ -60,6 +72,8 @@ export default function QuoteDetailPage() {
   };
 
   const cancellable = !["APPROVED", "CANCELED"].includes(quote.status);
+  // Convertido em evento (eventId) não pode ser excluído — o backend também barra.
+  const deletable = user?.role === "ADMIN" && !quote.eventId;
 
   return (
     <div className="space-y-6">
@@ -114,15 +128,32 @@ export default function QuoteDetailPage() {
             <Link href={`/eventos/${quote.eventId}`}>Ver evento</Link>
           </Button>
         ) : null}
-        {cancellable ? (
-          <Button
-            variant="outline"
-            className="text-destructive"
-            onClick={() => updateStatus("CANCELED")}
-          >
-            <Ban className="h-4 w-4" />
-            Cancelar
-          </Button>
+        {cancellable || deletable ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {cancellable ? (
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => updateStatus("CANCELED")}
+                >
+                  Cancelar
+                </DropdownMenuItem>
+              ) : null}
+              {deletable ? (
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Excluir
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </PageHeader>
 
@@ -165,6 +196,25 @@ export default function QuoteDetailPage() {
       )}
 
       <ConvertDialog open={convertOpen} onOpenChange={setConvertOpen} quote={quote} />
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Excluir orçamento"
+        description={`Excluir o orçamento #${quote.number}? Esta ação não pode ser desfeita.`}
+        onConfirm={async () => {
+          try {
+            await remove.mutateAsync(quote.id);
+            toast.success("Orçamento excluído.");
+            router.push("/orcamentos");
+          } catch (error) {
+            toast.error(
+              error instanceof ApiError
+                ? error.message
+                : "Não foi possível excluir.",
+            );
+          }
+        }}
+      />
     </div>
   );
 }

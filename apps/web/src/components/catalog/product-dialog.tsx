@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { FileUpload } from "@/components/shared/file-upload";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -31,7 +32,8 @@ import {
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
 import { useSaveProduct } from "@/lib/api/catalog";
-import { unitOptions } from "@/lib/labels";
+import { unitLabels, unitOptions } from "@/lib/labels";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProductDialogProps {
   open: boolean;
@@ -55,10 +57,14 @@ export function ProductDialog({
       categoryId: "",
       name: "",
       unit: "UNIDADE" as ProductUnit,
+      purchaseUnit: "UNIDADE" as ProductUnit,
+      packSize: 1,
       defaultPurchasePrice: 0,
       defaultSalePrice: 0,
+      currentUnitCost: 0,
       minStock: 0,
       active: true,
+      imageUrl: null as string | null,
     },
   });
 
@@ -68,13 +74,26 @@ export function ProductDialog({
         categoryId: product?.categoryId ?? defaultCategoryId ?? categories[0]?.id ?? "",
         name: product?.name ?? "",
         unit: product?.unit ?? "UNIDADE",
+        purchaseUnit: product?.purchaseUnit ?? product?.unit ?? "UNIDADE",
+        packSize: product?.packSize ?? 1,
         defaultPurchasePrice: product?.defaultPurchasePrice ?? 0,
         defaultSalePrice: product?.defaultSalePrice ?? 0,
+        currentUnitCost: product?.currentUnitCost ?? 0,
         minStock: product?.minStock ?? 0,
         active: product?.active ?? true,
+        imageUrl: product?.imageUrl ?? null,
       });
     }
   }, [open, product, defaultCategoryId, categories, form]);
+
+  const unitLabel = unitLabels[form.watch("unit")];
+  const purchaseUnitLabel = unitLabels[form.watch("purchaseUnit")];
+  const packSize = form.watch("packSize") || 1;
+  const purchasePrice = form.watch("defaultPurchasePrice") || 0;
+  const derivedCost = packSize > 0 ? purchasePrice / packSize : 0;
+  const salePrice = form.watch("defaultSalePrice") || 0;
+  const salePerUnit = packSize > 1 ? salePrice / packSize : 0;
+  const isPack = packSize > 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,7 +101,8 @@ export function ProductDialog({
         <DialogHeader>
           <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
           <DialogDescription>
-            Flor, folhagem ou insumo reutilizável nos orçamentos.
+            Flores, folhagens, materiais (laços, embalagens), doces ou itens
+            decorativos — tudo que você compra e usa nos buquês e vendas.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -101,6 +121,36 @@ export function ProductDialog({
         >
           <Field label="Nome" htmlFor="p-name" required error={form.formState.errors.name?.message}>
             <Input id="p-name" autoFocus {...form.register("name")} />
+          </Field>
+
+          <Field
+            label="Imagem do item"
+            optional
+            hint="Aparece no catálogo e no seletor de insumo do buquê."
+          >
+            <Controller
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <div className="flex items-center gap-3">
+                  {field.value ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={field.value}
+                      alt=""
+                      className="h-14 w-14 shrink-0 rounded-md border border-border object-cover"
+                    />
+                  ) : null}
+                  <FileUpload
+                    scope="products"
+                    accept="image/*"
+                    label="Enviar imagem"
+                    value={field.value ? { url: field.value, label: "Imagem" } : null}
+                    onChange={(f) => field.onChange(f?.url ?? null)}
+                  />
+                </div>
+              )}
+            />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -124,7 +174,7 @@ export function ProductDialog({
                 )}
               />
             </Field>
-            <Field label="Unidade">
+            <Field label="Unidade de consumo" hint="Como você usa/estoca (ex.: haste).">
               <Controller
                 control={form.control}
                 name="unit"
@@ -147,7 +197,43 @@ export function ProductDialog({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Preço de compra" htmlFor="p-purchase">
+            <Field label="Unidade de compra" hint="Embalagem do fornecedor (ex.: maço).">
+              <Controller
+                control={form.control}
+                name="purchaseUnit"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unitOptions.map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+            <Field
+              label="Conteúdo do pacote"
+              htmlFor="p-packsize"
+              hint={`Quantas ${unitLabel} vêm em 1 ${purchaseUnitLabel}.`}
+            >
+              <Input
+                id="p-packsize"
+                type="number"
+                step="any"
+                min="0.001"
+                {...form.register("packSize", { valueAsNumber: true })}
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Preço de compra (do pacote)" htmlFor="p-purchase">
               <Controller
                 control={form.control}
                 name="defaultPurchasePrice"
@@ -160,7 +246,15 @@ export function ProductDialog({
                 )}
               />
             </Field>
-            <Field label="Preço de venda" htmlFor="p-sale">
+            <Field
+              label={isPack ? `Preço de venda (do ${purchaseUnitLabel})` : "Preço de venda"}
+              htmlFor="p-sale"
+              hint={
+                isPack
+                  ? `= ${formatCurrency(salePerUnit)}/${unitLabel} ao vender por ${unitLabel}.`
+                  : undefined
+              }
+            >
               <Controller
                 control={form.control}
                 name="defaultSalePrice"
@@ -174,6 +268,25 @@ export function ProductDialog({
               />
             </Field>
           </div>
+
+          <Field
+            label={`Custo por ${unitLabel}`}
+            htmlFor="p-cost"
+            hint={`Atualizado pela última compra (${formatCurrency(derivedCost)}/${unitLabel} pelo pacote atual). Pode ajustar.`}
+          >
+            <Controller
+              control={form.control}
+              name="currentUnitCost"
+              render={({ field }) => (
+                <CurrencyInput
+                  id="p-cost"
+                  className="max-w-[200px]"
+                  value={field.value ?? 0}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
 
           <Field
             label="Estoque mínimo"

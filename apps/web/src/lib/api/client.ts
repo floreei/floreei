@@ -7,6 +7,8 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** Código de negócio do erro (ex.: TRIAL_EXPIRED), quando a API envia. */
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -35,14 +37,16 @@ function buildUrl(path: string, query?: RequestOptions["query"]): string {
 
 async function parseError(res: Response): Promise<ApiError> {
   let message = res.statusText;
+  let code: string | undefined;
   try {
     const data = await res.json();
     if (typeof data?.message === "string") message = data.message;
     else if (Array.isArray(data?.message)) message = data.message.join(", ");
+    if (typeof data?.code === "string") code = data.code;
   } catch {
     // corpo não-JSON
   }
-  return new ApiError(res.status, message);
+  return new ApiError(res.status, message, code);
 }
 
 async function buildHeaders(

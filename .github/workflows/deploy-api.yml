@@ -1,0 +1,57 @@
+name: Deploy API
+
+# Deploy da API (NestJS) no AWS App Runner via ECR, no push para main quando a
+# API ou os tipos mudam. O `docker build` compila tudo — se não compilar, não
+# publica (funciona como gate). O CI roda em paralelo com os testes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/types/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch: {}
+
+# Necessário para o OIDC (assumir a IAM Role sem chave de longa duração).
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: sa-east-1 # ajuste para a sua região
+  ECR_REPOSITORY: floreei-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Fica inerte até você habilitar: defina a variável de repositório
+    # DEPLOY_API_ENABLED=true depois de configurar ECR + OIDC + App Runner.
+    if: ${{ vars.DEPLOY_API_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY"
+          docker build -f apps/api/Dockerfile -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      # Se o App Runner NÃO estiver com auto-deploy no push da imagem, defina a
+      # variável de repositório APPRUNNER_SERVICE_ARN para disparar o deploy aqui.
+      - name: Trigger App Runner deployment
+        if: ${{ vars.APPRUNNER_SERVICE_ARN != '' }}
+        run: aws apprunner start-deployment --service-arn "${{ vars.APPRUNNER_SERVICE_ARN }}"

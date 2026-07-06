@@ -3,13 +3,16 @@ import { Test } from "@nestjs/testing";
 import { ZodValidationPipe } from "nestjs-zod";
 import { DataSource } from "typeorm";
 import { AppModule } from "../../src/app.module";
-import { clearFirebaseUsers } from "./auth-helper";
-import { truncateAll } from "./test-database";
+import { deleteTrackedUsers } from "./auth-helper";
+import { truncateAll, truncateBusiness } from "./test-database";
 
 export interface TestApp {
   app: INestApplication;
   dataSource: DataSource;
+  /** Limpa tudo, inclusive `companies`/`users` (exige novo cadastro). */
   reset: () => Promise<void>;
+  /** Limpa só dados de negócio, preservando empresa/admin já cadastrados. */
+  resetBusiness: () => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -35,10 +38,17 @@ export async function createTestApp(): Promise<TestApp> {
   return {
     app,
     dataSource,
+    // Emails são únicos por rodada (auth-helper), então não é preciso "limpar"
+    // o Firebase entre testes — basta truncar o banco.
     reset: async () => {
       await truncateAll(dataSource);
-      await clearFirebaseUsers();
     },
-    close: () => app.close(),
+    resetBusiness: async () => {
+      await truncateBusiness(dataSource);
+    },
+    close: async () => {
+      await deleteTrackedUsers();
+      await app.close();
+    },
   };
 }

@@ -12,6 +12,7 @@ describe("Busca global (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@busca.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -19,8 +20,7 @@ describe("Busca global (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@busca.com" })).accessToken;
+    await ctx.resetBusiness();
   });
 
   it("encontra clientes, eventos e produtos por texto", async () => {

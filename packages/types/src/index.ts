@@ -1,3 +1,4 @@
+export * from "./arrangement";
 export * from "./attachment";
 export * from "./auth";
 export * from "./catalog";
@@ -10,6 +11,7 @@ export * from "./enums";
 export * from "./event";
 export * from "./expense";
 export * from "./finance";
+export * from "./platform";
 export * from "./purchase";
 export * from "./quote";
 export * from "./quote-calculator";

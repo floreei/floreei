@@ -22,7 +22,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <Flower2 className="h-5 w-5" />
         </span>
         <span className="line-clamp-2 font-serif text-lg font-semibold leading-tight tracking-tight">
-          {user?.companyName ?? "Sistema Flores"}
+          {user?.companyName ?? "Floreei"}
         </span>
       </Link>
 

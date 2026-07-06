@@ -6,10 +6,11 @@ import {
   type Expense,
 } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Field } from "@/components/shared/field";
+import { FileUpload, type UploadedFile } from "@/components/shared/file-upload";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
-import { useSaveExpense } from "@/lib/api/expenses";
+import { useAddExpenseAttachment, useSaveExpense } from "@/lib/api/expenses";
 
 function todayStr() {
   const d = new Date();
@@ -46,13 +47,16 @@ export function ExpenseDialog({
   expense?: Expense | null;
 }) {
   const save = useSaveExpense(expense?.id);
+  const addAttachment = useAddExpenseAttachment();
+  const [bill, setBill] = useState<UploadedFile | null>(null);
   const form = useForm({
     resolver: zodResolver(expenseInputSchema),
     defaultValues: {
       description: "",
       costCenter: "Outros",
       amount: 0,
-      date: todayStr(),
+      dueDate: todayStr(),
+      recurring: false,
       notes: "",
     },
   });
@@ -63,9 +67,11 @@ export function ExpenseDialog({
         description: expense?.description ?? "",
         costCenter: expense?.costCenter ?? "Outros",
         amount: expense?.amount ?? 0,
-        date: expense?.date ?? todayStr(),
+        dueDate: expense?.dueDate ?? todayStr(),
+        recurring: expense?.recurring ?? false,
         notes: expense?.notes ?? "",
       });
+      setBill(null);
     }
   }, [open, expense, form]);
 
@@ -75,14 +81,20 @@ export function ExpenseDialog({
         <DialogHeader>
           <DialogTitle>{expense ? "Editar despesa" : "Nova despesa"}</DialogTitle>
           <DialogDescription>
-            Custos operacionais que entram no resultado (DRE).
+            Conta a pagar — informe o vencimento e anexe o boleto/fatura.
           </DialogDescription>
         </DialogHeader>
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit(async (values) => {
             try {
-              await save.mutateAsync(values);
+              const saved = await save.mutateAsync(values);
+              if (bill) {
+                await addAttachment.mutateAsync({
+                  expenseId: saved.id,
+                  input: { ...bill, kind: "BILL" },
+                });
+              }
               toast.success("Despesa salva.");
               onOpenChange(false);
             } catch (error) {
@@ -95,8 +107,9 @@ export function ExpenseDialog({
           <Field label="Descrição" htmlFor="ex-desc" required error={form.formState.errors.description?.message}>
             <Input id="ex-desc" autoFocus {...form.register("description")} />
           </Field>
+
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Categoria" className="sm:col-span-1">
+            <Field label="Categoria">
               <Controller
                 control={form.control}
                 name="costCenter"
@@ -121,21 +134,32 @@ export function ExpenseDialog({
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
-                  <CurrencyInput
-                    id="ex-amount"
-                    value={field.value ?? 0}
-                    onChange={field.onChange}
-                  />
+                  <CurrencyInput id="ex-amount" value={field.value ?? 0} onChange={field.onChange} />
                 )}
               />
             </Field>
-            <Field label="Data" htmlFor="ex-date" required>
-              <Input id="ex-date" type="date" {...form.register("date")} />
+            <Field label="Vencimento" htmlFor="ex-due" required error={form.formState.errors.dueDate?.message}>
+              <Input id="ex-due" type="date" {...form.register("dueDate")} />
             </Field>
           </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input accent-primary"
+              {...form.register("recurring")}
+            />
+            Despesa recorrente (aluguel, energia…)
+          </label>
+
+          <Field label="Conta (boleto/fatura)" optional hint="Imagem ou PDF — fica guardada com a despesa.">
+            <FileUpload scope="expenses" value={bill} onChange={setBill} />
+          </Field>
+
           <Field label="Observação" htmlFor="ex-notes" optional>
             <Input id="ex-notes" {...form.register("notes")} />
           </Field>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

@@ -4,6 +4,7 @@ import { roundMoney } from "../../../common/money/money";
 import { EventRepository } from "../../events/infrastructure/event.repository";
 import { ExpenseRepository } from "../../expenses/infrastructure/expense.repository";
 import { PurchaseRepository } from "../../purchases/infrastructure/purchase.repository";
+import { StockService } from "../../stock/application/stock.service";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -19,6 +20,7 @@ export class DreService {
     private readonly events: EventRepository,
     private readonly purchases: PurchaseRepository,
     private readonly expenses: ExpenseRepository,
+    private readonly stock: StockService,
   ) {}
 
   async generate(fromInput?: string, toInput?: string): Promise<DreReport> {
@@ -31,29 +33,36 @@ export class DreService {
         new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
       )}`;
 
-    const revenueRow = await this.events
+    // Receita e COGS (custo do que foi vendido) por competência.
+    const salesRow = await this.events
       .qb("event")
-      .select("COALESCE(SUM(event.sold_value),0)", "v")
+      .select("COALESCE(SUM(event.sold_value),0)", "revenue")
+      .addSelect("COALESCE(SUM(event.cost),0)", "cogs")
       .andWhere("event.status <> 'CANCELED'")
       .andWhere("event.date BETWEEN :from AND :to", { from, to })
-      .getRawOne<{ v: string }>();
+      .getRawOne<{ revenue: string; cogs: string }>();
 
-    const cmvRow = await this.purchases
+    // Compras do período (saída de caixa, informativo — NÃO é o custo do vendido).
+    const purchasesRow = await this.purchases
       .qb("purchase")
       .select("COALESCE(SUM(purchase.total),0)", "v")
       .andWhere("purchase.status <> 'CANCELED'")
       .andWhere("purchase.date BETWEEN :from AND :to", { from, to })
       .getRawOne<{ v: string }>();
 
-    const expenses = await this.expenses.sumByCostCenter(from, to);
+    const [expenses, losses] = await Promise.all([
+      this.expenses.sumByCostCenter(from, to),
+      this.stock.lossesValue(from, to),
+    ]);
 
-    const revenue = roundMoney(Number(revenueRow?.v ?? 0));
-    const cmv = roundMoney(Number(cmvRow?.v ?? 0));
+    const revenue = roundMoney(Number(salesRow?.revenue ?? 0));
+    const cmv = roundMoney(Number(salesRow?.cogs ?? 0));
+    const purchasesTotal = roundMoney(Number(purchasesRow?.v ?? 0));
     const grossProfit = roundMoney(revenue - cmv);
     const expensesTotal = roundMoney(
       expenses.reduce((acc, e) => acc + e.amount, 0),
     );
-    const netResult = roundMoney(grossProfit - expensesTotal);
+    const netResult = roundMoney(grossProfit - expensesTotal - losses);
 
     return {
       from,
@@ -62,6 +71,8 @@ export class DreService {
       cmv,
       grossProfit,
       grossMargin: margin(grossProfit, revenue),
+      purchasesTotal,
+      losses,
       expenses,
       expensesTotal,
       netResult,

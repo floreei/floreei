@@ -61,7 +61,7 @@ export default function CatalogPage() {
     <div className="space-y-6">
       <PageHeader
         title="Catálogo"
-        description="Categorias e produtos reutilizáveis nos orçamentos."
+        description="Flores, folhagens, materiais, doces e decorativos — organizados por categoria."
       >
         <Button
           variant="outline"
@@ -177,9 +177,21 @@ export default function CatalogPage() {
                 {products.data.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">
-                      {product.name}
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {product.category?.name}
+                      <span className="flex items-center gap-2">
+                        {product.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.imageUrl}
+                            alt=""
+                            className="h-8 w-8 shrink-0 rounded-md border border-border object-cover"
+                          />
+                        ) : null}
+                        <span>
+                          {product.name}
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {product.category?.name}
+                          </span>
+                        </span>
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

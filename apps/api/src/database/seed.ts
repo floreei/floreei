@@ -1,7 +1,6 @@
 import "reflect-metadata";
-import { getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { firebaseAppOptions } from "../common/firebase/firebase-options";
+import { firebaseWebApiKey } from "../common/firebase/firebase-options";
+import { FirebaseService } from "../common/firebase/firebase.service";
 import { calculateItem, calculateQuote } from "../modules/quotes/domain/quote-calculator";
 import { CategoryEntity } from "../modules/catalog/infrastructure/category.entity";
 import { ProductEntity } from "../modules/catalog/infrastructure/product.entity";
@@ -21,19 +20,39 @@ import { roundMoney } from "../common/money/money";
 import dataSource from "./data-source";
 
 const DEMO_EMAIL = "demo@flores.com";
-const DEMO_PASSWORD = "senha123";
+// O projeto real exige senha forte (maiúscula + símbolo).
+const DEMO_PASSWORD = "Demo123!flores";
 
-/** Garante a conta demo no Firebase Auth e devolve o UID. */
+/**
+ * Garante a conta demo no Firebase Auth (projeto real, sem emulador) e devolve o
+ * UID. Usa o Admin SDK quando há service account; senão, o Identity Toolkit REST
+ * (via `FirebaseService.createAuthUser`). Se a conta já existe, autentica para
+ * recuperar o uid.
+ */
 async function ensureFirebaseUser(
   email: string,
   password: string,
 ): Promise<string> {
-  if (!getApps().length) initializeApp(firebaseAppOptions());
-  const auth = getAuth();
+  const firebase = new FirebaseService();
   try {
-    return (await auth.getUserByEmail(email)).uid;
-  } catch {
-    return (await auth.createUser({ email, password })).uid;
+    return (await firebase.createAuthUser({ email, password })).uid;
+  } catch (error) {
+    if ((error as { code?: string }).code !== "auth/email-already-exists") {
+      throw error;
+    }
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseWebApiKey()}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+      },
+    );
+    const data = (await res.json()) as { localId?: string };
+    if (!data.localId) {
+      throw new Error(`Não foi possível recuperar o uid demo (${email}).`);
+    }
+    return data.localId;
   }
 }
 
@@ -106,6 +125,7 @@ async function run(): Promise<void> {
           unit: "MACO",
           defaultPurchasePrice: purchase,
           defaultSalePrice: sale,
+          currentUnitCost: purchase,
           active: true,
         }),
       );
@@ -282,14 +302,19 @@ async function run(): Promise<void> {
       description: "Aluguel do ateliê",
       costCenter: "Aluguel",
       amount: 1800,
-      date: `${ym}-05`,
+      dueDate: `${ym}-05`,
+      paid: true,
+      paidDate: `${ym}-05`,
+      paymentMethod: "PIX",
+      recurring: true,
     }),
     expenseRepo.create({
       companyId,
       description: "Combustível das entregas",
       costCenter: "Transporte",
       amount: 320,
-      date: `${ym}-12`,
+      dueDate: `${ym}-12`,
+      paid: false,
     }),
   ]);
 

@@ -23,6 +23,7 @@ import { createZodDto } from "nestjs-zod";
 import { EventsModule } from "../events/events.module";
 import { ExpensesModule } from "../expenses/expenses.module";
 import { PurchasesModule } from "../purchases/purchases.module";
+import { StockModule } from "../stock/stock.module";
 import { CashflowService } from "./application/cashflow.service";
 import { DreService } from "./application/dre.service";
 import { FinanceService } from "./application/finance.service";
@@ -139,6 +140,7 @@ class FinanceController {
     EventsModule,
     PurchasesModule,
     ExpensesModule,
+    StockModule,
   ],
   controllers: [FinanceController],
   providers: [

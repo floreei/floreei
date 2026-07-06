@@ -1,10 +1,13 @@
 "use client";
 
-import type { Customer, Product } from "@sistema-flores/types";
+import type { Customer, ProductUnit } from "@sistema-flores/types";
 import { Minus, Plus, Search, ShoppingCart, Trash2, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CustomerDialog } from "@/components/customers/customer-dialog";
+import { UnitToggle } from "@/components/events/unit-toggle";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,21 +27,45 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
+import { useArrangements } from "@/lib/api/arrangements";
 import { useProducts } from "@/lib/api/catalog";
 import { useCustomers } from "@/lib/api/customers";
 import { useQuickSale } from "@/lib/api/events";
 import { useReceiveForEvent } from "@/lib/api/finance";
+import { unitLabels } from "@/lib/labels";
+import {
+  defaultSaleUnit,
+  hasUnitChoice,
+  suggestedUnitPrice,
+} from "@/lib/sale-units";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-interface CartItem {
-  product: Product;
-  quantity: number;
-  /** Preço de venda deste item nesta venda (editável; começa no padrão). */
+/** Item vendável: um buquê (arranjo) ou um insumo (produto avulso). */
+interface Sellable {
+  kind: "arrangement" | "product";
+  id: string;
+  name: string;
+  /** Preço de venda sugerido (por unidade de compra, no caso de produto). */
   price: number;
+  packSize?: number;
+  purchaseUnit?: ProductUnit;
+  unit?: ProductUnit;
+  imageUrl?: string | null;
 }
+
+interface CartItem {
+  sellable: Sellable;
+  quantity: number;
+  /** Preço praticado nesta venda (editável). */
+  price: number;
+  /** Unidade escolhida (maço/haste) — só para produto de pacote. */
+  saleUnit?: ProductUnit;
+}
+
+const key = (s: Sellable) => `${s.kind}:${s.id}`;
 
 export function QuickSaleDialog({
   open,
@@ -51,22 +78,28 @@ export function QuickSaleDialog({
     pageSize: 200,
     onlyActive: true,
   });
+  const { data: arrangements } = useArrangements({
+    pageSize: 200,
+    onlyActive: true,
+  });
   const { data: customers } = useCustomers({ pageSize: 100 });
   const quickSale = useQuickSale();
   const receive = useReceiveForEvent();
+  const router = useRouter();
 
-  const [mode, setMode] = useState<"products" | "amount">("products");
+  // Filtro visual do catálogo: buquês, revenda (insumos avulsos) ou valor livre.
+  const [mode, setMode] = useState<"buque" | "revenda" | "amount">("buque");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [amount, setAmount] = useState(0);
   const [title, setTitle] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
-  const [paid, setPaid] = useState(true); // já pago por padrão
+  const [paid, setPaid] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
 
   const reset = () => {
-    setMode("products");
+    setMode("buque");
     setSearch("");
     setCart({});
     setAmount(0);
@@ -75,13 +108,37 @@ export function QuickSaleDialog({
     setPaid(true);
   };
 
+  // Buquês primeiro (venda principal da floricultura), depois insumos avulsos.
+  const sellables = useMemo<Sellable[]>(
+    () => [
+      ...(arrangements?.data ?? []).map((a) => ({
+        kind: "arrangement" as const,
+        id: a.id,
+        name: a.name,
+        price: a.salePrice,
+      })),
+      ...(products?.data ?? []).map((p) => ({
+        kind: "product" as const,
+        id: p.id,
+        name: p.name,
+        price: p.defaultSalePrice,
+        packSize: p.packSize,
+        purchaseUnit: p.purchaseUnit,
+        unit: p.unit,
+        imageUrl: p.imageUrl,
+      })),
+    ],
+    [arrangements, products],
+  );
+
   const filtered = useMemo(() => {
+    const kind = mode === "buque" ? "arrangement" : "product";
+    const base = sellables.filter((s) => s.kind === kind);
     const term = search.trim().toLowerCase();
-    const list = products?.data ?? [];
     return term
-      ? list.filter((p) => p.name.toLowerCase().includes(term))
-      : list;
-  }, [products, search]);
+      ? base.filter((s) => s.name.toLowerCase().includes(term))
+      : base;
+  }, [sellables, search, mode]);
 
   const cartItems = Object.values(cart);
   const total =
@@ -89,29 +146,51 @@ export function QuickSaleDialog({
       ? round(Number(amount) || 0)
       : round(cartItems.reduce((s, i) => s + i.quantity * i.price, 0));
 
-  const addProduct = (product: Product) =>
-    setCart((c) => ({
-      ...c,
-      [product.id]: {
-        product,
-        quantity: (c[product.id]?.quantity ?? 0) + 1,
-        price: c[product.id]?.price ?? product.defaultSalePrice,
-      },
-    }));
-
-  const setPrice = (id: string, price: number) =>
-    setCart((c) => (c[id] ? { ...c, [id]: { ...c[id], price } } : c));
-
-  const changeQty = (id: string, delta: number) =>
+  const addSellable = (sellable: Sellable) =>
     setCart((c) => {
-      const current = c[id];
+      const k = key(sellable);
+      if (c[k]) {
+        return { ...c, [k]: { ...c[k], quantity: c[k].quantity + 1 } };
+      }
+      const saleUnit = defaultSaleUnit(sellable);
+      return {
+        ...c,
+        [k]: {
+          sellable,
+          quantity: 1,
+          price: suggestedUnitPrice(sellable, saleUnit),
+          saleUnit,
+        },
+      };
+    });
+
+  const setPrice = (k: string, price: number) =>
+    setCart((c) => (c[k] ? { ...c, [k]: { ...c[k], price } } : c));
+
+  const changeSaleUnit = (k: string, saleUnit: ProductUnit) =>
+    setCart((c) =>
+      c[k]
+        ? {
+            ...c,
+            [k]: {
+              ...c[k],
+              saleUnit,
+              price: suggestedUnitPrice(c[k].sellable, saleUnit),
+            },
+          }
+        : c,
+    );
+
+  const changeQty = (k: string, delta: number) =>
+    setCart((c) => {
+      const current = c[k];
       if (!current) return c;
       const quantity = current.quantity + delta;
       if (quantity <= 0) {
-        const { [id]: _, ...rest } = c;
+        const { [k]: _, ...rest } = c;
         return rest;
       }
-      return { ...c, [id]: { ...current, quantity } };
+      return { ...c, [k]: { ...current, quantity } };
     });
 
   const canSubmit = mode === "amount" ? total > 0 : cartItems.length > 0;
@@ -124,11 +203,20 @@ export function QuickSaleDialog({
           ? { customerId, amount: total, title: title || undefined }
           : {
               customerId,
-              items: cartItems.map((i) => ({
-                productId: i.product.id,
-                quantity: i.quantity,
-                unitSalePrice: i.price,
-              })),
+              items: cartItems.map((i) =>
+                i.sellable.kind === "arrangement"
+                  ? {
+                      arrangementId: i.sellable.id,
+                      quantity: i.quantity,
+                      unitSalePrice: i.price,
+                    }
+                  : {
+                      productId: i.sellable.id,
+                      quantity: i.quantity,
+                      saleUnit: i.saleUnit,
+                      unitSalePrice: i.price,
+                    },
+              ),
             };
       const sale = await quickSale.mutateAsync(input);
       if (paid && total > 0) {
@@ -138,9 +226,13 @@ export function QuickSaleDialog({
         });
       }
       toast.success(
-        paid
-          ? "Venda registrada e recebida."
-          : "Venda registrada (a prazo).",
+        paid ? "Venda registrada e recebida." : "Venda registrada (a prazo).",
+        {
+          action: {
+            label: "Imprimir nota",
+            onClick: () => router.push(`/eventos/${sale.id}/imprimir`),
+          },
+        },
       );
       reset();
       onOpenChange(false);
@@ -163,52 +255,69 @@ export function QuickSaleDialog({
         <DialogHeader>
           <DialogTitle className="text-xl">Venda rápida</DialogTitle>
           <DialogDescription>
-            Toque nos produtos ou informe um valor. Depois escolha à vista ou fiado.
+            Toque nos buquês ou insumos, ou informe um valor. Depois escolha à
+            vista ou fiado.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-2">
-          <ModeButton active={mode === "products"} onClick={() => setMode("products")}>
-            Produtos
+        <div className="grid grid-cols-3 gap-2">
+          <ModeButton active={mode === "buque"} onClick={() => setMode("buque")}>
+            Buquês
+          </ModeButton>
+          <ModeButton active={mode === "revenda"} onClick={() => setMode("revenda")}>
+            Revenda
           </ModeButton>
           <ModeButton active={mode === "amount"} onClick={() => setMode("amount")}>
             Valor livre
           </ModeButton>
         </div>
 
-        {mode === "products" ? (
+        {mode !== "amount" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar flor…"
+                  placeholder={mode === "buque" ? "Buscar buquê…" : "Buscar insumo…"}
                   className="h-11 pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
-                {filtered.map((product) => (
+                {filtered.map((s) => (
                   <button
-                    key={product.id}
+                    key={key(s)}
                     type="button"
-                    onClick={() => addProduct(product)}
-                    className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                    onClick={() => addSellable(s)}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg border border-border px-3 py-2.5 text-left transition-colors hover:border-primary hover:bg-primary/5"
                   >
-                    <span className="text-sm font-medium">{product.name}</span>
-                    <span className="text-sm tabular-nums text-muted-foreground">
-                      {formatCurrency(product.defaultSalePrice)}
+                    <span className="flex items-center gap-2 truncate text-sm font-medium">
+                      {s.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={s.imageUrl}
+                          alt=""
+                          className="h-7 w-7 shrink-0 rounded object-cover"
+                        />
+                      ) : null}
+                      {s.name}
+                      {s.kind === "arrangement" ? (
+                        <Badge variant="default">Buquê</Badge>
+                      ) : null}
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                      {formatCurrency(s.price)}
                     </span>
                   </button>
                 ))}
                 {filtered.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
                     {loadingProducts
-                      ? "Carregando produtos…"
-                      : (products?.data.length ?? 0) === 0
-                        ? "Nenhum produto no catálogo. Cadastre em Catálogo."
-                        : "Nenhuma flor encontrada."}
+                      ? "Carregando…"
+                      : sellables.length === 0
+                        ? "Nada no catálogo ainda. Cadastre buquês ou produtos."
+                        : "Nada encontrado."}
                   </p>
                 ) : null}
               </div>
@@ -221,65 +330,70 @@ export function QuickSaleDialog({
               <div className="max-h-52 flex-1 space-y-2 overflow-y-auto">
                 {cartItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
-                    Toque num produto para adicionar.
+                    Toque num item para adicionar.
                   </p>
                 ) : (
-                  cartItems.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="space-y-2 rounded-md bg-background p-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="flex-1 truncate text-sm font-medium">
-                          {item.product.name}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Menos"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border"
-                          onClick={() => changeQty(item.product.id, -1)}
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="w-6 text-center text-sm tabular-nums">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Mais"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border"
-                          onClick={() => changeQty(item.product.id, 1)}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Remover"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => changeQty(item.product.id, -item.quantity)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                  cartItems.map((item) => {
+                    const k = key(item.sellable);
+                    return (
+                      <div key={k} className="space-y-2 rounded-md bg-background p-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 truncate text-sm font-medium">
+                            {item.sellable.name}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Menos"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-border"
+                            onClick={() => changeQty(k, -1)}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-6 text-center text-sm tabular-nums">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Mais"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-border"
+                            onClick={() => changeQty(k, 1)}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Remover"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => changeQty(k, -item.quantity)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {hasUnitChoice(item.sellable) ? (
+                          <UnitToggle
+                            purchaseUnit={item.sellable.purchaseUnit as ProductUnit}
+                            unit={item.sellable.unit as ProductUnit}
+                            value={item.saleUnit}
+                            onChange={(u) => changeSaleUnit(k, u)}
+                          />
+                        ) : null}
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`price-${k}`} className="text-xs text-muted-foreground">
+                            Preço{item.saleUnit ? `/${unitLabels[item.saleUnit]}` : ""}
+                          </Label>
+                          <CurrencyInput
+                            id={`price-${k}`}
+                            className="h-8"
+                            value={item.price}
+                            onChange={(v) => setPrice(k, v)}
+                          />
+                          <span className="shrink-0 text-sm font-semibold tabular-nums">
+                            {formatCurrency(round(item.quantity * item.price))}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Label
-                          htmlFor={`price-${item.product.id}`}
-                          className="text-xs text-muted-foreground"
-                        >
-                          Preço
-                        </Label>
-                        <CurrencyInput
-                          id={`price-${item.product.id}`}
-                          className="h-8"
-                          value={item.price}
-                          onChange={(v) => setPrice(item.product.id, v)}
-                        />
-                        <span className="shrink-0 text-sm font-semibold tabular-nums">
-                          {formatCurrency(round(item.quantity * item.price))}
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

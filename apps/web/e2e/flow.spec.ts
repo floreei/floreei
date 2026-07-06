@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const stamp = Date.now();
 const email = `e2e_${stamp}@flores.com`;
-const password = "segredo123";
+const password = "Segredo123!";
 const customerName = `Casamento E2E ${stamp}`;
 const categoryName = `Rosas ${stamp}`;
 const productName = `Rosa E2E ${stamp}`;
@@ -77,12 +77,11 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   await expect(page.getByText("Valor vendido")).toBeVisible();
   await expect(page.getByText("R$ 100,00").first()).toBeVisible();
 
-  // 5b) Anexo (link de referência) no evento
-  await page.getByRole("button", { name: "Adicionar link" }).click();
-  await page.getByLabel("Nome", { exact: true }).fill("Referências");
-  await page.getByLabel("Link", { exact: true }).fill("https://pinterest.com/board/x");
-  await page.getByRole("button", { name: "Adicionar", exact: true }).click();
-  await expect(page.getByRole("link", { name: /Referências/ })).toBeVisible();
+  // 5b) Anexos do evento agora são upload de arquivo (Firebase Storage). O upload
+  // exige o emulador de storage (Java 21); aqui só validamos que o controle existe.
+  await expect(
+    page.getByRole("button", { name: "Anexar arquivo" }),
+  ).toBeVisible();
 
   // 6) Dashboard reflete a receita
   await page.goto("/dashboard");

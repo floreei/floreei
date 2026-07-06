@@ -41,3 +41,26 @@ export interface Paginated<T> {
   total: number;
   totalPages: number;
 }
+
+/** Item de linha resumido de um pedido (venda/compra), para nota e WhatsApp. */
+export interface ProfileOrderItem {
+  name: string;
+  quantity: number;
+  lineTotal: number;
+}
+
+/** Item agregado no perfil (mais vendido/comprado), ranqueado por quantidade. */
+export interface ProfileTopItem {
+  name: string;
+  quantity: number;
+  total: number;
+}
+
+/** Ponto mensal de faturamento/gasto para o gráfico de colunas do perfil. */
+export interface ProfileMonthlyPoint {
+  /** Mês no formato "AAAA-MM". */
+  month: string;
+  total: number;
+  /** Nº de pedidos no mês. */
+  count: number;
+}
