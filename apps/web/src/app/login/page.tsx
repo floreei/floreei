@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { FinishSetupDialog } from "@/components/auth/finish-setup-dialog";
 import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog";
 import { GoogleIcon } from "@/components/auth/google-icon";
+import { VerifyEmailScreen } from "@/components/auth/verify-email-screen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +24,7 @@ export default function LoginPage() {
     loginWithGoogle,
     logout,
     pendingProvision,
+    awaitingVerification,
     user,
     ready,
   } = useAuth();
@@ -40,6 +42,11 @@ export default function LoginPage() {
 
   // Autenticado: mostramos a transição até a home montar (evita tela "travada").
   const redirecting = ready && Boolean(user);
+
+  // E-mail ainda não verificado: pede a verificação antes de qualquer coisa.
+  if (ready && awaitingVerification) {
+    return <VerifyEmailScreen email={awaitingVerification.email} />;
+  }
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
@@ -67,19 +74,21 @@ export default function LoginPage() {
         />
         <div className="relative flex items-center gap-2 text-lg font-medium">
           <Flower2 className="h-6 w-6" />
-          Sistema Flores
+          Floreei
         </div>
         <div className="relative space-y-4">
           <h2 className="font-serif text-4xl font-semibold leading-tight">
-            Do orçamento ao evento, tudo em um só lugar.
+            A floricultura inteira, num só lugar.
           </h2>
           <p className="max-w-md text-primary-foreground/80">
-            Centralize clientes, orçamentos e eventos. Calcule custo, venda,
-            lucro e margem automaticamente — com poucos cliques.
+            Tudo integrado, com poucos cliques. Catálogo, estoque, compras e
+            despesas; buquês com custo e preço calculados; vendas, caixa e o
+            resultado do mês.
           </p>
         </div>
         <p className="relative text-sm text-primary-foreground/70">
-          Gestão para floriculturas e decoradores de eventos.
+          Gestão completa para floriculturas, floristas, atacado e decoração de
+          eventos.
         </p>
       </aside>
 
@@ -89,7 +98,7 @@ export default function LoginPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Flower2 className="h-6 w-6" />
             </div>
-            <h1 className="font-serif text-2xl font-semibold">Sistema Flores</h1>
+            <h1 className="font-serif text-2xl font-semibold">Floreei</h1>
           </div>
 
           <div className="space-y-4">

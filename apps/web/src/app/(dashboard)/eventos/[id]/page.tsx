@@ -3,11 +3,12 @@
 import type { Payment } from "@sistema-flores/types";
 import {
   ArrowLeft,
-  Ban,
   HandCoins,
   MapPin,
+  MoreHorizontal,
   PackageCheck,
   Pencil,
+  Printer,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,6 +16,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AttachmentsCard } from "@/components/events/attachments-card";
+import { EditSaleItemsDialog } from "@/components/events/edit-sale-items-dialog";
 import { EventDialog } from "@/components/events/event-dialog";
 import { PaymentDialog } from "@/components/finance/payment-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -26,6 +28,12 @@ import {
 } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCancelEvent,
@@ -38,6 +46,7 @@ import {
   useEventPayments,
 } from "@/lib/api/finance";
 import { useAuth } from "@/lib/auth/auth-context";
+import { unitLabels } from "@/lib/labels";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 const methodLabels: Record<string, string> = {
@@ -58,6 +67,7 @@ export default function EventDetailPage() {
   const cancel = useCancelEvent();
   const save = useSaveEvent(params.id);
   const [editOpen, setEditOpen] = useState(false);
+  const [editItemsOpen, setEditItemsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
@@ -86,9 +96,14 @@ export default function EventDetailPage() {
         title={event.title}
         description={event.customer?.name ?? "Consumidor"}
       >
-        <EventTypeBadge type={event.type} />
-        <EventStatusBadge status={event.status} />
-        <PaymentStatusBadge sold={event.soldValue} received={event.receivedValue} />
+        {event.status !== "CANCELED" ? (
+          <Button variant="outline" asChild>
+            <Link href={`/eventos/${event.id}/imprimir`}>
+              <Printer className="h-4 w-4" />
+              Nota do pedido
+            </Link>
+          </Button>
+        ) : null}
         {event.status !== "DONE" && event.status !== "CANCELED" ? (
           <Button
             variant="outline"
@@ -112,28 +127,46 @@ export default function EventDetailPage() {
             Registrar recebimento
           </Button>
         ) : null}
-        {event.status !== "CANCELED" ? (
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4" />
-            Editar
-          </Button>
-        ) : null}
-        {user?.role === "ADMIN" && event.status !== "CANCELED" ? (
-          <Button
-            variant="outline"
-            className="text-destructive"
-            onClick={() => setCancelOpen(true)}
-          >
-            <Ban className="h-4 w-4" />
-            Cancelar evento
-          </Button>
-        ) : null}
-        {user?.role === "ADMIN" ? (
-          <Button variant="ghost" className="text-destructive" onClick={() => setDeleteOpen(true)}>
-            Excluir
-          </Button>
+        {event.status !== "CANCELED" || user?.role === "ADMIN" ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {event.status !== "CANCELED" ? (
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  Editar
+                </DropdownMenuItem>
+              ) : null}
+              {user?.role === "ADMIN" && event.status !== "CANCELED" ? (
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  Cancelar venda
+                </DropdownMenuItem>
+              ) : null}
+              {user?.role === "ADMIN" ? (
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Excluir
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </PageHeader>
+
+      {/* Status da venda */}
+      <div className="flex flex-wrap items-center gap-2">
+        <EventTypeBadge type={event.type} />
+        <EventStatusBadge status={event.status} />
+        <PaymentStatusBadge sold={event.soldValue} received={event.receivedValue} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -188,19 +221,30 @@ export default function EventDetailPage() {
         </Card>
       </div>
 
-      {event.items.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Flores vendidas</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Itens vendidos</CardTitle>
+          {user?.role === "ADMIN" && event.status !== "CANCELED" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditItemsOpen(true)}
+            >
+              <Pencil className="h-4 w-4" />
+              {event.items.length > 0 ? "Editar itens" : "Adicionar itens"}
+            </Button>
+          ) : null}
+        </CardHeader>
+        <CardContent className="p-0">
+          {event.items.length > 0 ? (
             <div className="divide-y divide-border">
               {event.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 px-6 py-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{item.description}</p>
+                    <p className="text-sm font-medium">{item.description}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.quantity} × {formatCurrency(item.unitSalePrice)}
+                      {item.quantity} {unitLabels[item.unit].toLowerCase()} ×{" "}
+                      {formatCurrency(item.unitSalePrice)}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm font-semibold tabular-nums">
@@ -208,10 +252,20 @@ export default function EventDetailPage() {
                   </span>
                 </div>
               ))}
+              <div className="flex items-center justify-between bg-muted/20 px-6 py-3">
+                <span className="text-sm font-medium">Total</span>
+                <span className="font-serif text-lg font-semibold tabular-nums">
+                  {formatCurrency(event.soldValue)}
+                </span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
+          ) : (
+            <p className="px-6 py-6 text-sm text-muted-foreground">
+              Venda de valor livre — sem itens detalhados.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <AttachmentsCard eventId={event.id} />
 
@@ -223,6 +277,11 @@ export default function EventDetailPage() {
         balanceDue={pending}
       />
       <EventDialog open={editOpen} onOpenChange={setEditOpen} event={event} />
+      <EditSaleItemsDialog
+        open={editItemsOpen}
+        onOpenChange={setEditItemsOpen}
+        event={event}
+      />
       <ConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}

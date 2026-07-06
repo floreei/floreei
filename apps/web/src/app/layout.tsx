@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { RouteProgress } from "@/components/layout/route-progress";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -19,9 +20,21 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema Flores — Gestão para floriculturas e eventos",
+  title: "Floreei — Gestão para floriculturas, floristas, atacado e eventos",
   description:
-    "ERP para floriculturas e decoradores de eventos: clientes, orçamentos, eventos e finanças em um só lugar.",
+    "ERP para floriculturas, floristas, atacado e decoração de eventos: catálogo, estoque, buquês com custeio, compras, vendas, despesas e financeiro — tudo num só lugar.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon-180.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2F6050",
 };
 
 export default function RootLayout({
@@ -30,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} ${fraunces.variable} font-sans`}>
+        <RouteProgress />
         <Providers>{children}</Providers>
       </body>
     </html>

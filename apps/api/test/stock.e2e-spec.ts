@@ -16,6 +16,7 @@ describe("Estoque (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@stock.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -23,8 +24,7 @@ describe("Estoque (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@stock.com" })).accessToken;
+    await ctx.resetBusiness();
     const category = await http
       .post("/api/categories")
       .set(auth())
@@ -76,6 +76,43 @@ describe("Estoque (e2e)", () => {
     const level = await onHandOf(productId);
     expect(level.onHand).toBe(50);
     expect(level.low).toBe(false); // 50 > minStock 20
+  });
+
+  it("ajusta o saldo manualmente (contagem física, para cima e para baixo)", async () => {
+    await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: day,
+        items: [{ productId, description: "Rosa", quantity: 50, unit: "MACO", unitPrice: 4 }],
+      })
+      .expect(201);
+    expect((await onHandOf(productId)).onHand).toBe(50);
+
+    // Contagem = 60 → sobe (AJUSTE +10)
+    await http
+      .post("/api/stock/adjust")
+      .set(auth())
+      .send({ productId, balance: 60 })
+      .expect(201);
+    expect((await onHandOf(productId)).onHand).toBe(60);
+
+    // Contagem = 12 → cai (correção −48)
+    await http
+      .post("/api/stock/adjust")
+      .set(auth())
+      .send({ productId, balance: 12, notes: "Contagem física" })
+      .expect(201);
+    expect((await onHandOf(productId)).onHand).toBe(12);
+
+    // Mesmo saldo → nada a fazer
+    await http
+      .post("/api/stock/adjust")
+      .set(auth())
+      .send({ productId, balance: 12 })
+      .expect(201);
+    expect((await onHandOf(productId)).onHand).toBe(12);
   });
 
   it("compra ORDERED não mexe no estoque; receber registra; desfazer estorna", async () => {

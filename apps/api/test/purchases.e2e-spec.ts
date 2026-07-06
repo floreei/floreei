@@ -17,14 +17,14 @@ describe("Compras — módulo completo (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@compras.com" })).accessToken;
   });
   afterAll(async () => {
     await ctx.close();
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@compras.com" })).accessToken;
+    await ctx.resetBusiness();
     supplierId = (
       await http.post("/api/suppliers").set(auth()).send({ name: "Ceasa" }).expect(201)
     ).body.id;
@@ -200,6 +200,86 @@ describe("Compras — módulo completo (e2e)", () => {
     const after = await http.get(`/api/purchases/${purchase.body.id}`).set(auth()).expect(200);
     expect(after.body.paidAmount).toBe(0);
     expect(after.body.balanceDue).toBe(200);
+  });
+
+  it("insumo em pacote: comprar 1 maço (5 hastes, R$15) → estoque 5 e custo R$3/haste", async () => {
+    const cat = await http
+      .post("/api/categories")
+      .set(auth())
+      .send({ name: "Hortênsias" })
+      .expect(201);
+    const insumo = await http
+      .post("/api/products")
+      .set(auth())
+      .send({
+        name: "Hortênsia Azul",
+        categoryId: cat.body.id,
+        unit: "HASTE",
+        purchaseUnit: "MACO",
+        packSize: 5,
+        defaultPurchasePrice: 15,
+      })
+      .expect(201);
+
+    const purchase = await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: today,
+        status: "RECEIVED",
+        items: [
+          {
+            productId: insumo.body.id,
+            description: "Hortênsia Azul",
+            quantity: 1,
+            unit: "MACO",
+            unitPrice: 15,
+          },
+        ],
+      })
+      .expect(201);
+    expect(purchase.body.total).toBe(15);
+
+    // Estoque em unidade-base: 1 maço × 5 = 5 hastes.
+    const overview = await http.get("/api/stock/overview").set(auth()).expect(200);
+    const level = overview.body.levels.find(
+      (l: { productId: string }) => l.productId === insumo.body.id,
+    );
+    expect(level.onHand).toBe(5);
+    expect(level.unit).toBe("HASTE");
+
+    // Custo por unidade-base = 15 ÷ 5 = 3.
+    const fetched = await http
+      .get(`/api/products/${insumo.body.id}`)
+      .set(auth())
+      .expect(200);
+    expect(fetched.body.currentUnitCost).toBe(3);
+
+    // Nova compra a preço diferente atualiza o custo (última compra).
+    await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: today,
+        status: "RECEIVED",
+        items: [
+          {
+            productId: insumo.body.id,
+            description: "Hortênsia Azul",
+            quantity: 1,
+            unit: "MACO",
+            unitPrice: 20,
+          },
+        ],
+      })
+      .expect(201);
+    const after = await http
+      .get(`/api/products/${insumo.body.id}`)
+      .set(auth())
+      .expect(200);
+    expect(after.body.currentUnitCost).toBe(4); // 20 ÷ 5
   });
 
   it("anexa comprovante, lista e remove", async () => {

@@ -39,10 +39,7 @@ export class UsersService {
       return toPublicUser(await this.users.save(user));
     } catch (error) {
       // Compensa a criação no Firebase se a persistência local falhar.
-      await this.firebase
-        .auth()
-        .deleteUser(firebaseUser.uid)
-        .catch(() => undefined);
+      await this.firebase.deleteAuthUser(firebaseUser.uid).catch(() => undefined);
       throw error;
     }
   }
@@ -58,7 +55,7 @@ export class UsersService {
     input: CreateUserInput,
   ): Promise<{ uid: string }> {
     try {
-      return await this.firebase.auth().createUser({
+      return await this.firebase.createAuthUser({
         email: input.email,
         password: input.password,
         displayName: input.name,

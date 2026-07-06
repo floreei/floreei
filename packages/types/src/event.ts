@@ -7,6 +7,7 @@ import {
 import {
   eventStatusSchema,
   eventTypeSchema,
+  productUnitSchema,
   type EventStatus,
   type EventType,
   type ProductUnit,
@@ -48,13 +49,24 @@ export type EventInput = z.infer<typeof eventInputSchema>;
 export const eventUpdateSchema = eventInputSchema.partial();
 export type EventUpdate = z.infer<typeof eventUpdateSchema>;
 
-/** Item de uma venda rápida (referencia um produto do catálogo). */
-export const quickSaleItemSchema = z.object({
-  productId: idSchema,
-  quantity: z.coerce.number().positive("Quantidade deve ser maior que zero"),
-  /** Preço de venda deste item nesta venda (sobrepõe o preço padrão do catálogo). */
-  unitSalePrice: z.coerce.number().nonnegative().optional(),
-});
+/** Item de uma venda: um **buquê** (arrangementId) OU um **insumo** (productId). */
+export const quickSaleItemSchema = z
+  .object({
+    productId: idSchema.nullable().optional(),
+    arrangementId: idSchema.nullable().optional(),
+    quantity: z.coerce.number().positive("Quantidade deve ser maior que zero"),
+    /**
+     * Unidade em que `quantity` está expressa: a unidade de compra (ex.: MACO) ou
+     * a unidade-base de consumo (ex.: HASTE). Ausente ⇒ unidade-base (compat).
+     */
+    saleUnit: productUnitSchema.optional(),
+    /** Preço de venda deste item nesta venda (sobrepõe o preço sugerido). */
+    unitSalePrice: z.coerce.number().nonnegative().optional(),
+  })
+  .refine((v) => Boolean(v.productId) !== Boolean(v.arrangementId), {
+    message: "Informe um produto OU um buquê",
+    path: ["productId"],
+  });
 export type QuickSaleItem = z.infer<typeof quickSaleItemSchema>;
 
 /** Venda rápida de balcão: produtos do catálogo OU valor livre. */
@@ -71,6 +83,23 @@ export const quickSaleSchema = z
     path: ["amount"],
   });
 export type QuickSaleInput = z.infer<typeof quickSaleSchema>;
+
+/**
+ * Edição dos itens de uma venda já existente. Os itens sempre governam estoque e
+ * custo; `pricingMode` decide a receita: `ITEMS` = soma das linhas, `FIXED` =
+ * `soldValue` informado (a venda continua com o valor fixo).
+ */
+export const editSaleItemsSchema = z
+  .object({
+    items: z.array(quickSaleItemSchema).min(1, "Adicione ao menos um item"),
+    pricingMode: z.enum(["ITEMS", "FIXED"]),
+    soldValue: z.coerce.number().nonnegative().optional(),
+  })
+  .refine((v) => v.pricingMode !== "FIXED" || v.soldValue !== undefined, {
+    message: "Informe o valor da venda",
+    path: ["soldValue"],
+  });
+export type EditSaleItemsInput = z.infer<typeof editSaleItemsSchema>;
 
 /** Conversão de um orçamento aprovado em evento (venda). */
 export const convertQuoteSchema = z.object({
@@ -96,10 +125,11 @@ export const eventQuerySchema = paginationQuerySchema.extend({
 });
 export type EventQuery = z.infer<typeof eventQuerySchema>;
 
-/** Item vendido numa venda (flor, quantidade e preço). */
+/** Item vendido numa venda (insumo avulso ou buquê). */
 export interface EventItem {
   id: string;
   productId: string | null;
+  arrangementId: string | null;
   description: string;
   quantity: number;
   unit: ProductUnit;
@@ -120,6 +150,8 @@ export interface Event {
   location: string | null;
   status: EventStatus;
   soldValue: number;
+  /** Custo do que foi vendido (COGS), persistido na venda. */
+  cost: number;
   receivedValue: number;
   estimatedProfit: number;
   realProfit: number | null;

@@ -1,9 +1,18 @@
 "use client";
 
-import { AlertTriangle, CalendarClock, Package, Plus } from "lucide-react";
+import type { StockLevel } from "@sistema-flores/types";
+import {
+  AlertTriangle,
+  CalendarClock,
+  Package,
+  Pencil,
+  Plus,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { AdjustBalanceDialog } from "@/components/stock/adjust-balance-dialog";
 import { MovementDialog } from "@/components/stock/movement-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,11 +28,12 @@ import {
 } from "@/components/ui/table";
 import { useStockOverview } from "@/lib/api/stock";
 import { unitLabels } from "@/lib/labels";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function StockPage() {
   const { data, isLoading } = useStockOverview();
   const [open, setOpen] = useState(false);
+  const [adjustLevel, setAdjustLevel] = useState<StockLevel | null>(null);
 
   return (
     <div className="space-y-6">
@@ -31,13 +41,32 @@ export default function StockPage() {
         title="Estoque"
         description="Saldo das flores, alertas de estoque baixo e lotes a vencer."
       >
-        <Button onClick={() => setOpen(true)}>
+        <Button variant="outline" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" />
-          Ajustar estoque
+          Movimentar estoque
         </Button>
       </PageHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Estoque valorizado
+              </p>
+              {isLoading ? (
+                <Skeleton className="mt-1 h-6 w-24" />
+              ) : (
+                <p className="text-xl font-semibold tabular-nums">
+                  {formatCurrency(data?.totalValue ?? 0)}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/15 text-warning">
@@ -90,8 +119,12 @@ export default function StockPage() {
                 <TableHead>Produto</TableHead>
                 <TableHead className="hidden sm:table-cell">Categoria</TableHead>
                 <TableHead className="text-right">Saldo</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">Valor</TableHead>
                 <TableHead className="hidden text-right md:table-cell">Mínimo</TableHead>
                 <TableHead>Situação</TableHead>
+                <TableHead className="w-0 text-right">
+                  <span className="sr-only">Ações</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -104,6 +137,9 @@ export default function StockPage() {
                   <TableCell className="text-right tabular-nums font-medium">
                     {level.onHand} {unitLabels[level.unit].toLowerCase()}
                   </TableCell>
+                  <TableCell className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">
+                    {formatCurrency(level.value)}
+                  </TableCell>
                   <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
                     {level.minStock || "—"}
                   </TableCell>
@@ -113,6 +149,16 @@ export default function StockPage() {
                     ) : (
                       <Badge variant="success">Ok</Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAdjustLevel(level)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Ajustar
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -165,6 +211,13 @@ export default function StockPage() {
       ) : null}
 
       <MovementDialog open={open} onOpenChange={setOpen} />
+      <AdjustBalanceDialog
+        open={Boolean(adjustLevel)}
+        onOpenChange={(o) => {
+          if (!o) setAdjustLevel(null);
+        }}
+        level={adjustLevel}
+      />
     </div>
   );
 }

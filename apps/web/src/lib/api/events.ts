@@ -1,6 +1,7 @@
 import type {
   AttachmentInput,
   ConvertQuoteInput,
+  EditSaleItemsInput,
   Event,
   EventAttachment,
   EventInput,
@@ -82,6 +83,20 @@ export function useQuickSale() {
   return useMutation({
     mutationFn: (input: QuickSaleInput) =>
       api.post<Event>("/events/quick", input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useEditSaleItems(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EditSaleItemsInput) =>
+      api.patch<Event>(`/events/${id}/items`, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["stock"] });

@@ -73,7 +73,7 @@ export class CashflowService {
 
     const [payments, expenses] = await Promise.all([
       this.payments.listInRange(from, to),
-      this.expenses.listInRange(from, to),
+      this.expenses.listPaidInRange(from, to),
     ]);
 
     // Enriquece com o nome do cliente (venda) e do fornecedor (compra).
@@ -96,7 +96,7 @@ export class CashflowService {
       ...payments.map((p) => paymentToMovement(p, eventNames, purchaseNames)),
       ...expenses.map((e) => ({
         id: e.id,
-        date: e.date,
+        date: e.paidDate ?? e.dueDate,
         direction: "OUT" as const,
         kind: "expense" as const,
         description: `${e.description} · ${e.costCenter}`,
@@ -131,7 +131,7 @@ export class CashflowService {
 
     const [payments, expenses] = await Promise.all([
       this.payments.listInRange(from, to),
-      this.expenses.listInRange(from, to),
+      this.expenses.listPaidInRange(from, to),
     ]);
 
     const months: MonthlyCashPoint[] = Array.from({ length: 12 }, (_, i) => ({
@@ -151,7 +151,7 @@ export class CashflowService {
       else months[m].saidas += p.amount;
     }
     for (const e of expenses) {
-      const m = monthIndex(e.date);
+      const m = monthIndex(e.paidDate ?? e.dueDate);
       if (m < 0 || m > 11) continue;
       months[m].saidas += e.amount;
     }

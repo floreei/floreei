@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import {
+  stockAdjustSchema,
   stockMovementInputSchema,
   stockMovementQuerySchema,
 } from "@sistema-flores/types";
@@ -19,6 +20,7 @@ import { StockMovementRepository } from "./infrastructure/stock-movement.reposit
 
 class StockMovementInputDto extends createZodDto(stockMovementInputSchema) {}
 class StockMovementQueryDto extends createZodDto(stockMovementQuerySchema) {}
+class StockAdjustDto extends createZodDto(stockAdjustSchema) {}
 
 @Controller("stock")
 class StockController {
@@ -37,6 +39,11 @@ class StockController {
   @Post("movements")
   register(@Body() dto: StockMovementInputDto) {
     return this.stock.registerManual(dto);
+  }
+
+  @Post("adjust")
+  adjust(@Body() dto: StockAdjustDto) {
+    return this.stock.adjustBalance(dto);
   }
 }
 

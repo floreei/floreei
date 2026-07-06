@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { emailSchema, idSchema } from "./common";
 import { roleSchema } from "./enums";
+import { companyAccessStatuses, companyPlans } from "./platform";
 
 /** Cadastro self-service: cria a empresa + usuário administrador. */
 export const registerSchema = z.object({
@@ -28,6 +29,16 @@ export const provisionSchema = z.object({
 });
 export type ProvisionInput = z.infer<typeof provisionSchema>;
 
+/** Situação de acesso da empresa do usuário (plano/trial), anexada ao perfil. */
+export const companyAccessInfoSchema = z.object({
+  plan: z.enum(companyPlans),
+  status: z.enum(companyAccessStatuses),
+  /** Dias restantes do período gratuito (quando em TRIAL); null caso contrário. */
+  trialDaysLeft: z.number().nullable(),
+  trialEndsAt: z.string().nullable(),
+});
+export type CompanyAccessInfo = z.infer<typeof companyAccessInfoSchema>;
+
 /** Representação pública (sem segredos) de um usuário autenticado. */
 export const publicUserSchema = z.object({
   id: idSchema,
@@ -36,5 +47,6 @@ export const publicUserSchema = z.object({
   name: z.string(),
   email: emailSchema,
   role: roleSchema,
+  access: companyAccessInfoSchema.optional(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;

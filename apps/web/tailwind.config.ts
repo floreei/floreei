@@ -84,8 +84,10 @@ const config: Config = {
         standard: "var(--ease-standard)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        // Fallback DENTRO do var(): se o next/font não injetar a variável (falha
+        // de fetch no dev), cai numa sans do sistema — nunca no serif padrão (Times).
+        sans: ["var(--font-sans,ui-sans-serif,system-ui,sans-serif)"],
+        serif: ["var(--font-serif,Georgia,serif)"],
       },
       keyframes: {
         "accordion-down": {

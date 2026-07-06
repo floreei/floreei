@@ -9,6 +9,7 @@ function toItem(item: EventItemEntity): EventItem {
   return {
     id: item.id,
     productId: item.productId,
+    arrangementId: item.arrangementId,
     description: item.description,
     quantity: item.quantity,
     unit: item.unit,
@@ -37,6 +38,7 @@ export function toEvent(event: EventEntity): Event {
     location: event.location,
     status: event.status,
     soldValue: event.soldValue,
+    cost: event.cost,
     receivedValue: event.receivedValue,
     estimatedProfit: event.estimatedProfit,
     realProfit: event.realProfit,

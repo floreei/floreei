@@ -1,4 +1,9 @@
 import { z } from "zod";
+import type {
+  ProfileMonthlyPoint,
+  ProfileOrderItem,
+  ProfileTopItem,
+} from "./common";
 import { idSchema, paginationQuerySchema } from "./common";
 
 const optionalText = (max: number) =>
@@ -62,6 +67,7 @@ export interface CustomerEventSummary {
   status: string;
   soldValue: number;
   receivedValue: number;
+  items: ProfileOrderItem[];
 }
 
 export interface CustomerQuoteSummary {
@@ -77,4 +83,10 @@ export interface CustomerProfile {
   stats: CustomerProfileStats;
   events: CustomerEventSummary[];
   quotes: CustomerQuoteSummary[];
+  /** Itens mais vendidos ao cliente, ranqueados por quantidade. */
+  topItems: ProfileTopItem[];
+  /** Faturamento por mês (últimos 12 meses) para o gráfico de colunas. */
+  monthly: ProfileMonthlyPoint[];
+  /** Mês de maior faturamento entre os últimos 12; null se não houve vendas. */
+  bestMonth: ProfileMonthlyPoint | null;
 }

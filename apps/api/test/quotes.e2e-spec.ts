@@ -11,6 +11,7 @@ describe("Orçamentos (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@orc.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -18,8 +19,7 @@ describe("Orçamentos (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@orc.com" })).accessToken;
+    await ctx.resetBusiness();
     const customer = await http
       .post("/api/customers")
       .set(bearer(token))
@@ -203,5 +203,41 @@ describe("Orçamentos (e2e)", () => {
       .set(bearer(other.accessToken))
       .send({ customerId, items: [] })
       .expect(404);
+  });
+
+  it("exclui um orçamento não convertido (204) e some da listagem", async () => {
+    const quote = await http
+      .post("/api/quotes")
+      .set(bearer(token))
+      .send({ customerId, items: sampleItems })
+      .expect(201);
+
+    await http
+      .delete(`/api/quotes/${quote.body.id}`)
+      .set(bearer(token))
+      .expect(204);
+
+    await http
+      .get(`/api/quotes/${quote.body.id}`)
+      .set(bearer(token))
+      .expect(404);
+  });
+
+  it("não exclui orçamento já convertido em evento (400)", async () => {
+    const quote = await http
+      .post("/api/quotes")
+      .set(bearer(token))
+      .send({ customerId, items: sampleItems })
+      .expect(201);
+    await http
+      .post(`/api/events/from-quote/${quote.body.id}`)
+      .set(bearer(token))
+      .send({ title: "Casamento", date: "2026-09-12" })
+      .expect(201);
+
+    await http
+      .delete(`/api/quotes/${quote.body.id}`)
+      .set(bearer(token))
+      .expect(400);
   });
 });

@@ -21,24 +21,18 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "pnpm --filter @sistema-flores/api emulator",
-      url: "http://127.0.0.1:9099/",
-      timeout: 90_000,
-      reuseExistingServer: !process.env.CI,
-      stdout: "pipe",
-    },
-    {
+      // API contra o Firebase real (sem emulador). O projectId garante que o
+      // verifyIdToken valide os tokens do projeto certo.
       command:
-        "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 pnpm --filter @sistema-flores/api start:e2e",
+        "FIREBASE_PROJECT_ID=***REMOVED*** pnpm --filter @sistema-flores/api start:e2e",
       url: "http://localhost:3001/api/health",
       timeout: 90_000,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
     },
     {
-      // next dev para aplicar o emulador em runtime (o build de dev aponta pro Firebase real).
-      command:
-        "NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 pnpm --filter @sistema-flores/web dev",
+      // next dev — a config de dev já aponta para o Firebase real (auth + storage).
+      command: "pnpm --filter @sistema-flores/web dev",
       url: "http://localhost:3000",
       timeout: 90_000,
       reuseExistingServer: !process.env.CI,

@@ -55,6 +55,17 @@ export class StockMovementRepository extends TenantScopedRepository<StockMovemen
     return this.findAll({ where: { sourceId } });
   }
 
+  /** Perdas (PERDA) do período valorizadas ao custo atual do insumo. */
+  async sumLossesAtCost(from: string, to: string): Promise<number> {
+    const row = await this.qb("m")
+      .innerJoin("m.product", "p")
+      .select("COALESCE(SUM(m.quantity * p.current_unit_cost), 0)", "v")
+      .andWhere("m.type = 'PERDA'")
+      .andWhere("m.date BETWEEN :from AND :to", { from, to })
+      .getRawOne<{ v: string }>();
+    return Number(row?.v ?? 0);
+  }
+
   /** Remove todas as movimentações de uma origem (ex.: reprocessar uma compra). */
   async deleteBySource(sourceId: string, source: string): Promise<void> {
     await this.repo.delete({

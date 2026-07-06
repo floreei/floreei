@@ -5,10 +5,11 @@ import {
   decimalTransformer,
   quantityTransformer,
 } from "../../../common/database/decimal.transformer";
+import { ArrangementEntity } from "../../arrangements/infrastructure/arrangement.entity";
 import { ProductEntity } from "../../catalog/infrastructure/product.entity";
 import { EventEntity } from "./event.entity";
 
-/** Item vendido numa venda/evento (flor, quantidade e preço de venda). */
+/** Item vendido numa venda/evento: insumo avulso ou buquê. */
 @Entity({ name: "event_items" })
 export class EventItemEntity extends BaseEntity {
   @Column({ name: "event_id", type: "uuid" })
@@ -16,6 +17,9 @@ export class EventItemEntity extends BaseEntity {
 
   @Column({ name: "product_id", type: "uuid", nullable: true })
   productId!: string | null;
+
+  @Column({ name: "arrangement_id", type: "uuid", nullable: true })
+  arrangementId!: string | null;
 
   @Column({ type: "varchar", length: 200 })
   description!: string;
@@ -58,4 +62,8 @@ export class EventItemEntity extends BaseEntity {
   @ManyToOne(() => ProductEntity, { onDelete: "SET NULL", nullable: true })
   @JoinColumn({ name: "product_id" })
   product!: ProductEntity | null;
+
+  @ManyToOne(() => ArrangementEntity, { onDelete: "SET NULL", nullable: true })
+  @JoinColumn({ name: "arrangement_id" })
+  arrangement!: ArrangementEntity | null;
 }

@@ -16,6 +16,7 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@caixa.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -23,8 +24,7 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@caixa.com" })).accessToken;
+    await ctx.resetBusiness();
     customerId = (
       await http.post("/api/customers").set(auth()).send({ name: "Ana" }).expect(201)
     ).body.id;
@@ -43,11 +43,16 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
       .send({ amount: 200, method: "PIX" })
       .expect(201);
 
-    // Despesa de 50
-    await http
+    // Despesa de 50 paga hoje (só despesa PAGA entra no caixa)
+    const exp = await http
       .post("/api/expenses")
       .set(auth())
-      .send({ description: "Transporte", costCenter: "Transporte", amount: 50, date: today })
+      .send({ description: "Transporte", costCenter: "Transporte", amount: 50, dueDate: today })
+      .expect(201);
+    await http
+      .post(`/api/expenses/${exp.body.id}/pay`)
+      .set(auth())
+      .send({ paidDate: today, paymentMethod: "CASH" })
       .expect(201);
 
     // Entrada avulsa de 30
@@ -84,10 +89,15 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
       .set(auth())
       .send({ amount: 100, description: "Venda", date: `${year}-03-10` })
       .expect(201);
-    await http
+    const marExp = await http
       .post("/api/expenses")
       .set(auth())
-      .send({ description: "Frete", costCenter: "Transporte", amount: 50, date: `${year}-03-15` })
+      .send({ description: "Frete", costCenter: "Transporte", amount: 50, dueDate: `${year}-03-15` })
+      .expect(201);
+    await http
+      .post(`/api/expenses/${marExp.body.id}/pay`)
+      .set(auth())
+      .send({ paidDate: `${year}-03-15`, paymentMethod: "PIX" })
       .expect(201);
 
     // Junho: entrada 300, despesa 20 → saldo 280
@@ -96,10 +106,15 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
       .set(auth())
       .send({ amount: 300, description: "Casamento", date: `${year}-06-01` })
       .expect(201);
-    await http
+    const junExp = await http
       .post("/api/expenses")
       .set(auth())
-      .send({ description: "Vaso", costCenter: "Insumos", amount: 20, date: `${year}-06-20` })
+      .send({ description: "Vaso", costCenter: "Insumos", amount: 20, dueDate: `${year}-06-20` })
+      .expect(201);
+    await http
+      .post(`/api/expenses/${junExp.body.id}/pay`)
+      .set(auth())
+      .send({ paidDate: `${year}-06-20`, paymentMethod: "PIX" })
       .expect(201);
 
     const res = await http

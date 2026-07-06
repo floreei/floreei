@@ -38,11 +38,11 @@ export interface Payment {
 
 /** Uma conta em aberto (a receber ou a pagar). */
 export interface OpenAccount {
-  id: string; // id do evento ou da compra
-  kind: "EVENT" | "PURCHASE";
+  id: string; // id do evento, da compra ou da despesa
+  kind: "EVENT" | "PURCHASE" | "EXPENSE";
   title: string;
-  partyName: string; // cliente ou fornecedor
-  date: string;
+  partyName: string; // cliente, fornecedor ou centro de custo
+  date: string; // vencimento
   total: number;
   paid: number;
   balanceDue: number;

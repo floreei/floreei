@@ -1,4 +1,5 @@
 import type {
+  StockAdjustInput,
   StockMovement,
   StockMovementInput,
   StockOverview,
@@ -30,6 +31,16 @@ export function useRegisterMovement() {
   return useMutation({
     mutationFn: (input: StockMovementInput) =>
       api.post<StockMovement>("/stock/movements", input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["stock"] }),
+  });
+}
+
+/** Define o saldo do produto informando a quantidade real (contagem manual). */
+export function useAdjustStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: StockAdjustInput) =>
+      api.post<StockMovement | null>("/stock/adjust", input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["stock"] }),
   });
 }

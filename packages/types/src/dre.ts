@@ -13,16 +13,18 @@ export interface DreExpenseLine {
   amount: number;
 }
 
-/** DRE simplificada do período (regime de competência pelas datas dos eventos/compras). */
+/** DRE por competência: o custo é o do que foi VENDIDO (COGS), não das compras. */
 export interface DreReport {
   from: string;
   to: string;
-  revenue: number; // receita bruta (eventos)
-  cmv: number; // custo das mercadorias (compras)
+  revenue: number; // receita bruta (eventos/vendas)
+  cmv: number; // COGS: custo do que foi vendido (soma do custo das vendas)
   grossProfit: number; // receita - cmv
   grossMargin: number; // %
+  purchasesTotal: number; // compras do período (saída de caixa, informativo)
+  losses: number; // perdas de estoque valorizadas a custo
   expenses: DreExpenseLine[]; // despesas por centro de custo
   expensesTotal: number;
-  netResult: number; // grossProfit - expensesTotal
+  netResult: number; // grossProfit - expensesTotal - losses
   netMargin: number; // %
 }

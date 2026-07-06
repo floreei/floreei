@@ -32,3 +32,6 @@ pnpm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# design-hook (impeccable): cache local, contém paths absolutos e IDs de sessão
+.impeccable/

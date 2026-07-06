@@ -13,6 +13,7 @@ describe("Perfil do cliente (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@perfil.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -20,8 +21,7 @@ describe("Perfil do cliente (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@perfil.com" })).accessToken;
+    await ctx.resetBusiness();
     customerId = (
       await http.post("/api/customers").set(auth()).send({ name: "Ana" }).expect(201)
     ).body.id;

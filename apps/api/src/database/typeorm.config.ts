@@ -20,6 +20,14 @@ export function buildDataSourceOptions(
     username: get("USER", "flores"),
     password: get("PASSWORD", "flores"),
     database: get("NAME", useTestDb ? "sistema_flores_test" : "sistema_flores"),
+    // TLS para Postgres gerenciado (Neon exige; RDS opcional). Ligue com
+    // DATABASE_SSL=true. Verifica o certificado do servidor por padrão (Neon usa
+    // CA público confiável). Se o provedor usar um CA fora do bundle do Node
+    // (ex.: RDS sem o CA), relaxe com DATABASE_SSL_NO_VERIFY=true.
+    ssl:
+      process.env.DATABASE_SSL === "true"
+        ? { rejectUnauthorized: process.env.DATABASE_SSL_NO_VERIFY !== "true" }
+        : false,
     entities,
     migrations: [join(__dirname, "migrations", "*.{ts,js}")],
     synchronize: false,

@@ -7,66 +7,160 @@ export interface TestAuth {
   user: PublicUser;
   /** ID token do Firebase — use com `bearer()`. */
   accessToken: string;
+  /** E-mail realmente usado (único por rodada) — use para `loginAs`/asserções. */
+  email: string;
+  password: string;
 }
 
-let counter = 0;
+const API_KEY =
+  process.env.FIREBASE_API_KEY ?? process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+if (!API_KEY) {
+  throw new Error(
+    "FIREBASE_API_KEY ausente — configure apps/api/.env (ver .env.example).",
+  );
+}
+const IDENTITY_URL = "https://identitytoolkit.googleapis.com/v1";
 
-const EMULATOR_HOST =
-  process.env.FIREBASE_AUTH_EMULATOR_HOST ?? "127.0.0.1:9099";
-const PROJECT_ID =
-  process.env.FIREBASE_PROJECT_ID ??
-  process.env.GCLOUD_PROJECT ??
-  "***REMOVED***";
-// Sob o emulador qualquer apiKey serve.
-const API_KEY = "fake-api-key";
-const IDENTITY_URL = `http://${EMULATOR_HOST}/identitytoolkit.googleapis.com/v1`;
+/**
+ * Sem emulador, os testes batem no Firebase real: os usuários persistem entre
+ * execuções. Cada rodada usa um namespace único (evita EMAIL_EXISTS entre runs) e
+ * os tokens criados são apagados no teardown (best-effort). Ver `deleteTrackedUsers`.
+ */
+const RUN = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+let seq = 0;
+const createdTokens: string[] = [];
 
-/** Cria um usuário no emulador do Firebase e devolve um ID token. */
+/** E-mail único por chamada, válido só para testes (TLD reservado `.test`). */
+export function uniqueEmail(prefix = "user"): string {
+  seq += 1;
+  const slug =
+    prefix.split("@")[0].replace(/[^a-z0-9]/gi, "").toLowerCase() || "user";
+  return `${slug}.${RUN}.${seq}@e2e.flores.test`;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+interface IdentityError extends Error {
+  status?: number;
+  body?: string;
+}
+
+// Auto-throttle: o Firebase real limita cadastros/logins por IP em rajada. Como a
+// suíte roda em série (--runInBand), espaçamos as chamadas de auth para ficar bem
+// abaixo do limite (evita TOO_MANY_ATTEMPTS). Ajustável por env.
+const MIN_INTERVAL_MS = Number(process.env.E2E_AUTH_MIN_INTERVAL_MS ?? 700);
+let lastCallAt = 0;
+async function pace(): Promise<void> {
+  const wait = lastCallAt + MIN_INTERVAL_MS - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCallAt = Date.now();
+}
+
+/**
+ * POST no Identity Toolkit real com retentativa exponencial. O Firebase limita
+ * cadastros/logins por IP (`TOO_MANY_ATTEMPTS_TRY_LATER`); sob carga da suíte
+ * isso aparece em rajada, então esperamos e tentamos de novo até o throttle drenar.
+ */
+async function identityPost(
+  path: string,
+  body: unknown,
+  tries = 3,
+): Promise<Record<string, unknown>> {
+  let lastText = "";
+  for (let i = 0; i < tries; i += 1) {
+    try {
+      await pace();
+      const res = await fetch(`${IDENTITY_URL}/${path}?key=${API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return (await res.json()) as Record<string, unknown>;
+      lastText = await res.text();
+      // Rate limit ou erro de servidor → espera pouco e tenta de novo (fail-fast:
+      // nunca martelar o throttle por muito tempo).
+      if (lastText.includes("TOO_MANY_ATTEMPTS_TRY_LATER") || res.status >= 500) {
+        await sleep(700 * (i + 1));
+        continue;
+      }
+      // Erro definitivo (EMAIL_EXISTS, senha fraca, etc.) → propaga.
+      const err: IdentityError = new Error(lastText);
+      err.status = res.status;
+      err.body = lastText;
+      throw err;
+    } catch (error) {
+      if ((error as IdentityError).body !== undefined) throw error;
+      await sleep(1500 * (i + 1)); // erro de rede
+    }
+  }
+  const err: IdentityError = new Error(
+    `Identity Toolkit falhou após ${tries} tentativas: ${lastText}`,
+  );
+  err.body = lastText;
+  throw err;
+}
+
+/** Cria um usuário no Firebase e devolve um ID token. */
 export async function firebaseSignUp(
   email: string,
   password: string,
 ): Promise<string> {
-  const res = await fetch(`${IDENTITY_URL}/accounts:signUp?key=${API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, returnSecureToken: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Firebase signUp falhou: ${res.status} ${await res.text()}`);
+  let data: Record<string, unknown>;
+  try {
+    data = await identityPost("accounts:signUp", {
+      email,
+      password,
+      returnSecureToken: true,
+    });
+  } catch (error) {
+    // Órfão de uma rodada anterior que falhou no meio: reaproveita via login.
+    if ((error as IdentityError).body?.includes("EMAIL_EXISTS")) {
+      return firebaseSignIn(email, password);
+    }
+    throw error;
   }
-  return ((await res.json()) as { idToken: string }).idToken;
+  const idToken = data.idToken as string;
+  createdTokens.push(idToken);
+  return idToken;
 }
 
-/** Autentica no emulador do Firebase e devolve um ID token. */
+/** Autentica no Firebase e devolve um ID token. */
 export async function firebaseSignIn(
   email: string,
   password: string,
 ): Promise<string> {
-  const res = await fetch(
-    `${IDENTITY_URL}/accounts:signInWithPassword?key=${API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, returnSecureToken: true }),
-    },
-  );
-  if (!res.ok) {
-    throw new Error(`Firebase signIn falhou: ${res.status} ${await res.text()}`);
-  }
-  return ((await res.json()) as { idToken: string }).idToken;
+  const data = await identityPost("accounts:signInWithPassword", {
+    email,
+    password,
+    returnSecureToken: true,
+  });
+  const idToken = data.idToken as string;
+  createdTokens.push(idToken);
+  return idToken;
 }
 
-/** Apaga todas as contas do emulador (entre testes). */
-export async function clearFirebaseUsers(): Promise<void> {
-  await fetch(
-    `http://${EMULATOR_HOST}/emulator/v1/projects/${PROJECT_ID}/accounts`,
-    { method: "DELETE" },
-  ).catch(() => undefined);
+/**
+ * Apaga os usuários criados nesta rodada (best-effort, via o próprio ID token).
+ * Os e-mails são únicos por rodada, então a limpeza é só higiene do projeto real —
+ * fica **desligada por padrão** para não dobrar as chamadas de auth (e o rate
+ * limit); habilite com `E2E_CLEANUP_USERS=1`.
+ */
+export async function deleteTrackedUsers(): Promise<void> {
+  const tokens = createdTokens.splice(0);
+  if (process.env.E2E_CLEANUP_USERS !== "1") return;
+  for (const idToken of tokens) {
+    await pace();
+    await fetch(`${IDENTITY_URL}/accounts:delete?key=${API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    }).catch(() => undefined);
+  }
 }
 
 /**
  * Cadastra uma nova empresa + admin (cria no Firebase e provisiona no backend)
- * e devolve o usuário público + o ID token.
+ * e devolve o usuário público + o ID token + o e-mail realmente usado.
  */
 export async function registerCompany(
   http: Http,
@@ -77,20 +171,17 @@ export async function registerCompany(
     password: string;
   }> = {},
 ): Promise<TestAuth> {
-  counter += 1;
-  const payload = {
-    companyName: overrides.companyName ?? `Empresa ${counter}`,
-    name: overrides.name ?? `Admin ${counter}`,
-    email: overrides.email ?? `admin${counter}@empresa.com`,
-    password: overrides.password ?? "segredo123",
-  };
-  const idToken = await firebaseSignUp(payload.email, payload.password);
+  const email = uniqueEmail(overrides.email ?? "admin");
+  const password = overrides.password ?? "Segredo123!";
+  const companyName = overrides.companyName ?? `Empresa ${seq}`;
+  const name = overrides.name ?? "Admin";
+  const idToken = await firebaseSignUp(email, password);
   const res = await http
     .post("/api/auth/provision")
     .set("Authorization", `Bearer ${idToken}`)
-    .send({ companyName: payload.companyName, name: payload.name })
+    .send({ companyName, name })
     .expect(201);
-  return { user: res.body as PublicUser, accessToken: idToken };
+  return { user: res.body as PublicUser, accessToken: idToken, email, password };
 }
 
 /** Faz login (Firebase) e devolve o perfil + ID token. */
@@ -104,7 +195,7 @@ export async function loginAs(
     .get("/api/auth/me")
     .set("Authorization", `Bearer ${idToken}`)
     .expect(200);
-  return { user: res.body as PublicUser, accessToken: idToken };
+  return { user: res.body as PublicUser, accessToken: idToken, email, password };
 }
 
 /** Header Authorization pronto para uso. */

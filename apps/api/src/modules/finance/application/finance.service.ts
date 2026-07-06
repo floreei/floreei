@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { FinanceSummary, OpenAccount } from "@sistema-flores/types";
 import { roundMoney } from "../../../common/money/money";
 import { EventRepository } from "../../events/infrastructure/event.repository";
+import { ExpenseRepository } from "../../expenses/infrastructure/expense.repository";
 import { PurchaseRepository } from "../../purchases/infrastructure/purchase.repository";
 import { PaymentRepository } from "../infrastructure/payment.repository";
 
@@ -15,6 +16,7 @@ export class FinanceService {
     private readonly events: EventRepository,
     private readonly purchases: PurchaseRepository,
     private readonly payments: PaymentRepository,
+    private readonly expenses: ExpenseRepository,
   ) {}
 
   async summary(reference = new Date()): Promise<FinanceSummary> {
@@ -71,17 +73,19 @@ export class FinanceService {
     }));
   }
 
-  /** Compras com saldo a pagar. */
+  /** Compras e despesas com saldo a pagar. */
   async payables(): Promise<OpenAccount[]> {
-    const rows = await this.purchases
-      .qb("purchase")
-      .leftJoinAndSelect("purchase.supplier", "supplier")
-      .andWhere("purchase.status <> 'CANCELED'")
-      .andWhere("purchase.total > purchase.paid_amount")
-      .orderBy("purchase.date", "ASC")
-      .getMany();
+    const [purchases, expenses] = await Promise.all([
+      this.purchases
+        .qb("purchase")
+        .leftJoinAndSelect("purchase.supplier", "supplier")
+        .andWhere("purchase.status <> 'CANCELED'")
+        .andWhere("purchase.total > purchase.paid_amount")
+        .getMany(),
+      this.expenses.listUnpaid(),
+    ]);
 
-    return rows.map((purchase) => ({
+    const purchaseAccounts: OpenAccount[] = purchases.map((purchase) => ({
       id: purchase.id,
       kind: "PURCHASE" as const,
       title: `Compra ${purchase.date}`,
@@ -91,5 +95,20 @@ export class FinanceService {
       paid: purchase.paidAmount,
       balanceDue: roundMoney(purchase.total - purchase.paidAmount),
     }));
+
+    const expenseAccounts: OpenAccount[] = expenses.map((expense) => ({
+      id: expense.id,
+      kind: "EXPENSE" as const,
+      title: expense.description,
+      partyName: expense.costCenter,
+      date: expense.dueDate,
+      total: expense.amount,
+      paid: 0,
+      balanceDue: expense.amount,
+    }));
+
+    return [...purchaseAccounts, ...expenseAccounts].sort((a, b) =>
+      a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+    );
   }
 }

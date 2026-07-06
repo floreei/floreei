@@ -4,6 +4,7 @@ import {
   firebaseSignUp,
   loginAs,
   registerCompany,
+  uniqueEmail,
 } from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
@@ -25,15 +26,14 @@ describe("Auth (e2e)", () => {
   });
 
   it("provisiona empresa + admin a partir de um cadastro no Firebase", async () => {
-    const { user } = await registerCompany(http, {
+    const { user, email } = await registerCompany(http, {
       companyName: "Floricultura Bela Flor",
       name: "Ana Souza",
-      email: "ana@belaflor.com",
     });
 
     expect(user).toMatchObject({
       name: "Ana Souza",
-      email: "ana@belaflor.com",
+      email,
       role: "ADMIN",
       companyName: "Floricultura Bela Flor",
     });
@@ -41,7 +41,7 @@ describe("Auth (e2e)", () => {
   });
 
   it("recusa provisionar a mesma conta duas vezes", async () => {
-    const idToken = await firebaseSignUp("dup@belaflor.com", "segredo123");
+    const idToken = await firebaseSignUp(uniqueEmail("dup"), "Segredo123!");
     await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
@@ -55,7 +55,7 @@ describe("Auth (e2e)", () => {
   });
 
   it("valida o payload de provisionamento (nome curto → 400)", async () => {
-    const idToken = await firebaseSignUp("x@belaflor.com", "segredo123");
+    const idToken = await firebaseSignUp(uniqueEmail("x"), "Segredo123!");
     await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
@@ -71,18 +71,13 @@ describe("Auth (e2e)", () => {
   });
 
   it("faz login (Firebase) e recupera o perfil", async () => {
-    await registerCompany(http, {
-      email: "login@belaflor.com",
-      password: "segredo123",
-    });
-    const { user } = await loginAs(http, "login@belaflor.com", "segredo123");
-    expect(user.email).toBe("login@belaflor.com");
+    const { email, password } = await registerCompany(http, { name: "Log" });
+    const { user } = await loginAs(http, email, password);
+    expect(user.email).toBe(email);
   });
 
   it("protege /auth/me e retorna o perfil com token", async () => {
-    const { accessToken } = await registerCompany(http, {
-      email: "me@belaflor.com",
-    });
+    const { accessToken, email } = await registerCompany(http, {});
 
     await http.get("/api/auth/me").expect(401);
 
@@ -91,7 +86,10 @@ describe("Auth (e2e)", () => {
       .set(bearer(accessToken))
       .expect(200);
 
-    expect(me.body.email).toBe("me@belaflor.com");
+    expect(me.body.email).toBe(email);
+    // Empresa recém-criada começa no período gratuito, com dias restantes.
+    expect(me.body.access).toMatchObject({ status: "TRIAL", plan: "TRIAL" });
+    expect(me.body.access.trialDaysLeft).toBeGreaterThan(0);
   });
 
   it("recusa token inválido", async () => {

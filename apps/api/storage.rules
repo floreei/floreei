@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Anexos do sistema (contas, comprovantes, referências). Somente usuários
+// autenticados leem/escrevem. Os caminhos usam UUID e a URL de download fica
+// guardada no nosso banco (escopado por empresa). Endurecimento por companyId
+// via custom claims é um follow-up.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /companies/{companyId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

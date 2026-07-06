@@ -9,7 +9,7 @@ test("fluxo de compra: pedido → receber → pagamento parcial → comprovante"
 }) => {
   const stamp = Date.now();
   const email = `compra_${stamp}@flores.com`;
-  const password = "segredo123";
+  const password = "Segredo123!";
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/login");
   await page.getByRole("tab", { name: "Criar conta" }).click();
@@ -70,9 +70,9 @@ test("fluxo de compra: pedido → receber → pagamento parcial → comprovante"
   await page.getByRole("button", { name: "Pagar", exact: true }).click();
   await expect(page.getByText("Pagamento registrado.")).toBeVisible();
 
-  // Anexa comprovante
-  await page.getByLabel("Nome", { exact: true }).fill("Comprovante Pix");
-  await page.getByLabel("Link", { exact: true }).fill("https://exemplo.com/pix.pdf");
-  await page.getByRole("button", { name: "Anexar" }).click();
-  await expect(page.getByRole("link", { name: /Comprovante Pix/ })).toBeVisible();
+  // Anexos agora são upload de arquivo (Firebase Storage). O upload em si exige
+  // o emulador de storage (Java 21), então aqui só validamos que o controle existe.
+  await expect(
+    page.getByRole("button", { name: "Anexar arquivo" }),
+  ).toBeVisible();
 });

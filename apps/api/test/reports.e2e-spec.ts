@@ -16,6 +16,7 @@ describe("Relatórios (e2e)", () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "dono@rep.com" })).accessToken;
   });
 
   afterAll(async () => {
@@ -23,8 +24,7 @@ describe("Relatórios (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await ctx.reset();
-    token = (await registerCompany(http, { email: "dono@rep.com" })).accessToken;
+    await ctx.resetBusiness();
     const category = await http
       .post("/api/categories")
       .set(auth())
@@ -80,8 +80,9 @@ describe("Relatórios (e2e)", () => {
       .expect(200);
 
     expect(res.body.summary.revenue).toBe(300); // 30 * 10
-    expect(res.body.summary.purchasesCost).toBe(100); // 25 * 4
-    expect(res.body.summary.grossProfit).toBe(200);
+    expect(res.body.summary.cogs).toBe(120); // custo do vendido: 30 * 4
+    expect(res.body.summary.purchasesCost).toBe(100); // compras (caixa): 25 * 4
+    expect(res.body.summary.grossProfit).toBe(180); // receita − COGS
     expect(res.body.summary.eventsCount).toBe(1);
 
     expect(res.body.topProducts[0]).toMatchObject({
@@ -92,6 +93,11 @@ describe("Relatórios (e2e)", () => {
     });
     expect(res.body.suppliers[0]).toMatchObject({ name: "Ceasa", total: 100 });
     expect(res.body.customers[0]).toMatchObject({ name: "Ana", total: 300 });
+
+    // Série mensal do período (para o gráfico Receita × Lucro).
+    expect(res.body.monthly).toEqual([
+      { ym: "2026-06", revenue: 300, cogs: 120, grossProfit: 180 },
+    ]);
   });
 
   it("período sem dados retorna zeros", async () => {

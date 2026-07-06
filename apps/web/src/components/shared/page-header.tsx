@@ -9,8 +9,8 @@ interface PageHeaderProps {
 /** Cabeçalho de página: título serif + descrição + ações à direita. */
 export function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-1.5">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 space-y-1.5">
         <h1 className="font-serif text-3xl font-semibold leading-[1.1] text-foreground sm:text-[2.05rem]">
           {title}
         </h1>
@@ -19,7 +19,9 @@ export function PageHeader({ title, description, children }: PageHeaderProps) {
         ) : null}
       </div>
       {children ? (
-        <div className="flex shrink-0 items-center gap-2">{children}</div>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          {children}
+        </div>
       ) : null}
     </div>
   );

@@ -1,23 +1,9 @@
 "use client";
 
-import { attachmentInputSchema } from "@sistema-flores/types";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink, Link2, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { ExternalLink, Link2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Field } from "@/components/shared/field";
-import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/shared/file-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 import {
   useAddAttachment,
@@ -27,24 +13,18 @@ import {
 
 export function AttachmentsCard({ eventId }: { eventId: string }) {
   const { data, isLoading } = useEventAttachments(eventId);
+  const add = useAddAttachment(eventId);
   const remove = useDeleteAttachment(eventId);
-  const [open, setOpen] = useState(false);
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>Anexos</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Referências de decoração, contrato, pasta de fotos.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Adicionar link
-        </Button>
+      <CardHeader>
+        <CardTitle>Anexos</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Contrato, comprovantes, referências de decoração (imagem ou PDF).
+        </p>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : data && data.length > 0 ? (
@@ -80,78 +60,28 @@ export function AttachmentsCard({ eventId }: { eventId: string }) {
             </div>
           ))
         ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            Nenhum anexo. Adicione um link de referência.
+          <p className="py-1 text-sm text-muted-foreground">
+            Nenhum anexo ainda.
           </p>
         )}
-      </CardContent>
 
-      <AddAttachmentDialog eventId={eventId} open={open} onOpenChange={setOpen} />
-    </Card>
-  );
-}
-
-function AddAttachmentDialog({
-  eventId,
-  open,
-  onOpenChange,
-}: {
-  eventId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const add = useAddAttachment(eventId);
-  const form = useForm({
-    resolver: zodResolver(attachmentInputSchema),
-    defaultValues: { label: "", url: "" },
-  });
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) form.reset({ label: "", url: "" });
-      }}
-    >
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Adicionar link</DialogTitle>
-          <DialogDescription>
-            Cole o link de uma pasta, board ou documento.
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          className="space-y-4"
-          onSubmit={form.handleSubmit(async (values) => {
+        <FileUpload
+          scope="events"
+          value={null}
+          label="Anexar arquivo"
+          onChange={async (file) => {
+            if (!file) return;
             try {
-              await add.mutateAsync(values);
+              await add.mutateAsync({ label: file.label, url: file.url });
               toast.success("Anexo adicionado.");
-              form.reset({ label: "", url: "" });
-              onOpenChange(false);
             } catch (error) {
               toast.error(
                 error instanceof ApiError ? error.message : "Erro ao adicionar.",
               );
             }
-          })}
-        >
-          <Field label="Nome" htmlFor="at-label" required error={form.formState.errors.label?.message}>
-            <Input id="at-label" autoFocus placeholder="Referências no Pinterest" {...form.register("label")} />
-          </Field>
-          <Field label="Link" htmlFor="at-url" required error={form.formState.errors.url?.message}>
-            <Input id="at-url" placeholder="https://…" {...form.register("url")} />
-          </Field>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" loading={form.formState.isSubmitting}>
-              Adicionar
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          }}
+        />
+      </CardContent>
+    </Card>
   );
 }

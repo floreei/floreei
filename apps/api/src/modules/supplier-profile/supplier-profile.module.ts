@@ -6,8 +6,17 @@ import {
   Param,
   ParseUUIDPipe,
 } from "@nestjs/common";
-import type { Supplier, SupplierProfile } from "@sistema-flores/types";
+import type {
+  ProfileOrderItem,
+  Supplier,
+  SupplierProfile,
+} from "@sistema-flores/types";
 import { roundMoney } from "../../common/money/money";
+import {
+  aggregateTopItems,
+  bestMonth,
+  monthlySeries,
+} from "../../common/profile/profile-aggregations";
 import { PurchaseRepository } from "../purchases/infrastructure/purchase.repository";
 import { PurchasesModule } from "../purchases/purchases.module";
 import { SupplierEntity } from "../suppliers/infrastructure/supplier.entity";
@@ -41,6 +50,7 @@ export class SupplierProfileService {
 
     const purchases = await this.purchases
       .qb("purchase")
+      .leftJoinAndSelect("purchase.items", "pitem")
       .andWhere("purchase.supplier_id = :id", { id })
       .orderBy("purchase.date", "DESC")
       .getMany();
@@ -53,6 +63,17 @@ export class SupplierProfileService {
       active.reduce((acc, p) => acc + p.paidAmount, 0),
     );
 
+    const itemsOf = (p: (typeof purchases)[number]): ProfileOrderItem[] =>
+      (p.items ?? []).map((it) => ({
+        name: it.description,
+        quantity: it.quantity,
+        lineTotal: it.lineTotal,
+      }));
+
+    const monthly = monthlySeries(
+      active.map((p) => ({ date: p.date, value: p.total })),
+    );
+
     return {
       supplier: toSupplier(supplier),
       stats: {
@@ -61,6 +82,9 @@ export class SupplierProfileService {
         totalPaid,
         balanceDue: roundMoney(totalPurchased - totalPaid),
       },
+      topItems: aggregateTopItems(active.flatMap(itemsOf)),
+      monthly,
+      bestMonth: bestMonth(monthly),
       purchases: purchases.map((p) => ({
         id: p.id,
         date: p.date,
@@ -68,6 +92,7 @@ export class SupplierProfileService {
         total: p.total,
         paidAmount: p.paidAmount,
         balanceDue: roundMoney(p.total - p.paidAmount),
+        items: itemsOf(p),
       })),
     };
   }

@@ -11,6 +11,24 @@
 > nunca reconto do que o código já mostra (isso apodrece). Se uma referência aqui
 > não bater com o código, o código vence; conserte esta linha.
 
+> **Firebase — sempre integração nativa/direta, NUNCA emulador (nem nos testes).**
+> Auth, Storage e tudo do Firebase batem no **projeto real** (`***REMOVED***`) em
+> dev, prod **e na suíte e2e/Playwright**. Não há service account no ambiente: o
+> backend verifica o ID token só com o `projectId` e cria membros de equipe via
+> **Identity Toolkit REST** (apiKey pública) — ver `common/firebase/firebase.service.ts`
+> (`createAuthUser`) e `firebase-options.ts`. Anexos = upload direto no **Storage real**.
+>
+> **Gotcha de rate limit (e2e):** o Firebase limita cadastros/logins por IP em rajada.
+> Por isso cada suíte e2e cadastra a empresa/admin **uma vez** (`beforeAll` +
+> `ctx.resetBusiness()` que preserva `companies`/`users`), os e-mails são **únicos por
+> rodada** (`uniqueEmail`) e há auto-pacing (`E2E_AUTH_MIN_INTERVAL_MS`, padrão 700ms).
+> Rodar suítes em sequência muito rápida (ex.: API e2e logo seguida do Playwright) pode
+> esbarrar no throttle — espace as execuções. Ver `test/utils/auth-helper.ts`.
+>
+> **Storage (ação do dono do projeto):** o bucket já está habilitado, mas as regras
+> `apps/api/storage.rules` precisam ser publicadas (`firebase deploy --only storage`,
+> exige `firebase login`) — sem isso o upload autenticado retorna 403.
+
 ## Mapa de domínios (orientação)
 
 Backend em `apps/api/src/modules/*` (padrão por módulo:
@@ -215,6 +233,70 @@ lados acompanham.
 
 **Testes que travam:** `quotes.e2e-spec.ts` (fluxo) e
 `packages/types/src/quote-calculator.test.ts` (cálculo puro).
+
+---
+
+## Fluxo 6 — Custeio de floricultura (insumo → buquê → COGS → DRE) [Fase 2]
+
+**Invariante:** o lucro real vem do **COGS** (custo do que foi *vendido*), nunca das compras.
+Comprar estoque é **saída de caixa**; só vira custo (resultado) quando o item é **vendido**.
+
+**Modelo:**
+- **Insumo** (`products`): `unit` = unidade-base (consumo/estoque); `purchaseUnit` + `packSize`
+  = embalagem de compra; `currentUnitCost` = custo por unidade-base (**última compra** ÷ packSize).
+- **Buquê** (`arrangements` + `arrangement_items`): ficha técnica (insumo + quantidade base).
+  Custo derivado = `Σ(quantidade × product.currentUnitCost)` — calculado em
+  `calculateArrangement()` (em `@sistema-flores/types`, compartilhado back/front).
+
+**Cruzamentos & acoplamento:**
+1. **Compra recebida** → `StockService.registerFromPurchase()`: entrada de estoque em
+   **unidade-base** (`quantidade × packSize`) **e** atualiza `currentUnitCost = unitPrice ÷ packSize`.
+2. **Venda** (`EventsService.quickSale`): linha pode ser insumo (`productId`) ou buquê
+   (`arrangementId`). Buquê **explode a ficha** → `StockService.registerFromEvent()` dá baixa
+   fracionada de cada insumo; o **COGS** é somado (`event.cost`) e persistido.
+3. **DRE** (`DreService`): `cmv` = **Σ event.cost** (não compras); `losses` = PERDA valorizada a
+   `currentUnitCost`; `netResult = lucro bruto − despesas − perdas`. `purchasesTotal` é só informativo.
+4. **Estoque valorizado**: `StockService.overview()` = `Σ saldo × currentUnitCost`.
+
+**Coexistência (não pode quebrar a revenda):** linha de revenda mantém **custo manual**
+(orçamento → `event.cost = totalSale − totalProfit`); insumo/buquê **derivam** do estoque.
+Ambos somam no **mesmo COGS**. Produto sem custo informado deriva `currentUnitCost` de
+`defaultPurchasePrice ÷ packSize` (compat 1:1).
+
+**Gotchas:**
+- **Última compra revaloriza o saldo**: nova compra do insumo a preço diferente muda o
+  `currentUnitCost` — o custo do buquê e do estoque acompanham (comportamento do método).
+- **Update de itens = delete + insert** (`ArrangementsService.update()`), como nos orçamentos.
+- Buquê explode em **múltiplos SAIDA** por venda; `reverseEvent` estorna todos por `sourceId`.
+
+**Testes que travam:** `arrangements.e2e-spec.ts` (custo/venda/estoque/COGS/perda),
+`purchases.e2e-spec.ts` (pacote → custo/estoque), `expenses-dre.e2e-spec.ts` e
+`reports.e2e-spec.ts` (DRE/summary por COGS).
+
+---
+
+## Fluxo 7 — Despesas como contas a pagar + anexos no Storage [Despesas 2.0]
+
+**Invariante:** despesa tem **vencimento** (`due_date`) e **pago/paidDate/método**. Só **PAGA** entra
+no **Caixa** (por `paid_date`); **não paga** é conta **a pagar** e **não** conta no Caixa.
+
+**Cruzamentos & acoplamento:**
+- **DRE** (`ExpenseRepository.sumByCostCenter`): soma por **`due_date`** (competência) — paga ou não.
+- **Caixa** (`CashflowService` via `ExpenseRepository.listPaidInRange`): só despesas **pagas**, por `paid_date`.
+- **A pagar** (`FinanceService.payables`): inclui despesas não pagas como `OpenAccount` `kind:"EXPENSE"`.
+- **Pagar** = `ExpensesService.pay()` (seta paid/paidDate/method + anexo RECEIPT); `unpay()` reverte.
+
+**Anexos (todos via Firebase Storage):** o upload é **no cliente** (`components/shared/file-upload.tsx`
+→ `uploadBytesResumable` + `getDownloadURL`), guardando a **URL de download** no nosso banco
+(`expense_attachments` com `kind` BILL/RECEIPT; eventos/compras reusam label+url). Regras em
+`apps/api/storage.rules` (autenticado). **Emulador de Storage exige Java 21**; dev usa o Storage real.
+
+**Gotchas:**
+- Backfill da migração: despesas antigas = **pagas no vencimento** (mantêm o Caixa igual).
+- Backend não faz upload — só guarda a URL; por isso os e2e de anexo usam uma URL direta.
+
+**Testes que travam:** `expenses-dre.e2e-spec.ts` (pago/a-pagar/DRE/anexos), `cashflow.e2e-spec.ts`
+(só paga entra no caixa), e Playwright `expenses.spec.ts` (fluxo a-pagar → pago → filtros).
 
 ---
 

@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCashflow } from "@/lib/api/finance";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -27,18 +29,32 @@ const kindLabels: Record<CashMovement["kind"], string> = {
 };
 
 export default function CaixaPage() {
-  const [period, setPeriod] = useState<"day" | "week">("day");
+  const [period, setPeriod] = useState<"day" | "week" | "month" | "custom">(
+    "day",
+  );
+  const [customFrom, setCustomFrom] = useState(() => localISO(new Date()));
+  const [customTo, setCustomTo] = useState(() => localISO(new Date()));
   const [inOpen, setInOpen] = useState(false);
   const [outOpen, setOutOpen] = useState(false);
 
   const { from, to } = useMemo(() => {
     const now = new Date();
-    const to = localISO(now);
-    if (period === "day") return { from: to, to };
+    const today = localISO(now);
+    if (period === "custom") {
+      // Swap de segurança caso o usuário inverta o intervalo.
+      return customFrom <= customTo
+        ? { from: customFrom, to: customTo }
+        : { from: customTo, to: customFrom };
+    }
+    if (period === "day") return { from: today, to: today };
+    if (period === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: localISO(start), to: today };
+    }
     const start = new Date(now);
     start.setDate(now.getDate() - 6);
-    return { from: localISO(start), to };
-  }, [period]);
+    return { from: localISO(start), to: today };
+  }, [period, customFrom, customTo]);
 
   const { data, isLoading } = useCashflow(from, to);
 
@@ -58,26 +74,61 @@ export default function CaixaPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["day", "Hoje"],
-            ["week", "Últimos 7 dias"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            onClick={() => setPeriod(value)}
-            className={cn(
-              "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-              period === value
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted",
-            )}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["day", "Hoje"],
+              ["week", "Últimos 7 dias"],
+              ["month", "Este mês"],
+              ["custom", "Personalizado"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setPeriod(value)}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                period === value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {period === "custom" ? (
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="caixa-from" className="text-xs">
+                De
+              </Label>
+              <Input
+                id="caixa-from"
+                type="date"
+                className="h-9"
+                value={customFrom}
+                max={customTo}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="caixa-to" className="text-xs">
+                Até
+              </Label>
+              <Input
+                id="caixa-to"
+                type="date"
+                className="h-9"
+                value={customTo}
+                min={customFrom}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

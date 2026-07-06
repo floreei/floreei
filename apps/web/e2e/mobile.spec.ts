@@ -30,7 +30,7 @@ test.describe("responsividade mobile", () => {
   }) => {
     const stamp = Date.now();
     const email = `mobile_${stamp}@flores.com`;
-    const password = "segredo123";
+    const password = "Segredo123!";
     await page.setViewportSize(VIEWPORT);
 
     // Cadastro

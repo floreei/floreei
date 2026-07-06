@@ -8,13 +8,16 @@ export const Role = {
 export const roleSchema = z.enum([Role.ADMIN, Role.OPERATOR]);
 export type Role = z.infer<typeof roleSchema>;
 
-/** Unidade de medida de um produto do catálogo. */
+/** Unidade de medida de um produto do catálogo (compra ou consumo). */
 export const ProductUnit = {
   UNIDADE: "UNIDADE",
   MACO: "MACO",
   HASTE: "HASTE",
   VASO: "VASO",
   CAIXA: "CAIXA",
+  METRO: "METRO",
+  GRAMA: "GRAMA",
+  PACOTE: "PACOTE",
 } as const;
 export const productUnitSchema = z.enum([
   ProductUnit.UNIDADE,
@@ -22,6 +25,9 @@ export const productUnitSchema = z.enum([
   ProductUnit.HASTE,
   ProductUnit.VASO,
   ProductUnit.CAIXA,
+  ProductUnit.METRO,
+  ProductUnit.GRAMA,
+  ProductUnit.PACOTE,
 ]);
 export type ProductUnit = z.infer<typeof productUnitSchema>;
 

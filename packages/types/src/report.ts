@@ -10,8 +10,9 @@ export type ReportQuery = z.infer<typeof reportQuerySchema>;
 
 export interface ReportSummary {
   revenue: number; // valor vendido nos eventos do período
-  purchasesCost: number; // total comprado no período
-  grossProfit: number; // revenue - purchasesCost
+  cogs: number; // custo do que foi vendido (COGS)
+  purchasesCost: number; // total comprado no período (saída de caixa)
+  grossProfit: number; // revenue - cogs
   eventsCount: number;
   received: number; // recebido no período (caixa)
   paid: number; // pago no período (caixa)
@@ -32,10 +33,19 @@ export interface PartyRanking {
   count: number;
 }
 
+/** Receita/custo/lucro de um mês do período (para o gráfico de tendência). */
+export interface MonthlyReportPoint {
+  ym: string; // "AAAA-MM"
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+}
+
 export interface ReportData {
   from: string;
   to: string;
   summary: ReportSummary;
+  monthly: MonthlyReportPoint[];
   topProducts: ProductRanking[];
   suppliers: PartyRanking[];
   customers: PartyRanking[];

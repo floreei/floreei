@@ -1,32 +1,29 @@
 "use client";
 
-import { attachmentInputSchema, type Payment } from "@sistema-flores/types";
-import { zodResolver } from "@hookform/resolvers/zod";
+import type { Payment } from "@sistema-flores/types";
+import { FileUpload } from "@/components/shared/file-upload";
 import {
   ArrowLeft,
   ExternalLink,
   HandCoins,
-  Link2,
   PackageCheck,
   Paperclip,
   Pencil,
+  Printer,
   Trash2,
   Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { PaymentDialog } from "@/components/finance/payment-dialog";
 import { PurchaseDialog } from "@/components/purchases/purchase-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { Field } from "@/components/shared/field";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useDeletePurchasePayment,
@@ -120,6 +117,12 @@ export default function PurchaseDetailPage() {
             Marcar como recebida
           </Button>
         )}
+        <Button asChild variant="outline">
+          <Link href={`/compras/${purchase.id}/imprimir`}>
+            <Printer className="h-4 w-4" />
+            Imprimir pedido
+          </Link>
+        </Button>
         <Button variant="outline" onClick={() => setEditOpen(true)}>
           <Pencil className="h-4 w-4" />
           Editar
@@ -356,17 +359,13 @@ function Comprovantes({ purchaseId }: { purchaseId: string }) {
   const { data, isLoading } = usePurchaseAttachments(purchaseId);
   const add = useAddPurchaseAttachment(purchaseId);
   const remove = useDeletePurchaseAttachment(purchaseId);
-  const form = useForm({
-    resolver: zodResolver(attachmentInputSchema),
-    defaultValues: { label: "", url: "" },
-  });
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Comprovantes e anexos</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Cole o link do comprovante de pagamento, nota ou foto.
+          Comprovante de pagamento, nota ou foto (imagem ou PDF).
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -411,29 +410,20 @@ function Comprovantes({ purchaseId }: { purchaseId: string }) {
           </p>
         )}
 
-        <form
-          className="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end"
-          onSubmit={form.handleSubmit(async (values) => {
+        <FileUpload
+          scope="purchases"
+          value={null}
+          label="Anexar arquivo"
+          onChange={async (file) => {
+            if (!file) return;
             try {
-              await add.mutateAsync(values);
+              await add.mutateAsync({ label: file.label, url: file.url });
               toast.success("Comprovante anexado.");
-              form.reset({ label: "", url: "" });
             } catch {
               toast.error("Não foi possível anexar.");
             }
-          })}
-        >
-          <Field label="Nome" htmlFor="att-label" required className="sm:flex-1">
-            <Input id="att-label" placeholder="Comprovante Pix" {...form.register("label")} />
-          </Field>
-          <Field label="Link" htmlFor="att-url" required className="sm:flex-[2]">
-            <Input id="att-url" placeholder="https://…" {...form.register("url")} />
-          </Field>
-          <Button type="submit" loading={form.formState.isSubmitting}>
-            <Link2 className="h-4 w-4" />
-            Anexar
-          </Button>
-        </form>
+          }}
+        />
       </CardContent>
     </Card>
   );
