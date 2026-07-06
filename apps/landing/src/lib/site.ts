@@ -14,6 +14,12 @@ export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://floreei.com.br"
 ).replace(/\/$/, "");
 
+/** Link do WhatsApp com uma mensagem sob medida (reusa o número configurado). */
+export function whatsappWith(text: string): string {
+  const base = WHATSAPP_LINK.split("?")[0];
+  return `${base}?text=${encodeURIComponent(text)}`;
+}
+
 /** Itens de navegação do header (âncoras para as seções). */
 export const NAV_ITEMS = [
   { href: "#funcionalidades", label: "Funcionalidades" },
