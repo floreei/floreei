@@ -15,10 +15,12 @@ import { PriceCalculator } from "@/components/landing/price-calculator";
 import { QuoteCta } from "@/components/landing/quote-cta";
 import { SocialProof } from "@/components/landing/social-proof";
 import { Testimonials } from "@/components/landing/testimonials";
+import { StructuredData } from "@/components/seo/structured-data";
 
 export default function Home() {
   return (
     <>
+      <StructuredData />
       <Header />
       <main>
         <Hero />
