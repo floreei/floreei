@@ -1,4 +1,8 @@
-import type { CompanyPlan } from "@sistema-flores/types";
+import type {
+  CompanyPlan,
+  FeatureOverrides,
+  PlanTier,
+} from "@sistema-flores/types";
 import { Column, Entity, OneToMany } from "typeorm";
 import { BaseEntity } from "../../../common/database/base.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
@@ -71,6 +75,15 @@ export class CompanyEntity extends BaseEntity {
   /** Public key do Mercado Pago (pode ir ao browser). */
   @Column({ name: "mp_public_key", type: "varchar", length: 200, nullable: true })
   mpPublicKey!: string | null;
+
+  // ── Plano de preço e features (entitlements) ────────────────────────────────
+  /** Plano contratado (null = trial / sem assinatura). */
+  @Column({ name: "tier", type: "varchar", length: 16, nullable: true })
+  tier!: PlanTier | null;
+
+  /** Overrides de feature definidos no backoffice (feature → on/off). */
+  @Column({ name: "feature_overrides", type: "jsonb", default: () => "'{}'" })
+  featureOverrides!: FeatureOverrides;
 
   @OneToMany(() => UserEntity, (user) => user.company)
   users!: UserEntity[];

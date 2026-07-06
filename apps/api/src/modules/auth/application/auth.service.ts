@@ -8,6 +8,7 @@ import {
   type ProvisionInput,
   type PublicUser,
   resolveCompanyAccess,
+  resolveEntitlements,
   TRIAL_LENGTH_DAYS,
 } from "@sistema-flores/types";
 import { DataSource, Repository } from "typeorm";
@@ -58,6 +59,12 @@ export class AuthService {
         trialEndsAt: company.trialEndsAt
           ? company.trialEndsAt.toISOString()
           : null,
+        tier: company.tier,
+        features: resolveEntitlements(
+          company.tier,
+          company.featureOverrides,
+          resolved.status,
+        ),
       },
     };
   }

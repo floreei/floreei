@@ -1,4 +1,4 @@
-import type { Role } from "@sistema-flores/types";
+import type { Feature, Role } from "@sistema-flores/types";
 
 /** Identidade autenticada anexada à requisição pelo FirebaseAuthGuard. */
 export interface AuthUser {
@@ -6,4 +6,6 @@ export interface AuthUser {
   companyId: string;
   email: string;
   role: Role;
+  /** Features liberadas para a empresa (resolvidas no guard). */
+  features: Feature[];
 }
