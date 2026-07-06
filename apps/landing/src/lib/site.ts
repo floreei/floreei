@@ -9,6 +9,11 @@ export const WHATSAPP_LINK =
 export const CONTACT_EMAIL =
   process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contato@floreei.com.br";
 
+/** URL canônica do site (sem barra final) — usada em SEO, OG e sitemap. */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://floreei.com.br"
+).replace(/\/$/, "");
+
 /** Itens de navegação do header (âncoras para as seções). */
 export const NAV_ITEMS = [
   { href: "#funcionalidades", label: "Funcionalidades" },

@@ -43,9 +43,9 @@ export function Hero() {
           </h1>
 
           <p className="mt-5 max-w-[30rem] text-[19px] leading-relaxed text-muted-foreground">
-            O Floreei organiza clientes, orçamentos, eventos, estoque e
-            financeiro da sua floricultura — com telas simples que qualquer
-            pessoa da equipe aprende a usar.
+            O Floreei é o sistema que organiza clientes, orçamentos, eventos,
+            estoque e financeiro da sua floricultura — com telas simples que
+            qualquer pessoa da equipe aprende a usar.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
