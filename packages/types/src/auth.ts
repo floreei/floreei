@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { emailSchema, idSchema } from "./common";
+import { ALL_FEATURES, planTiers } from "./entitlements";
 import { roleSchema } from "./enums";
 import { companyAccessStatuses, companyPlans } from "./platform";
 
@@ -36,6 +37,10 @@ export const companyAccessInfoSchema = z.object({
   /** Dias restantes do período gratuito (quando em TRIAL); null caso contrário. */
   trialDaysLeft: z.number().nullable(),
   trialEndsAt: z.string().nullable(),
+  /** Plano de preço contratado (null em trial / sem assinatura). */
+  tier: z.enum(planTiers).nullable(),
+  /** Features liberadas para a empresa (resolvidas de tier + overrides + trial). */
+  features: z.array(z.enum(ALL_FEATURES as [string, ...string[]])),
 });
 export type CompanyAccessInfo = z.infer<typeof companyAccessInfoSchema>;
 

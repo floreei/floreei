@@ -10,10 +10,12 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
+import { RequiresFeature } from "../../../common/auth/feature.guard";
 import { Roles } from "../../../common/auth/roles.decorator";
 import { ArrangementsService } from "../application/arrangements.service";
 import { ArrangementInputDto, ArrangementQueryDto } from "./arrangement.dto";
 
+@RequiresFeature("ARRANGEMENTS")
 @Controller("arrangements")
 export class ArrangementsController {
   constructor(private readonly arrangements: ArrangementsService) {}

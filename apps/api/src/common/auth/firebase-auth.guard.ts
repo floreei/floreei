@@ -9,7 +9,9 @@ import { Reflector } from "@nestjs/core";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   ACCESS_DENIED_CODES,
+  type Feature,
   resolveCompanyAccess,
+  resolveEntitlements,
   TRIAL_LENGTH_DAYS,
 } from "@sistema-flores/types";
 import { Repository } from "typeorm";
@@ -89,13 +91,14 @@ export class FirebaseAuthGuard implements CanActivate {
       throw new UnauthorizedException("Conta não encontrada.");
     }
 
-    await this.enforceCompanyAccess(user.companyId);
+    const features = await this.enforceCompanyAccess(user.companyId);
 
     req.user = {
       id: user.id,
       companyId: user.companyId,
       email: user.email,
       role: user.role,
+      features,
     };
     return true;
   }
@@ -104,7 +107,7 @@ export class FirebaseAuthGuard implements CanActivate {
    * Controle de acesso do tenant: inicia o trial no primeiro acesso, registra o
    * último acesso (com throttle) e bloqueia empresa suspensa ou com trial expirado.
    */
-  private async enforceCompanyAccess(companyId: string): Promise<void> {
+  private async enforceCompanyAccess(companyId: string): Promise<Feature[]> {
     const company = await this.companies.findOne({ where: { id: companyId } });
     if (!company) throw new UnauthorizedException("Empresa não encontrada.");
 
@@ -151,5 +154,11 @@ export class FirebaseAuthGuard implements CanActivate {
         trialEndsAt: company.trialEndsAt,
       });
     }
+
+    return resolveEntitlements(
+      company.tier,
+      company.featureOverrides,
+      resolved.status,
+    );
   }
 }

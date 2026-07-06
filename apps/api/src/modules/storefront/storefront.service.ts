@@ -12,6 +12,11 @@ import type {
   StoreOrder,
   StoreOrderItem,
 } from "@sistema-flores/types";
+import {
+  FEATURES,
+  resolveCompanyAccess,
+  resolveEntitlements,
+} from "@sistema-flores/types";
 import { decryptSecret } from "../../common/crypto/store-crypto";
 import { roundMoney } from "../../common/money/money";
 import { TenantContextService } from "../../common/tenant/tenant-context.service";
@@ -39,6 +44,20 @@ export class StorefrontService {
   private async enabledCompany(slug: string): Promise<CompanyEntity> {
     const company = await this.companies.findBySlug(slug);
     if (!company || !company.storeEnabled) {
+      throw new NotFoundException("Loja não encontrada.");
+    }
+    // A loja pública só funciona se o plano da empresa inclui a feature STORE.
+    const status = resolveCompanyAccess({
+      plan: company.plan,
+      suspended: company.suspended,
+      trialEndsAt: company.trialEndsAt,
+    }).status;
+    const features = resolveEntitlements(
+      company.tier,
+      company.featureOverrides,
+      status,
+    );
+    if (!features.includes(FEATURES.STORE)) {
       throw new NotFoundException("Loja não encontrada.");
     }
     return company;

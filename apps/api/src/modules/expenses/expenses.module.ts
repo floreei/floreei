@@ -29,6 +29,7 @@ import {
   payExpenseSchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../common/auth/feature.guard";
 import { Roles } from "../../common/auth/roles.decorator";
 import { todayISO } from "../../common/date/today";
 import {
@@ -163,6 +164,7 @@ export class ExpensesService {
   }
 }
 
+@RequiresFeature("FINANCE")
 @Controller("expenses")
 class ExpensesController {
   constructor(private readonly expenses: ExpensesService) {}

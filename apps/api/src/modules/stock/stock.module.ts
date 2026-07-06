@@ -13,6 +13,7 @@ import {
   stockMovementQuerySchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../common/auth/feature.guard";
 import { CatalogModule } from "../catalog/catalog.module";
 import { StockService } from "./application/stock.service";
 import { StockMovementEntity } from "./infrastructure/stock-movement.entity";
@@ -22,6 +23,7 @@ class StockMovementInputDto extends createZodDto(stockMovementInputSchema) {}
 class StockMovementQueryDto extends createZodDto(stockMovementQuerySchema) {}
 class StockAdjustDto extends createZodDto(stockAdjustSchema) {}
 
+@RequiresFeature("INVENTORY")
 @Controller("stock")
 class StockController {
   constructor(private readonly stock: StockService) {}

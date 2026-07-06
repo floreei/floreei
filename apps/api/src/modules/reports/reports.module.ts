@@ -2,6 +2,7 @@ import { Controller, Get, Module, Query } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { reportQuerySchema } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../common/auth/feature.guard";
 import { EventsModule } from "../events/events.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PurchasesModule } from "../purchases/purchases.module";
@@ -10,6 +11,7 @@ import { ReportsService } from "./reports.service";
 
 class ReportQueryDto extends createZodDto(reportQuerySchema) {}
 
+@RequiresFeature("REPORTS")
 @Controller("reports")
 class ReportsController {
   constructor(private readonly reports: ReportsService) {}

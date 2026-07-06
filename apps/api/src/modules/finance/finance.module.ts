@@ -20,6 +20,7 @@ import {
   paymentInputSchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../common/auth/feature.guard";
 import { EventsModule } from "../events/events.module";
 import { ExpensesModule } from "../expenses/expenses.module";
 import { PurchasesModule } from "../purchases/purchases.module";
@@ -37,6 +38,7 @@ class CashflowQueryDto extends createZodDto(cashflowQuerySchema) {}
 class MonthlyCashflowQueryDto extends createZodDto(monthlyCashflowQuerySchema) {}
 class CashInDto extends createZodDto(cashInSchema) {}
 
+@RequiresFeature("FINANCE")
 @Controller("finance")
 class FinanceController {
   constructor(

@@ -20,6 +20,7 @@ import {
   type SupplierQuery,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../common/auth/feature.guard";
 import { Roles } from "../../common/auth/roles.decorator";
 import { SupplierEntity } from "./infrastructure/supplier.entity";
 import { SupplierRepository } from "./infrastructure/supplier.repository";
@@ -54,6 +55,7 @@ export class SuppliersService {
   }
 }
 
+@RequiresFeature("INVENTORY")
 @Controller("suppliers")
 class SuppliersController {
   constructor(private readonly suppliers: SuppliersService) {}

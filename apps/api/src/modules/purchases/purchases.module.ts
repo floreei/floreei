@@ -18,6 +18,7 @@ import {
   purchaseQuerySchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../common/auth/feature.guard";
 import { Roles } from "../../common/auth/roles.decorator";
 import { StockModule } from "../stock/stock.module";
 import { SuppliersModule } from "../suppliers/suppliers.module";
@@ -32,6 +33,7 @@ class PurchaseInputDto extends createZodDto(purchaseInputSchema) {}
 class PurchaseQueryDto extends createZodDto(purchaseQuerySchema) {}
 class AttachmentInputDto extends createZodDto(attachmentInputSchema) {}
 
+@RequiresFeature("INVENTORY")
 @Controller("purchases")
 class PurchasesController {
   constructor(private readonly purchases: PurchasesService) {}
