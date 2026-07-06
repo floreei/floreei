@@ -50,6 +50,14 @@ export class ArrangementEntity extends TenantOwnedEntity {
   @Column({ type: "boolean", default: true })
   active!: boolean;
 
+  /** Foto do buquê (URL do Firebase Storage) — vitrine da loja online. */
+  @Column({ name: "image_url", type: "varchar", length: 1000, nullable: true })
+  imageUrl!: string | null;
+
+  /** Publicado na loja online. */
+  @Column({ name: "store_published", type: "boolean", default: false })
+  storePublished!: boolean;
+
   @ManyToOne(() => CategoryEntity, { onDelete: "SET NULL", nullable: true })
   @JoinColumn({ name: "category_id" })
   category!: CategoryEntity | null;

@@ -35,3 +35,5 @@ pnpm-debug.log*
 
 # design-hook (impeccable): cache local, contém paths absolutos e IDs de sessão
 .impeccable/
+
+*/loja

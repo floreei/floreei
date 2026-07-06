@@ -18,5 +18,6 @@ export * from "./quote-calculator";
 export * from "./report";
 export * from "./search";
 export * from "./stock";
+export * from "./store";
 export * from "./supplier";
 export * from "./user";

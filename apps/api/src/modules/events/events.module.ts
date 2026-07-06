@@ -28,6 +28,6 @@ import { EventsController } from "./presentation/events.controller";
   ],
   controllers: [EventsController],
   providers: [EventsService, EventRepository, EventAttachmentRepository],
-  exports: [EventRepository],
+  exports: [EventRepository, EventsService],
 })
 export class EventsModule {}

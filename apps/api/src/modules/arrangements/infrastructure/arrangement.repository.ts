@@ -16,6 +16,26 @@ export class ArrangementRepository extends TenantScopedRepository<ArrangementEnt
     super(repo, tenant, "Buquê");
   }
 
+  /** Buquês publicados na loja (com categoria), ordenados por categoria/nome. */
+  listPublished(): Promise<ArrangementEntity[]> {
+    return this.qb("arrangement")
+      .leftJoinAndSelect("arrangement.category", "category")
+      .andWhere("arrangement.store_published = true")
+      .andWhere("arrangement.active = true")
+      .orderBy("category.name", "ASC")
+      .addOrderBy("arrangement.name", "ASC")
+      .getMany();
+  }
+
+  /** Um buquê publicado (validação do checkout). */
+  findPublishedById(id: string): Promise<ArrangementEntity | null> {
+    return this.qb("arrangement")
+      .andWhere("arrangement.id = :id", { id })
+      .andWhere("arrangement.store_published = true")
+      .andWhere("arrangement.active = true")
+      .getOne();
+  }
+
   /** Lista paginada com categoria + ficha técnica (para calcular o custo). */
   async search(query: ArrangementQuery): Promise<Paginated<ArrangementEntity>> {
     const qb = this.qb("arrangement")

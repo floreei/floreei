@@ -17,6 +17,7 @@ import { PurchaseEntity } from "../modules/purchases/infrastructure/purchase.ent
 import { QuoteItemEntity } from "../modules/quotes/infrastructure/quote-item.entity";
 import { QuoteEntity } from "../modules/quotes/infrastructure/quote.entity";
 import { StockMovementEntity } from "../modules/stock/infrastructure/stock-movement.entity";
+import { StoreOrderEntity } from "../modules/storefront/infrastructure/store-order.entity";
 import { SupplierEntity } from "../modules/suppliers/infrastructure/supplier.entity";
 import { UserEntity } from "../modules/users/infrastructure/user.entity";
 
@@ -43,4 +44,5 @@ export const entities = [
   ArrangementItemEntity,
   ExpenseAttachmentEntity,
   PlatformAdminEntity,
+  StoreOrderEntity,
 ];

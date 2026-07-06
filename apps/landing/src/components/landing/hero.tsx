@@ -58,6 +58,10 @@ export function Hero() {
             </Cta>
           </div>
 
+          <p className="mt-3.5 text-sm text-muted-foreground">
+            Resposta no mesmo dia, pelo WhatsApp · sem cartão, sem compromisso
+          </p>
+
           <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2">
             {SELOS.map((s) => (
               <span

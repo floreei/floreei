@@ -58,6 +58,17 @@ export const arrangementInputSchema = z.object({
     .max(99.99, "Margem deve ser menor que 100%")
     .default(0),
   active: z.boolean().default(true),
+  /** Foto do buquê (URL do Firebase Storage) — usada na loja online. */
+  imageUrl: z
+    .string()
+    .trim()
+    .max(1000)
+    .url("URL de imagem inválida")
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
+  /** Publicar este buquê na loja online. */
+  storePublished: z.boolean().default(false),
   items: z
     .array(arrangementItemInputSchema)
     .min(1, "Adicione ao menos um insumo à ficha técnica"),
@@ -103,6 +114,10 @@ export interface Arrangement {
   /** Preço de venda efetivo (derivado do custo + política). */
   salePrice: number;
   active: boolean;
+  /** Foto do buquê (URL) — vitrine da loja online. */
+  imageUrl: string | null;
+  /** Publicado na loja online. */
+  storePublished: boolean;
   items: ArrangementItem[];
   /** Σ lineCost (materiais diretos). */
   cost: number;

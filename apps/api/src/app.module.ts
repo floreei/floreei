@@ -17,6 +17,7 @@ import { EventsModule } from "./modules/events/events.module";
 import { ExpensesModule } from "./modules/expenses/expenses.module";
 import { FinanceModule } from "./modules/finance/finance.module";
 import { PlatformModule } from "./modules/platform/platform.module";
+import { StorefrontModule } from "./modules/storefront/storefront.module";
 import { PurchasesModule } from "./modules/purchases/purchases.module";
 import { QuotesModule } from "./modules/quotes/quotes.module";
 import { ReportsModule } from "./modules/reports/reports.module";
@@ -58,6 +59,7 @@ import { UsersModule } from "./modules/users/users.module";
     SearchModule,
     DashboardModule,
     PlatformModule,
+    StorefrontModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
