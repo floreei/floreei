@@ -1,3 +1,4 @@
+import { BeforeAfter } from "@/components/landing/before-after";
 import { CtaFinal } from "@/components/landing/cta-final";
 import { Demo } from "@/components/landing/demo";
 import { Faq } from "@/components/landing/faq";
@@ -22,6 +23,7 @@ export default function Home() {
       <main>
         <Hero />
         <SocialProof />
+        <BeforeAfter />
         <Features />
         <Demo />
         <Inside />

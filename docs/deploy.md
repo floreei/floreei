@@ -132,3 +132,8 @@ pg_dump "postgresql://<neon-conn>" -Fc -f floreei.dump
 pg_restore -d "postgresql://<rds-conn>" --no-owner floreei.dump
 # trocar as DATABASE_* no App Runner; adicionar VPC connector p/ RDS privado.
 ```
+
+## 8. Loja online (storefront)
+Guia dedicado em [`docs/loja.md`](./loja.md): configurar loja (slug, cores,
+Mercado Pago), publicar buquês, deploy do `apps/loja` na Vercel com domínio
+**wildcard `*.floreei.com.br`**, e o fluxo de teste ponta a ponta.

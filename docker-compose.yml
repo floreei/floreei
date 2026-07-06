@@ -1,3 +1,7 @@
+# Nome fixo do projeto Compose — independe do nome da pasta. Mantém os
+# containers/volumes estáveis mesmo se o diretório for renomeado (ex.: floreei).
+name: sistema_flores
+
 services:
   postgres:
     image: postgres:16-alpine

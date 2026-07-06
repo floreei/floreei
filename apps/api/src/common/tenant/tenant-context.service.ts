@@ -21,6 +21,15 @@ export class TenantContextService {
     return this.storage.run(data, callback);
   }
 
+  /**
+   * Executa `callback` no contexto de uma empresa, sem usuário autenticado —
+   * usado por fluxos públicos da loja (resolvidos por slug) e pelo webhook de
+   * pagamento, para reusar os repositórios escopados por tenant.
+   */
+  runForCompany<T>(companyId: string, callback: () => T): T {
+    return this.storage.run({ companyId, userId: "", role: "ADMIN" }, callback);
+  }
+
   get(): TenantContextData | undefined {
     return this.storage.getStore();
   }

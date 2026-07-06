@@ -24,12 +24,21 @@ export function Testimonials() {
                   “{t.quote}”
                 </blockquote>
                 <figcaption className="mt-5 flex items-center gap-3">
-                  <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-                    style={{ background: t.bg }}
-                  >
-                    {t.initials}
-                  </span>
+                  {(t as { avatar?: string }).avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={(t as { avatar?: string }).avatar}
+                      alt={t.name}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                      style={{ background: t.bg }}
+                    >
+                      {t.initials}
+                    </span>
+                  )}
                   <span>
                     <span className="block text-sm font-semibold">{t.name}</span>
                     <span className="block text-xs text-muted-foreground">

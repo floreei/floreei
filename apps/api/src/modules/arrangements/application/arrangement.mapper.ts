@@ -48,6 +48,8 @@ export function toArrangement(entity: ArrangementEntity): Arrangement {
     profitPct: entity.profitPct,
     salePrice,
     active: entity.active,
+    imageUrl: entity.imageUrl,
+    storePublished: entity.storePublished,
     items,
     cost: totals.cost,
     margin: totals.margin,

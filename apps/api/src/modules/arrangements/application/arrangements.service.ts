@@ -57,6 +57,8 @@ export class ArrangementsService {
       profitValue: input.profitValue,
       profitPct: input.profitPct,
       active: input.active,
+      imageUrl: input.imageUrl ?? null,
+      storePublished: input.storePublished,
       items: this.buildItems(input.items),
     });
     const saved = await this.arrangements.save(arrangement);
@@ -122,6 +124,8 @@ export class ArrangementsService {
       profitValue: input.profitValue,
       profitPct: input.profitPct,
       active: input.active,
+      imageUrl: input.imageUrl ?? null,
+      storePublished: input.storePublished,
     });
     return this.findOne(id);
   }

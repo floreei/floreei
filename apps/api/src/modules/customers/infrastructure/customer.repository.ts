@@ -29,4 +29,13 @@ export class CustomerRepository extends TenantScopedRepository<CustomerEntity> {
 
     return paginate(qb, query.page, query.pageSize);
   }
+
+  /** Busca por telefone (dedupe de clientes vindos da loja). */
+  findByPhone(phone: string): Promise<CustomerEntity | null> {
+    return this.qb("customer")
+      .andWhere("(customer.phone = :phone OR customer.whatsapp = :phone)", {
+        phone,
+      })
+      .getOne();
+  }
 }

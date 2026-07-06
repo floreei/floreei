@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FileUpload } from "@/components/shared/file-upload";
 import { ProductCombobox } from "@/components/catalog/product-combobox";
 import { ApiError } from "@/lib/api/client";
 import { useSaveArrangement } from "@/lib/api/arrangements";
@@ -39,6 +40,8 @@ type FormValues = {
   profitValue: number;
   profitPct: number;
   active: boolean;
+  imageUrl: string | null;
+  storePublished: boolean;
   items: ItemForm[];
   produce: number;
 };
@@ -59,6 +62,8 @@ function initialValues(a?: Arrangement | null): FormValues {
     profitValue: a?.profitValue ?? 0,
     profitPct: a?.profitPct ?? 0,
     active: a?.active ?? true,
+    imageUrl: a?.imageUrl ?? null,
+    storePublished: a?.storePublished ?? false,
     items: a?.items.length
       ? a.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
       : [{ ...emptyItem }],
@@ -291,6 +296,45 @@ export function ArrangementDialog({
               />
             </Field>
           ) : null}
+
+          {/* Loja online */}
+          <div className="space-y-3 rounded-lg border border-border/70 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="a-published">Publicar na loja online</Label>
+                <p className="text-xs text-muted-foreground">
+                  Aparece na vitrine da sua loja, com foto e preço.
+                </p>
+              </div>
+              <input
+                id="a-published"
+                type="checkbox"
+                className="h-5 w-5 shrink-0 accent-primary"
+                {...form.register("storePublished")}
+              />
+            </div>
+            <Controller
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FileUpload
+                  scope="arrangements"
+                  accept="image/*"
+                  label="Enviar foto do buquê"
+                  value={
+                    field.value
+                      ? {
+                          url: field.value,
+                          label: "Foto do buquê",
+                          contentType: "image/*",
+                        }
+                      : null
+                  }
+                  onChange={(f) => field.onChange(f?.url ?? null)}
+                />
+              )}
+            />
+          </div>
 
           {/* Preço / custo / margem ao vivo */}
           <div className="grid grid-cols-2 gap-3 rounded-lg bg-primary/[0.05] p-4 text-center sm:grid-cols-4">
