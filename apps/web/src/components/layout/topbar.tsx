@@ -1,7 +1,8 @@
 "use client";
 
-import { LogOut, Menu, Search } from "lucide-react";
+import { HelpCircle, LogOut, Menu, Search } from "lucide-react";
 import { useState } from "react";
+import { useGuide } from "@/components/onboarding/guide";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ function initials(name: string): string {
 export function Topbar() {
   const { user, logout } = useAuth();
   const { open } = useCommandPalette();
+  const guide = useGuide();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -56,7 +58,16 @@ export function Topbar() {
         </kbd>
       </button>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={guide.open}
+        >
+          <HelpCircle className="h-4 w-4" />
+          <span className="hidden sm:inline">Ajuda</span>
+        </Button>
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

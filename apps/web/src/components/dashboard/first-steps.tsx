@@ -41,13 +41,7 @@ const STEPS: Step[] = [
     href: "/loja",
     adminOnly: true,
   },
-  {
-    key: "hasTeammate",
-    label: "Convide alguém da equipe",
-    hint: "Cada pessoa com o próprio acesso",
-    href: "/equipe",
-    adminOnly: true,
-  },
+  // Convidar equipe é pago (entra na mensalidade) — fora do onboarding grátis.
 ];
 
 /**
