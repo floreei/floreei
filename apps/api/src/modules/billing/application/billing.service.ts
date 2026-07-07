@@ -8,13 +8,15 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type {
   BillingPlans,
   BillingSummary,
+  PlanOffer,
   PlanTier,
   SubscribeResult,
   SubscriptionStatus,
   SubscriptionView,
+  TrialSummary,
 } from "@sistema-flores/types";
 import { PAYMENT_GRACE_DAYS, planPrice } from "@sistema-flores/types";
-import { In, Repository } from "typeorm";
+import { DataSource, In, Repository } from "typeorm";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
@@ -53,7 +55,54 @@ export class BillingService {
     private readonly tenant: TenantContextService,
     private readonly mp: MercadoPagoBillingClient,
     private readonly planDefs: PlanDefinitionsService,
+    private readonly dataSource: DataSource,
   ) {}
+
+  /** Planos vigentes para vitrines públicas (landing) — sem dados de empresa. */
+  async publicPlans(): Promise<PlanOffer[]> {
+    const defs = await this.planDefs.list();
+    return defs.map((d) => this.planDefs.toOffer(d));
+  }
+
+  /**
+   * O que a empresa fez durante o trial + plano recomendado, para a tela de
+   * fim de trial vender com dados. Heurística: usou a loja online → precisa de
+   * STORE; usou compras/despesas/buquês → precisa de estoque+financeiro; os
+   * dois perfis → COMPLETO; um → LOJA; nenhum → ESSENCIAL.
+   */
+  async trialSummary(): Promise<TrialSummary> {
+    const companyId = this.tenant.getCompanyIdOrThrow();
+    const company = await this.companyById(companyId);
+    const [row] = (await this.dataSource.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM events WHERE company_id = $1) AS sales,
+         (SELECT COALESCE(SUM(sold_value), 0)::float FROM events WHERE company_id = $1) AS revenue,
+         (SELECT COUNT(*)::int FROM quotes WHERE company_id = $1) AS quotes,
+         (SELECT COUNT(*)::int FROM products WHERE company_id = $1) AS products,
+         (SELECT COUNT(*)::int FROM customers WHERE company_id = $1) AS customers,
+         (SELECT COUNT(*)::int FROM purchases WHERE company_id = $1) AS purchases,
+         (SELECT COUNT(*)::int FROM expenses WHERE company_id = $1) AS expenses,
+         (SELECT COUNT(*)::int FROM arrangements WHERE company_id = $1) AS arrangements,
+         (SELECT COUNT(*)::int FROM store_orders WHERE company_id = $1) AS store_orders`,
+      [companyId],
+    )) as [Record<string, number>];
+
+    const usedStore = company.storeEnabled || row.store_orders > 0;
+    const usedOps =
+      row.purchases > 0 || row.expenses > 0 || row.arrangements > 0;
+    const recommendedTier =
+      usedStore && usedOps ? "COMPLETO" : usedStore || usedOps ? "LOJA" : "ESSENCIAL";
+
+    return {
+      sales: row.sales,
+      revenue: row.revenue,
+      quotes: row.quotes,
+      products: row.products,
+      customers: row.customers,
+      storeEnabled: company.storeEnabled,
+      recommendedTier,
+    };
+  }
 
   /** Planos vigentes (definidos no console) com o contexto da empresa atual. */
   async plans(): Promise<BillingPlans> {
@@ -118,6 +167,7 @@ export class BillingService {
         companyId,
         tier,
         mpPreapprovalId: preapproval.id,
+        mpInitPoint: preapproval.initPoint,
         status: "PENDING",
         amount,
         billedUsers: activeUsers,
@@ -345,6 +395,7 @@ export class BillingService {
         ? row.paymentFailedAt.toISOString()
         : null,
       graceDaysLeft,
+      initPoint: row.status === "PENDING" ? row.mpInitPoint : null,
       createdAt:
         row.createdAt instanceof Date
           ? row.createdAt.toISOString()

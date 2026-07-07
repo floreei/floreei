@@ -245,6 +245,27 @@ export interface CompanyDetail {
   team: PlatformCompanyUser[];
 }
 
+/** Empresa como alvo de abordagem comercial (listas acionáveis do console). */
+export interface SalesLead {
+  id: string;
+  name: string;
+  phone: string | null;
+}
+
+/** Bloco de vendas/receita do console (o dinheiro do funil). */
+export interface SalesOverview {
+  /** Receita recorrente mensal: Σ do valor das assinaturas AUTHORIZED. */
+  mrr: number;
+  subscribers: number;
+  byTier: { tier: PlanTier; count: number }[];
+  /** Trials que vencem em ≤3 dias — hora de chamar no WhatsApp. */
+  trialsEndingSoon: (SalesLead & { trialDaysLeft: number })[];
+  /** Clicou em assinar e não concluiu o pagamento no MP (1h–14d atrás). */
+  pendingCheckouts: (SalesLead & { tier: PlanTier; createdAt: string })[];
+  /** Assinantes com pagamento pendente (dentro ou fora da carência). */
+  overdue: (SalesLead & { graceDaysLeft: number | null })[];
+}
+
 /** KPIs da visão geral (dashboard do console). */
 export interface PlatformOverview {
   totals: {
@@ -260,6 +281,7 @@ export interface PlatformOverview {
   activeLast7: number; // empresas que acessaram nos últimos 7 dias
   totalRevenue: number; // receita total processada na plataforma
   totalSales: number;
+  sales: SalesOverview;
 }
 
 /** Gestor da plataforma como o console o exibe. */

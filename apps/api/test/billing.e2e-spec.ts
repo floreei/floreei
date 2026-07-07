@@ -142,6 +142,26 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     expect(loja.userPrice).toBe(16);
   });
 
+  it("expõe os planos vigentes sem autenticação (landing)", async () => {
+    const res = await http.get("/api/billing/public-plans").expect(200);
+    expect(res.body).toHaveLength(3);
+    expect(res.body[0]).toMatchObject({ id: "ESSENCIAL", basePrice: 79 });
+  });
+
+  it("resume o uso do trial e recomenda um plano", async () => {
+    const res = await http
+      .get("/api/billing/trial-summary")
+      .set(auth())
+      .expect(200);
+    // Empresa recém-criada: sem uso → plano de entrada.
+    expect(res.body).toMatchObject({
+      sales: 0,
+      quotes: 0,
+      storeEnabled: false,
+      recommendedTier: "ESSENCIAL",
+    });
+  });
+
   it("assina: cria preapproval PENDING e devolve o checkout", async () => {
     const res = await http
       .post("/api/billing/subscribe")
@@ -158,6 +178,10 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     expect(sub.body.subscription.status).toBe("PENDING");
     // 149 (base) + 1 usuário × 16
     expect(Number(sub.body.subscription.amount)).toBe(165);
+    // Checkout não concluído fica retomável ("continuar pagamento").
+    expect(sub.body.subscription.initPoint).toContain(
+      "https://mp.test/checkout/",
+    );
   });
 
   it("webhook de autorização libera a empresa mesmo com trial vencido", async () => {
@@ -202,8 +226,10 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     expect(res.status).toBe(403);
     expect(res.body.code).toBe("PAYMENT_OVERDUE");
 
-    // Rotas de billing continuam abertas para regularizar/reassinar.
+    // Rotas de billing continuam abertas para regularizar/reassinar —
+    // inclusive o resumo do trial usado pela tela de bloqueio.
     await http.get("/api/billing/plans").set(auth()).expect(200);
+    await http.get("/api/billing/trial-summary").set(auth()).expect(200);
   });
 
   it("pagamento aprovado limpa a pendência e devolve o acesso", async () => {
@@ -328,5 +354,20 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .send({ basePrice: 79 })
       .expect(200);
     expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(95);
+  });
+
+  it("cockpit de vendas do console soma o MRR das assinaturas ativas", async () => {
+    const res = await http
+      .get("/api/admin/overview")
+      .set(bearer(ownerToken))
+      .expect(200);
+    const sales = res.body.sales;
+    // Única assinatura AUTHORIZED da rodada: ESSENCIAL a R$95 (79 + 1×16).
+    expect(sales.subscribers).toBe(1);
+    expect(sales.mrr).toBe(95);
+    expect(sales.byTier).toEqual([{ tier: "ESSENCIAL", count: 1 }]);
+    expect(Array.isArray(sales.trialsEndingSoon)).toBe(true);
+    expect(Array.isArray(sales.pendingCheckouts)).toBe(true);
+    expect(sales.overdue).toEqual([]);
   });
 });

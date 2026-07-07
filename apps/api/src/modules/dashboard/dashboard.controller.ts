@@ -9,4 +9,9 @@ export class DashboardController {
   summary() {
     return this.dashboard.summary();
   }
+
+  @Get("first-steps")
+  firstSteps() {
+    return this.dashboard.firstSteps();
+  }
 }

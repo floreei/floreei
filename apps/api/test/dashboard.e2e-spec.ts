@@ -71,4 +71,36 @@ describe("Dashboard (e2e)", () => {
   it("exige autenticação", async () => {
     await http.get("/api/dashboard/summary").expect(401);
   });
+
+  it("primeiros passos refletem o que a empresa já fez", async () => {
+    // beforeEach limpou os dados de negócio e criou um cliente.
+    let res = await http
+      .get("/api/dashboard/first-steps")
+      .set(bearer(token))
+      .expect(200);
+    expect(res.body).toMatchObject({
+      hasProduct: false,
+      hasCustomer: true,
+      hasSale: false,
+      storeEnabled: false,
+      hasTeammate: false,
+    });
+
+    await http
+      .post("/api/events")
+      .set(bearer(token))
+      .send({
+        customerId,
+        title: "Primeira venda",
+        date: thisMonth(),
+        soldValue: 120,
+      })
+      .expect(201);
+
+    res = await http
+      .get("/api/dashboard/first-steps")
+      .set(bearer(token))
+      .expect(200);
+    expect(res.body.hasSale).toBe(true);
+  });
 });

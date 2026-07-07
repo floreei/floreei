@@ -8,13 +8,16 @@ import {
   type CompanyMetrics,
   type CompanySubscriptionInfo,
   type Paginated,
+  type PlanTier,
   type PlatformCompanyUser,
   type PlatformOverview,
+  type SalesLead,
+  type SalesOverview,
   type UpdateEntitlementsInput,
   daysSince,
   resolveCompanyAccess,
 } from "@sistema-flores/types";
-import { DataSource, In, Repository } from "typeorm";
+import { Between, DataSource, In, Repository } from "typeorm";
 import { SubscriptionEntity } from "../../billing/infrastructure/subscription.entity";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
@@ -97,6 +100,79 @@ export class PlatformCompaniesService {
       activeLast7,
       totalRevenue: ev.revenue,
       totalSales: ev.sales,
+      sales: await this.salesOverview(companies, now),
+    };
+  }
+
+  /** Bloco de vendas do console: MRR + listas para abordagem no WhatsApp. */
+  private async salesOverview(
+    companies: CompanyEntity[],
+    now: Date,
+  ): Promise<SalesOverview> {
+    const byId = new Map(companies.map((c) => [c.id, c]));
+    const lead = (c: CompanyEntity): SalesLead => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+    });
+
+    // Receita recorrente: assinaturas autorizadas (cobrando todo mês).
+    const authorized = await this.subscriptions.find({
+      where: { status: "AUTHORIZED" },
+    });
+    const mrr = authorized.reduce((sum, s) => sum + s.amount, 0);
+    const tierCounts = new Map<string, number>();
+    for (const s of authorized) {
+      tierCounts.set(s.tier, (tierCounts.get(s.tier) ?? 0) + 1);
+    }
+
+    // Trials vencendo em até 3 dias — a hora certa de chamar no WhatsApp.
+    const trialsEndingSoon = companies
+      .flatMap((c) => {
+        const resolved = health(c, now).resolved;
+        if (resolved.status !== "TRIAL" || resolved.trialDaysLeft === null) {
+          return [];
+        }
+        if (resolved.trialDaysLeft > 3) return [];
+        return [{ ...lead(c), trialDaysLeft: resolved.trialDaysLeft }];
+      })
+      .sort((a, b) => a.trialDaysLeft - b.trialDaysLeft);
+
+    // Clicou em assinar e não concluiu o checkout (entre 1h e 14 dias atrás).
+    const pending = await this.subscriptions.find({
+      where: {
+        status: "PENDING",
+        createdAt: Between(
+          new Date(now.getTime() - 14 * DAY_MS),
+          new Date(now.getTime() - 60 * 60 * 1000),
+        ),
+      },
+      order: { createdAt: "DESC" },
+    });
+    const pendingCheckouts = pending.flatMap((s) => {
+      const c = byId.get(s.companyId);
+      if (!c) return [];
+      return [{ ...lead(c), tier: s.tier, createdAt: s.createdAt.toISOString() }];
+    });
+
+    // Pagamento pendente (dentro ou fora da carência) — recuperar antes do churn.
+    const overdue = companies
+      .filter((c) => c.paymentFailedAt !== null && !c.suspended)
+      .map((c) => ({
+        ...lead(c),
+        graceDaysLeft: health(c, now).resolved.graceDaysLeft,
+      }));
+
+    return {
+      mrr,
+      subscribers: authorized.length,
+      byTier: [...tierCounts.entries()].map(([tier, count]) => ({
+        tier: tier as PlanTier,
+        count,
+      })),
+      trialsEndingSoon,
+      pendingCheckouts,
+      overdue,
     };
   }
 

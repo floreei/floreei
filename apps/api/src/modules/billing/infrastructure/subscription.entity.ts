@@ -16,6 +16,10 @@ export class SubscriptionEntity extends TenantOwnedEntity {
   @Column({ name: "mp_preapproval_id", type: "varchar", length: 120, unique: true })
   mpPreapprovalId!: string;
 
+  /** Link de checkout do MP — permite retomar um pagamento não concluído. */
+  @Column({ name: "mp_init_point", type: "text", nullable: true })
+  mpInitPoint!: string | null;
+
   @Column({ type: "varchar", length: 16, default: "PENDING" })
   status!: SubscriptionStatus;
 
