@@ -106,11 +106,17 @@ PLATFORM_OWNER_EMAILS=voce@floreei.com
 CORS_ORIGINS=https://app.floreei.com.br,https://admin.floreei.com.br
 # E-mail transacional (Resend). Sem RESEND_API_KEY, os avisos viram no-op logado.
 RESEND_API_KEY=<secret>
-EMAIL_FROM=Floreei <nao-responda@floreei.com.br>   # domínio verificado no Resend
-PLATFORM_NOTIFY_EMAIL=hugouraga61@gmail.com          # destino dos avisos de cadastro
+EMAIL_FROM=Floreei <nao-responda@send.floreei.com.br>  # SUBDOMÍNIO verificado no Resend
+PLATFORM_NOTIFY_EMAIL=hugouraga61@gmail.com             # destino dos avisos de cadastro
 ```
-> **Resend:** crie a conta, verifique o domínio de `EMAIL_FROM` (registros DNS) e gere a
-> API key. Sem a key, o cadastro funciona normalmente — só não sai o e-mail (fica logado).
+> **Resend — use um subdomínio (`send.floreei.com.br`), não o domínio raiz.** O raiz
+> `floreei.com.br` é do e-mail profissional (Titan/HostGator: `MX titan.email` +
+> `SPF include:spf.titan.email`); o Resend fica isolado no `send.` com MX/SPF/DKIM
+> próprios e os dois convivem. Verifique o subdomínio no Resend (registros no DNS) e
+> gere a API key. **Cuidado:** o domínio raiz aceita **apenas um** registro SPF
+> (`v=spf1`) — não deixe um `v=spf1 -all` avulso junto do SPF do Titan, senão o SPF dá
+> `permerror` e, com `DMARC p=reject`, seu e-mail profissional para de ser entregue.
+> Sem a key, o cadastro funciona normalmente — só não sai o e-mail (fica logado).
 **web / admin (Vercel):** `NEXT_PUBLIC_API_URL=https://api.floreei.com.br/api` + `NEXT_PUBLIC_FIREBASE_*`.
 **landing (Cloudflare):** `NEXT_PUBLIC_WHATSAPP_LINK`, `NEXT_PUBLIC_CONTACT_EMAIL`.
 
