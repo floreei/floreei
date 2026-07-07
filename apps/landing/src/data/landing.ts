@@ -190,7 +190,7 @@ export const faqData = [
   },
   {
     q: "Quanto custa?",
-    a: "Os planos partem de R$ 79/mês, mais R$ 16 por pessoa da equipe — você paga pelos recursos que precisa e pelo tamanho do seu time. Antes de pagar qualquer coisa, você testa tudo grátis por 7 dias, sem cartão.",
+    a: "Os planos partem de R$ 79/mês, já com 1 acesso incluso; cada pessoa a mais na equipe custa R$ 16/mês. Você paga pelos recursos que precisa e pelo tamanho do seu time. Antes de pagar qualquer coisa, testa tudo grátis por 7 dias, sem cartão.",
   },
   {
     q: "Serve para decoração de eventos, não só loja?",

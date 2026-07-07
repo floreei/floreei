@@ -52,7 +52,7 @@ export const FEATURE_INFO: Record<Feature, { label: string; description: string 
 export const planTiers = ["ESSENCIAL", "LOJA", "COMPLETO"] as const;
 export type PlanTier = (typeof planTiers)[number];
 
-/** Preço padrão por usuário ativo (R$/mês) — semente; o valor vigente vem do banco. */
+/** Preço padrão por usuário ADICIONAL (R$/mês) — o 1º usuário já está na base. */
 export const USER_PRICE = 16;
 
 export interface PlanTierDef {
@@ -60,9 +60,9 @@ export interface PlanTierDef {
   name: string;
   /** Foco/persona do plano (marketing). */
   tagline: string;
-  /** Preço-base mensal (R$) pelas features; usuários são cobrados à parte. */
+  /** Preço-base mensal (R$), já incluindo 1 usuário. */
   basePrice: number;
-  /** Preço mensal por usuário ativo (R$). */
+  /** Preço mensal por usuário ADICIONAL (a partir do 2º). */
   userPrice: number;
   features: Feature[];
 }
@@ -112,12 +112,15 @@ export const PLAN_TIER_LIST: PlanTierDef[] = [
   PLAN_TIERS.COMPLETO,
 ];
 
-/** Preço mensal = base do plano + (nº de usuários ativos) × preço por usuário. */
+/**
+ * Preço mensal = base (já com 1 usuário) + usuários ADICIONAIS × preço/usuário.
+ * Ex.: base 79 → 1 usuário 79; 2 usuários 95; 3 usuários 111.
+ */
 export function planPrice(
   def: Pick<PlanTierDef, "basePrice" | "userPrice">,
   activeUsers: number,
 ): number {
-  return def.basePrice + Math.max(0, activeUsers) * def.userPrice;
+  return def.basePrice + Math.max(0, activeUsers - 1) * def.userPrice;
 }
 
 /** Overrides por-empresa (backoffice): liga (true) / desliga (false) uma feature. */

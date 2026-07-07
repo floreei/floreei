@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlanOffer, PlanTier } from "@sistema-flores/types";
-import { ALL_FEATURES } from "@sistema-flores/types";
+import { ALL_FEATURES, planPrice } from "@sistema-flores/types";
 import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -52,8 +52,7 @@ export default function PlanoPage() {
   const activeUsers = plans?.activeUsers ?? billing?.activeUsers ?? 1;
   const usersLabel = `${activeUsers} ${activeUsers === 1 ? "usuário" : "usuários"}`;
 
-  const monthlyTotal = (offer: PlanOffer) =>
-    offer.basePrice + activeUsers * offer.userPrice;
+  const monthlyTotal = (offer: PlanOffer) => planPrice(offer, activeUsers);
 
   async function onSubscribe(tier: PlanTier) {
     try {
@@ -113,7 +112,7 @@ export default function PlanoPage() {
     <div className="space-y-6">
       <PageHeader
         title="Plano"
-        description="Faça o upgrade quando a sua empresa precisar de mais. Cada usuário ativo custa R$ 16,00 por mês, em qualquer plano."
+        description="Faça o upgrade quando a sua empresa precisar de mais. O primeiro usuário já está incluso; cada usuário adicional custa R$ 16,00 por mês."
       />
 
       {subscription ? (
@@ -206,7 +205,8 @@ export default function PlanoPage() {
                   </span>
                 </p>
                 <p className="text-sm text-muted-foreground tabular-nums">
-                  + {formatCurrency(offer.userPrice)} por usuário
+                  1 usuário incluso · + {formatCurrency(offer.userPrice)} por
+                  usuário adicional
                 </p>
                 <p className="text-sm text-muted-foreground tabular-nums">
                   Com {usersLabel}: {formatCurrency(monthlyTotal(offer))}/mês

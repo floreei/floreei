@@ -60,18 +60,20 @@ describe("resolveEntitlements", () => {
 });
 
 describe("planPrice", () => {
-  it("soma o preço por usuário ativo sobre a base do plano", () => {
-    expect(planPrice(PLAN_TIERS.ESSENCIAL, 1)).toBe(79 + 16); // 95
-    expect(planPrice(PLAN_TIERS.ESSENCIAL, 2)).toBe(79 + 2 * 16); // 111
-    expect(planPrice(PLAN_TIERS.LOJA, 3)).toBe(149 + 3 * 16); // 197
-    expect(planPrice(PLAN_TIERS.COMPLETO, 5)).toBe(229 + 5 * 16); // 309
+  it("1º usuário incluso; R$16 a partir do 2º", () => {
+    expect(planPrice(PLAN_TIERS.ESSENCIAL, 1)).toBe(79); // só a base
+    expect(planPrice(PLAN_TIERS.ESSENCIAL, 2)).toBe(79 + 16); // 95
+    expect(planPrice(PLAN_TIERS.LOJA, 3)).toBe(149 + 2 * 16); // 181
+    expect(planPrice(PLAN_TIERS.COMPLETO, 5)).toBe(229 + 4 * 16); // 293
   });
 
-  it("nenhum usuário incluso na base", () => {
+  it("0 ou 1 usuário custam só a base", () => {
     expect(planPrice(PLAN_TIERS.COMPLETO, 0)).toBe(229);
+    expect(planPrice(PLAN_TIERS.COMPLETO, 1)).toBe(229);
   });
 
   it("aceita definições vindas do banco (preços editados no console)", () => {
-    expect(planPrice({ basePrice: 99, userPrice: 20 }, 3)).toBe(99 + 60);
+    // 99 base + 2 adicionais × 20 = 139
+    expect(planPrice({ basePrice: 99, userPrice: 20 }, 3)).toBe(139);
   });
 });

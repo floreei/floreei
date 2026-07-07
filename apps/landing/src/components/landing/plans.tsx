@@ -1,6 +1,6 @@
 "use client";
 
-import { ALL_FEATURES, FEATURE_INFO } from "@sistema-flores/types";
+import { ALL_FEATURES, FEATURE_INFO, planPrice } from "@sistema-flores/types";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { useLandingData } from "@/lib/landing-data";
@@ -34,8 +34,8 @@ export function Plans() {
       <div className="sf-wrap">
         <SectionHeading
           eyebrow="Planos simples, sem surpresa"
-          title="Escolha o plano, pague por pessoa"
-          subtitle={`Cada plano tem uma mensalidade fixa pelos recursos e ${price(userPrice)} por pessoa da equipe. Teste grátis por 7 dias, sem cartão.`}
+          title="Escolha o plano, pague pela equipe"
+          subtitle={`A mensalidade já inclui 1 acesso; cada pessoa a mais custa ${price(userPrice)}/mês. Teste grátis por 7 dias, sem cartão.`}
         />
 
         {/* Quantas pessoas vão usar — atualiza o total dos 3 planos */}
@@ -63,8 +63,9 @@ export function Plans() {
             <span>10+</span>
           </div>
           <p className="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
-            {price(userPrice)}/mês por pessoa, em qualquer plano. Sem limite de
-            usuários — a equipe cresce e o sistema acompanha.
+            1 acesso já vem incluso; a partir da 2ª pessoa são {price(userPrice)}
+            /mês cada. Sem limite de usuários — a equipe cresce e o sistema
+            acompanha.
           </p>
         </div>
 
@@ -72,7 +73,7 @@ export function Plans() {
         <div className="mt-8 grid grid-cols-3 gap-5 max-[960px]:grid-cols-1">
           {offers.map((offer, index) => {
             const featured = index === 1;
-            const total = offer.basePrice + users * offer.userPrice;
+            const total = planPrice(offer, users);
             return (
               <div
                 key={offer.id}
@@ -100,7 +101,8 @@ export function Plans() {
                   </span>
                 </p>
                 <p className="text-sm text-muted-foreground tabular-nums">
-                  + {price(offer.userPrice)} por pessoa · com {usersLabel}:{" "}
+                  1 acesso incluso · + {price(offer.userPrice)} por pessoa a
+                  mais · com {usersLabel}:{" "}
                   <span className="font-semibold text-foreground">
                     {price(total)}/mês
                   </span>

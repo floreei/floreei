@@ -1,6 +1,7 @@
 "use client";
 
 import type { PlanTier } from "@sistema-flores/types";
+import { planPrice } from "@sistema-flores/types";
 import {
   AlertTriangle,
   ArrowRight,
@@ -75,7 +76,7 @@ export function AccessBlocked({ blocked }: { blocked: BlockedAccess }) {
           <p className="mx-auto max-w-xl text-sm text-muted-foreground">
             {overdue
               ? "Não conseguimos cobrar a sua assinatura. Reative seu plano para voltar a usar o Floreei — leva um minuto."
-              : "Para continuar usando o Floreei, escolha um plano e faça o upgrade. Cada usuário ativo custa R$ 16,00 por mês, em qualquer plano."}
+              : "Para continuar usando o Floreei, escolha um plano e faça o upgrade. O primeiro usuário já está incluso; cada usuário adicional custa R$ 16,00 por mês."}
           </p>
         </div>
 
@@ -199,7 +200,7 @@ function PlanPicker({ cta }: { cta: string }) {
         // Destaca o plano recomendado pelo uso no trial; sem resumo, o do meio.
         const recommended = summary?.recommendedTier === offer.id;
         const highlighted = summary ? recommended : index === 1;
-        const total = offer.basePrice + activeUsers * offer.userPrice;
+        const total = planPrice(offer, activeUsers);
         return (
           <div
             key={offer.id}
@@ -225,7 +226,8 @@ function PlanPicker({ cta }: { cta: string }) {
                 </span>
               </p>
               <p className="text-sm text-muted-foreground tabular-nums">
-                + {formatCurrency(offer.userPrice)} por usuário
+                1 usuário incluso · + {formatCurrency(offer.userPrice)} por
+                usuário adicional
               </p>
               <p className="text-sm text-muted-foreground tabular-nums">
                 Com {usersLabel}: {formatCurrency(total)}/mês
