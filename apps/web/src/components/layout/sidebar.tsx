@@ -1,9 +1,9 @@
 "use client";
 
-import { Flower2 } from "lucide-react";
+import { Flower2, Lock } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navGroups } from "./nav";
+import { navGroups, navItemUnlocked } from "./nav";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +41,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 const active =
                   pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);
+                const unlocked = navItemUnlocked(item, user?.access?.features);
                 const Icon = item.icon;
                 return (
                   <Link
@@ -52,6 +53,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                       active
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      !unlocked && "opacity-60",
                     )}
                   >
                     <Icon
@@ -62,7 +64,13 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                           : "text-muted-foreground/70 group-hover:text-foreground",
                       )}
                     />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {!unlocked && (
+                      <Lock
+                        aria-label="Não incluído no seu plano"
+                        className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60"
+                      />
+                    )}
                   </Link>
                 );
               })}

@@ -1,12 +1,10 @@
 "use client";
 
 import { Clock } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
-
-const CONTACT_URL =
-  "https://wa.me/?text=Quero%20assinar%20o%20Floreei";
 
 /**
  * Faixa fixa no topo enquanto a empresa está no período gratuito. Fica discreta
@@ -48,9 +46,7 @@ export function TrialBanner() {
         variant={urgent ? "destructive" : "default"}
         className="h-7 px-3"
       >
-        <a href={CONTACT_URL} target="_blank" rel="noreferrer">
-          Assinar
-        </a>
+        <Link href="/plano">Assinar</Link>
       </Button>
     </div>
   );
