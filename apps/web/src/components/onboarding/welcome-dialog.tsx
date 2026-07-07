@@ -1,22 +1,18 @@
 "use client";
 
-import { Check, Flower2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGuide } from "@/components/onboarding/guide";
+import { WelcomeVideo } from "@/components/onboarding/welcome-video";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth/auth-context";
 
 const PERKS = [
-  "Vendas, orçamentos, estoque e financeiro",
+  "Vendas, orçamentos e caixa do dia a dia",
   "Sua loja online para vender pela internet",
-  "Buquês com custo e margem calculados",
+  "Estoque, buquês e financeiro sob controle",
 ];
 
 /** Chave de "já vi as boas-vindas", por empresa (não repete a cada login). */
@@ -33,10 +29,15 @@ function longDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
 /**
- * Boas-vindas na primeira entrada de quem está no período gratuito: dá um
- * oi caloroso e deixa claro até quando o trial vale. Aparece uma vez por
- * empresa (guardado no navegador) e some depois que o cliente assina.
+ * Boas-vindas na primeira entrada de quem está no período gratuito: vídeo (ou
+ * capa animada da marca), saudação calorosa e o prazo do trial bem claro.
+ * Aparece uma vez por empresa e some depois que o cliente assina.
  */
 export function WelcomeDialog() {
   const { user } = useAuth();
@@ -64,22 +65,31 @@ export function WelcomeDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && dismiss()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Flower2 className="h-7 w-7" />
-          </div>
-          <DialogTitle className="text-center font-serif text-2xl">
-            {firstName ? `Bem-vindo(a), ${firstName}!` : "Bem-vindo(a) ao Floreei!"}
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            Que bom ter você aqui. A partir de agora, sua floricultura fica
-            organizada num lugar só — do orçamento à entrega.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+        <WelcomeVideo />
 
-        <div className="space-y-4">
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
+        <motion.div
+          className="space-y-5 p-6"
+          initial="hidden"
+          animate="show"
+          transition={{ staggerChildren: 0.08, delayChildren: 0.1 }}
+        >
+          <motion.div variants={fadeUp} className="space-y-1.5 text-center">
+            <DialogTitle className="font-serif text-2xl">
+              {firstName
+                ? `Bem-vindo(a), ${firstName}!`
+                : "Bem-vindo(a) ao Floreei!"}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Que bom ter você aqui. Em poucos minutos sua floricultura fica
+              organizada — do orçamento à entrega, sem papel espalhado.
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={fadeUp}
+            className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center"
+          >
             <p className="text-sm text-muted-foreground">
               Você tem{" "}
               <span className="font-semibold text-foreground">
@@ -89,44 +99,45 @@ export function WelcomeDialog() {
             </p>
             {access.trialEndsAt ? (
               <p className="mt-1 text-sm text-muted-foreground">
-                Seu período gratuito vai até{" "}
+                Vale até{" "}
                 <span className="font-semibold text-foreground">
                   {longDate(access.trialEndsAt)}
                 </span>
                 .
               </p>
             ) : null}
-          </div>
+          </motion.div>
 
-          <ul className="space-y-2 text-sm">
+          <motion.ul variants={fadeUp} className="space-y-2 text-sm">
             {PERKS.map((perk) => (
               <li key={perk} className="flex items-start gap-2.5">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                </span>
                 {perk}
               </li>
             ))}
-          </ul>
+          </motion.ul>
 
-          <p className="text-center text-xs text-muted-foreground">
-            Sem cartão agora. Quando o período acabar, você escolhe um plano com
-            calma — seus dados ficam guardados.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Button
-            className="w-full"
-            onClick={() => {
-              dismiss();
-              guide.open();
-            }}
-          >
-            Ver como funciona
-          </Button>
-          <Button variant="ghost" className="w-full" onClick={dismiss}>
-            Explorar sozinho
-          </Button>
-        </div>
+          <motion.div variants={fadeUp} className="space-y-2">
+            <Button
+              className="w-full"
+              onClick={() => {
+                dismiss();
+                guide.open();
+              }}
+            >
+              Ver como funciona
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={dismiss}>
+              Explorar sozinho
+            </Button>
+            <p className="pt-1 text-center text-xs text-muted-foreground">
+              Sem cartão agora. Seus dados ficam guardados quando você assinar.
+            </p>
+          </motion.div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );
