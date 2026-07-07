@@ -113,7 +113,7 @@ export default function PlanoPage() {
     <div className="space-y-6">
       <PageHeader
         title="Plano"
-        description="Escolha o que a sua empresa precisa. Cada usuário ativo custa R$ 16,00 por mês, em qualquer plano."
+        description="Faça o upgrade quando a sua empresa precisar de mais. Cada usuário ativo custa R$ 16,00 por mês, em qualquer plano."
       />
 
       {subscription ? (
@@ -173,7 +173,7 @@ export default function PlanoPage() {
             {typeof user.access.trialDaysLeft === "number"
               ? ` — ${user.access.trialDaysLeft} ${user.access.trialDaysLeft === 1 ? "dia restante" : "dias restantes"}`
               : ""}
-            . Assine para continuar depois que ele terminar.
+            . Faça o upgrade para continuar depois que ele terminar.
           </p>
         </Card>
       ) : null}
@@ -240,7 +240,7 @@ export default function PlanoPage() {
                   {subscribe.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : null}
-                  Assinar
+                  Fazer upgrade
                 </Button>
               )}
             </Card>
@@ -250,8 +250,8 @@ export default function PlanoPage() {
 
       <p className="text-sm text-muted-foreground">
         {isAdmin
-          ? "O pagamento é feito por assinatura mensal no Mercado Pago. Mudou a equipe? O valor é recalculado e vale a partir da próxima cobrança."
-          : "Só o administrador da empresa pode assinar ou mudar o plano."}
+          ? "O upgrade vira uma assinatura mensal no Mercado Pago. Mudou a equipe? O valor é recalculado e vale a partir da próxima cobrança."
+          : "Só o administrador da empresa pode fazer o upgrade ou mudar o plano."}
       </p>
 
       <Dialog

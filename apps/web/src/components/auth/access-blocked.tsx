@@ -74,15 +74,15 @@ export function AccessBlocked({ blocked }: { blocked: BlockedAccess }) {
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground">
             {overdue
-              ? "Não conseguimos cobrar a sua assinatura. Assine novamente para voltar a usar o Floreei — leva um minuto."
-              : "Para continuar usando o Floreei, escolha um plano. Cada usuário ativo custa R$ 16,00 por mês, em qualquer plano."}
+              ? "Não conseguimos cobrar a sua assinatura. Reative seu plano para voltar a usar o Floreei — leva um minuto."
+              : "Para continuar usando o Floreei, escolha um plano e faça o upgrade. Cada usuário ativo custa R$ 16,00 por mês, em qualquer plano."}
           </p>
         </div>
 
         <PendingCheckoutNotice />
         {!overdue ? <TrialRecap /> : null}
 
-        <PlanPicker />
+        <PlanPicker cta={overdue ? "Reativar plano" : "Fazer upgrade"} />
 
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm text-muted-foreground">
@@ -160,8 +160,8 @@ function TrialRecap() {
   );
 }
 
-/** Grade dos 3 planos com botão de assinar (redireciona ao Mercado Pago). */
-function PlanPicker() {
+/** Grade dos 3 planos com o upgrade (redireciona ao checkout do MP). */
+function PlanPicker({ cta }: { cta: string }) {
   const { data, isLoading } = useBillingPlans();
   const { data: summary } = useTrialSummary();
   const subscribe = useSubscribe();
@@ -248,7 +248,7 @@ function PlanPicker() {
               {pendingTier === offer.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              Assinar
+              {cta}
             </Button>
           </div>
         );
