@@ -10,6 +10,23 @@ export const emailSchema = z
   .toLowerCase()
   .email("E-mail inválido");
 
+/** Só os dígitos de um documento (remove máscara de CPF/CNPJ). */
+export function documentDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+/**
+ * CPF (11 dígitos) ou CNPJ (14) — aceita com ou sem máscara, guarda o que veio.
+ * Valida pelo comprimento; o dígito verificador fica para depois.
+ */
+export const documentSchema = z
+  .string()
+  .trim()
+  .refine(
+    (v) => [11, 14].includes(documentDigits(v).length),
+    "Informe um CNPJ ou CPF válido",
+  );
+
 /**
  * Valor monetário em reais. Aceita number ou string numérica e devolve number
  * com no máximo 2 casas. Persistido como `decimal` no banco (nunca float binário).

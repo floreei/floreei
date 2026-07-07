@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { subscriptionStatuses } from "./billing";
-import { emailSchema, idSchema } from "./common";
+import { documentSchema, emailSchema, idSchema } from "./common";
 import { ALL_FEATURES, planTiers } from "./entitlements";
 import { roleSchema } from "./enums";
 import { companyAccessStatuses, companyPlans } from "./platform";
@@ -9,6 +9,8 @@ import { companyAccessStatuses, companyPlans } from "./platform";
 export const registerSchema = z.object({
   companyName: z.string().trim().min(2, "Informe o nome da empresa").max(160),
   name: z.string().trim().min(2, "Informe seu nome").max(160),
+  /** CNPJ ou CPF — trava trial repetido do mesmo negócio (um por documento). */
+  document: documentSchema,
   email: emailSchema,
   password: z.string().min(8, "A senha deve ter ao menos 8 caracteres").max(72),
 });
@@ -28,6 +30,8 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const provisionSchema = z.object({
   companyName: z.string().trim().min(2, "Informe o nome da empresa").max(160),
   name: z.string().trim().min(2, "Informe seu nome").max(160),
+  /** CNPJ ou CPF do negócio (um cadastro por documento). */
+  document: documentSchema,
 });
 export type ProvisionInput = z.infer<typeof provisionSchema>;
 

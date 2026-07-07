@@ -304,3 +304,25 @@ export interface PlatformSession {
   name: string;
   role: PlatformAdminRole;
 }
+
+/** Tipos de notificação do console (extensível: pagamento, churn, etc.). */
+export const platformNotificationTypes = ["NEW_COMPANY"] as const;
+export type PlatformNotificationType =
+  (typeof platformNotificationTypes)[number];
+
+/** Notificação como o console a exibe. */
+export interface PlatformNotification {
+  id: string;
+  type: PlatformNotificationType;
+  title: string;
+  body: string;
+  companyId: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+/** Resposta de `GET /admin/notifications`. */
+export interface PlatformNotificationsResult {
+  items: PlatformNotification[];
+  unread: number;
+}
