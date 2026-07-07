@@ -1,7 +1,7 @@
 "use client";
 
 import type { CompanySettings } from "@sistema-flores/types";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Flower2, Printer } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -81,8 +81,25 @@ export function PrintDocument({
         <div className="h-1.5 bg-primary" />
         <div className="px-10 py-9">
           {children}
-          <footer className="mt-10 border-t border-border pt-4 text-center text-[11px] text-muted-foreground">
-            {footer}
+          <footer className="mt-10 space-y-2 border-t border-border pt-4 text-center text-[11px] text-muted-foreground">
+            <p>{footer}</p>
+            {/* Gatilho de aquisição orgânica: quem recebe a nota conhece o Floreei. */}
+            <p className="flex items-center justify-center gap-1.5">
+              <Flower2 className="h-3 w-3 text-primary" aria-hidden />
+              <span>
+                Nota criada com{" "}
+                <span className="font-semibold text-primary">Floreei</span> · o
+                sistema para floriculturas ·{" "}
+                <a
+                  href="https://floreei.com.br"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium underline-offset-2 hover:underline"
+                >
+                  floreei.com.br
+                </a>
+              </span>
+            </p>
           </footer>
         </div>
       </div>
