@@ -1,21 +1,52 @@
 "use client";
 
+import type { PlanOffer } from "@sistema-flores/types";
+import {
+  ALL_FEATURES,
+  FEATURE_INFO,
+  PLAN_TIER_LIST,
+} from "@sistema-flores/types";
 import { Check } from "lucide-react";
-import { useState } from "react";
-import { plans } from "@/data/landing";
-import { WHATSAPP_LINK } from "@/lib/site";
+import { useEffect, useState } from "react";
+import { API_URL, APP_URL, whatsappWith } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Cta } from "./cta";
 import { SectionHeading } from "./section-heading";
 
+/** Valores-padrão (semente dos planos) — usados se a API estiver fora do ar. */
+const FALLBACK: PlanOffer[] = PLAN_TIER_LIST.map((t) => ({
+  id: t.id,
+  name: t.name,
+  tagline: t.tagline,
+  basePrice: t.basePrice,
+  userPrice: t.userPrice,
+  features: t.features,
+}));
+
+function price(value: number): string {
+  return `R$ ${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function Plans() {
-  const [seats, setSeats] = useState(3);
-  const total = 89 + (seats - 1) * 39;
-  const seatsLabel = seats === 1 ? "acesso" : "acessos";
-  const hint =
-    seats === 1
-      ? "Só você, com todos os recursos do plano."
-      : "R$ 89 pelo 1º acesso + R$ 39 por acesso adicional.";
+  const [users, setUsers] = useState(2);
+  const [offers, setOffers] = useState<PlanOffer[]>(FALLBACK);
+
+  // Preços vigentes vêm da API (o gestor pode mudá-los a qualquer momento);
+  // a landing é estática, então a busca é no navegador, com fallback local.
+  useEffect(() => {
+    fetch(`${API_URL}/billing/public-plans`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: PlanOffer[] | null) => {
+        if (Array.isArray(data) && data.length > 0) setOffers(data);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const userPrice = offers[0]?.userPrice ?? 16;
+  const usersLabel = users === 1 ? "1 pessoa" : `${users} pessoas`;
 
   return (
     <section
@@ -25,102 +56,122 @@ export function Plans() {
     >
       <div className="sf-wrap">
         <SectionHeading
-          eyebrow="Planos por número de acessos"
-          title="Pague pelo tamanho da sua equipe"
-          subtitle="O preço acompanha a quantidade de pessoas com acesso ao sistema. Comece pequeno e cresça no seu ritmo."
+          eyebrow="Planos simples, sem surpresa"
+          title="Escolha o plano, pague por pessoa"
+          subtitle={`Cada plano tem uma mensalidade fixa pelos recursos e ${price(userPrice)} por pessoa da equipe. Teste grátis por 7 dias, sem cartão.`}
         />
 
-        {/* Calculadora */}
+        {/* Quantas pessoas vão usar — atualiza o total dos 3 planos */}
         <div className="mx-auto mt-10 max-w-[560px] rounded-xl border border-border bg-card p-6 shadow-card">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
-              Quantos acessos você precisa?
+              Quantas pessoas vão usar o sistema?
             </span>
             <span className="sf-serif text-2xl font-semibold tabular-nums">
-              {seats} {seatsLabel}
+              {usersLabel}
             </span>
           </div>
           <input
             type="range"
             min={1}
-            max={20}
+            max={10}
             step={1}
-            value={seats}
-            onChange={(e) => setSeats(Number(e.target.value))}
-            aria-label="Número de acessos"
+            value={users}
+            onChange={(e) => setUsers(Number(e.target.value))}
+            aria-label="Número de pessoas na equipe"
             className="sf-slider mt-4"
           />
           <div className="mt-2 flex justify-between text-xs text-muted-foreground">
             <span>1</span>
-            <span>20+</span>
+            <span>10+</span>
           </div>
-          <div className="mt-5 border-t border-border pt-4">
-            <p className="text-sm text-muted-foreground">A partir de</p>
-            <p className="sf-serif text-[32px] font-semibold tabular-nums">
-              R$ {total}
-              <span className="text-lg font-medium text-muted-foreground">
-                {" "}
-                /mês
-              </span>
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
-          </div>
+          <p className="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
+            {price(userPrice)}/mês por pessoa, em qualquer plano. Sem limite de
+            usuários — a equipe cresce e o sistema acompanha.
+          </p>
         </div>
 
-        {/* Faixas de plano */}
+        {/* Os 3 planos, com preço total para a equipe escolhida */}
         <div className="mt-8 grid grid-cols-3 gap-5 max-[960px]:grid-cols-1">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={cn(
-                "sf-plan relative flex flex-col rounded-xl bg-card p-6",
-                p.featured
-                  ? "border-2 border-primary shadow-lg"
-                  : "border border-border shadow-card",
-              )}
-            >
-              {p.featured ? (
-                <span className="absolute -top-3 left-6 rounded-sm bg-clay px-2.5 py-0.5 text-xs font-semibold text-clay-foreground">
-                  Mais popular
-                </span>
-              ) : null}
-              <h3 className="text-lg font-semibold">{p.name}</h3>
-              <p className="mt-0.5 text-sm text-muted-foreground">{p.seats}</p>
-              <p className="sf-serif mt-4 text-[34px] font-semibold tabular-nums">
-                R$ {p.priceFrom}
-                <span className="text-base font-medium text-muted-foreground">
-                  {" "}
-                  /mês
-                </span>
-              </p>
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {p.items.map((it) => (
-                  <li key={it} className="flex items-start gap-2.5 text-[15px]">
-                    <Check
-                      className={cn(
-                        "mt-0.5 h-4 w-4 shrink-0",
-                        p.featured ? "text-primary" : "text-success",
-                      )}
-                      strokeWidth={2.5}
-                    />
-                    {it}
-                  </li>
-                ))}
-              </ul>
-              <Cta
-                href={WHATSAPP_LINK}
-                variant={p.clay ? "clay" : "outline"}
-                className="mt-6 w-full !h-11"
+          {offers.map((offer, index) => {
+            const featured = index === 1;
+            const total = offer.basePrice + users * offer.userPrice;
+            return (
+              <div
+                key={offer.id}
+                className={cn(
+                  "sf-plan relative flex flex-col rounded-xl bg-card p-6",
+                  featured
+                    ? "border-2 border-primary shadow-lg"
+                    : "border border-border shadow-card",
+                )}
               >
-                {p.cta}
-              </Cta>
-            </div>
-          ))}
+                {featured ? (
+                  <span className="absolute -top-3 left-6 rounded-sm bg-clay px-2.5 py-0.5 text-xs font-semibold text-clay-foreground">
+                    Mais popular
+                  </span>
+                ) : null}
+                <h3 className="text-lg font-semibold">{offer.name}</h3>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {offer.tagline}
+                </p>
+                <p className="sf-serif mt-4 text-[34px] font-semibold tabular-nums">
+                  {price(offer.basePrice)}
+                  <span className="text-base font-medium text-muted-foreground">
+                    {" "}
+                    /mês
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  + {price(offer.userPrice)} por pessoa · com {usersLabel}:{" "}
+                  <span className="font-semibold text-foreground">
+                    {price(total)}/mês
+                  </span>
+                </p>
+                <ul className="mt-5 flex-1 space-y-2.5">
+                  {ALL_FEATURES.filter((f) => offer.features.includes(f)).map(
+                    (f) => (
+                      <li
+                        key={f}
+                        className="flex items-start gap-2.5 text-[15px]"
+                      >
+                        <Check
+                          className={cn(
+                            "mt-0.5 h-4 w-4 shrink-0",
+                            featured ? "text-primary" : "text-success",
+                          )}
+                          strokeWidth={2.5}
+                        />
+                        {FEATURE_INFO[f].label}
+                      </li>
+                    ),
+                  )}
+                </ul>
+                <Cta
+                  href={APP_URL}
+                  variant={featured ? "clay" : "outline"}
+                  className="mt-6 w-full !h-11"
+                >
+                  Testar grátis por 7 dias
+                </Cta>
+              </div>
+            );
+          })}
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Todos os planos incluem 7 dias grátis, suporte em português e
-          atualizações sem custo. Sem fidelidade.
+          Clientes, catálogo e equipe estão inclusos em todos os planos. 7 dias
+          grátis com tudo liberado, sem cartão e sem fidelidade.{" "}
+          <a
+            href={whatsappWith(
+              "Olá! Quero ajuda para escolher um plano do Floreei.",
+            )}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Precisa de ajuda para escolher? Fale com a gente.
+          </a>
         </p>
       </div>
     </section>

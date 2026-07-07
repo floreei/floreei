@@ -14,6 +14,19 @@ export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://floreei.com.br"
 ).replace(/\/$/, "");
 
+/** App do cliente (cadastro/teste grátis) — CTA principal da seção de planos. */
+export const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.floreei.com.br"
+).replace(/\/$/, "");
+
+/**
+ * API pública (com o prefixo /api) — a seção de planos busca os preços
+ * vigentes aqui; se estiver fora do ar, a landing usa os valores-padrão.
+ */
+export const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api"
+).replace(/\/$/, "");
+
 /** Link do WhatsApp com uma mensagem sob medida (reusa o número configurado). */
 export function whatsappWith(text: string): string {
   const base = WHATSAPP_LINK.split("?")[0];
