@@ -99,10 +99,10 @@ export function ProductDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
+          <DialogTitle>{product ? "Editar insumo" : "Novo insumo"}</DialogTitle>
           <DialogDescription>
-            Flores, folhagens, materiais (laços, embalagens), doces ou itens
-            decorativos — tudo que você compra e usa nos buquês e vendas.
+            Flores, folhagens, materiais (laços, papel, cola), doces ou itens
+            decorativos — tudo que você compra para compor buquês e/ou vender.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -110,7 +110,7 @@ export function ProductDialog({
           onSubmit={form.handleSubmit(async (values) => {
             try {
               await save.mutateAsync(values);
-              toast.success("Produto salvo.");
+              toast.success("Insumo salvo.");
               onOpenChange(false);
             } catch (error) {
               toast.error(
@@ -247,12 +247,17 @@ export function ProductDialog({
               />
             </Field>
             <Field
-              label={isPack ? `Preço de venda (do ${purchaseUnitLabel})` : "Preço de venda"}
-              htmlFor="p-sale"
-              hint={
+              label={
                 isPack
+                  ? `Preço de venda avulsa (do ${purchaseUnitLabel})`
+                  : "Preço de venda avulsa"
+              }
+              htmlFor="p-sale"
+              optional
+              hint={
+                salePrice > 0 && isPack
                   ? `= ${formatCurrency(salePerUnit)}/${unitLabel} ao vender por ${unitLabel}.`
-                  : undefined
+                  : "Só se você revende este insumo. Se ele só entra em buquês (ex.: um urso), deixe zerado — o custo já vai no preço do buquê."
               }
             >
               <Controller

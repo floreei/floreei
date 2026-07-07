@@ -200,11 +200,13 @@ export function QuoteBuilder({ quote }: QuoteBuilderProps) {
                             <SelectValue placeholder="Escolher insumo" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products?.data.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
+                            {products?.data
+                              .filter((p) => p.defaultSalePrice > 0)
+                              .map((p) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.name}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       )}

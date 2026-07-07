@@ -117,16 +117,20 @@ export function QuickSaleDialog({
         name: a.name,
         price: a.salePrice,
       })),
-      ...(products?.data ?? []).map((p) => ({
-        kind: "product" as const,
-        id: p.id,
-        name: p.name,
-        price: p.defaultSalePrice,
-        packSize: p.packSize,
-        purchaseUnit: p.purchaseUnit,
-        unit: p.unit,
-        imageUrl: p.imageUrl,
-      })),
+      // Só insumos com preço de venda entram no atacado; os "só buquê"
+      // (ex.: urso) ficam de fora — o custo deles vai no preço do buquê.
+      ...(products?.data ?? [])
+        .filter((p) => p.defaultSalePrice > 0)
+        .map((p) => ({
+          kind: "product" as const,
+          id: p.id,
+          name: p.name,
+          price: p.defaultSalePrice,
+          packSize: p.packSize,
+          purchaseUnit: p.purchaseUnit,
+          unit: p.unit,
+          imageUrl: p.imageUrl,
+        })),
     ],
     [arrangements, products],
   );
