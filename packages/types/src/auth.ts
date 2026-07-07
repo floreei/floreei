@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subscriptionStatuses } from "./billing";
 import { emailSchema, idSchema } from "./common";
 import { ALL_FEATURES, planTiers } from "./entitlements";
 import { roleSchema } from "./enums";
@@ -39,6 +40,10 @@ export const companyAccessInfoSchema = z.object({
   trialEndsAt: z.string().nullable(),
   /** Plano de preço contratado (null em trial / sem assinatura). */
   tier: z.enum(planTiers).nullable(),
+  /** Status da assinatura recorrente; null sem assinatura. */
+  subscriptionStatus: z.enum(subscriptionStatuses).nullable(),
+  /** Dias restantes da carência quando há pagamento pendente; senão null. */
+  graceDaysLeft: z.number().nullable(),
   /** Features liberadas para a empresa (resolvidas de tier + overrides + trial). */
   features: z.array(z.enum(ALL_FEATURES as [string, ...string[]])),
 });

@@ -2,6 +2,7 @@ import type {
   CompanyPlan,
   FeatureOverrides,
   PlanTier,
+  SubscriptionStatus,
 } from "@sistema-flores/types";
 import { Column, Entity, OneToMany } from "typeorm";
 import { BaseEntity } from "../../../common/database/base.entity";
@@ -84,6 +85,14 @@ export class CompanyEntity extends BaseEntity {
   /** Overrides de feature definidos no backoffice (feature → on/off). */
   @Column({ name: "feature_overrides", type: "jsonb", default: () => "'{}'" })
   featureOverrides!: FeatureOverrides;
+
+  /** Status da assinatura vigente (denormalizado do billing p/ o guard). */
+  @Column({ name: "subscription_status", type: "varchar", length: 16, nullable: true })
+  subscriptionStatus!: SubscriptionStatus | null;
+
+  /** Início da pendência de pagamento — dispara a carência de 5 dias. */
+  @Column({ name: "payment_failed_at", type: "timestamptz", nullable: true })
+  paymentFailedAt!: Date | null;
 
   @OneToMany(() => UserEntity, (user) => user.company)
   users!: UserEntity[];

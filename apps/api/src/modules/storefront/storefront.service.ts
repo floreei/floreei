@@ -51,6 +51,8 @@ export class StorefrontService {
       plan: company.plan,
       suspended: company.suspended,
       trialEndsAt: company.trialEndsAt,
+      subscriptionStatus: company.subscriptionStatus,
+      paymentFailedAt: company.paymentFailedAt,
     }).status;
     const features = resolveEntitlements(
       company.tier,

@@ -8,6 +8,7 @@ import { DatabaseModule } from "./database/database.module";
 import { HealthController } from "./health/health.controller";
 import { ArrangementsModule } from "./modules/arrangements/arrangements.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { BillingModule } from "./modules/billing/billing.module";
 import { CatalogModule } from "./modules/catalog/catalog.module";
 import { CompanyModule } from "./modules/companies/company.module";
 import { CustomerProfileModule } from "./modules/customer-profile/customer-profile.module";
@@ -41,6 +42,7 @@ import { UsersModule } from "./modules/users/users.module";
     FirebaseModule,
     CommonModule,
     AuthModule,
+    BillingModule,
     CompanyModule,
     UsersModule,
     CustomersModule,

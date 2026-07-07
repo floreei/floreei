@@ -1,7 +1,11 @@
 import { z } from "zod";
+import type { SubscriptionStatus } from "./billing";
 
 /** Dias padrão do período gratuito, contados a partir do primeiro acesso. */
 export const TRIAL_LENGTH_DAYS = 7;
+
+/** Dias de carência para regularizar um pagamento que falhou (ou reassinar). */
+export const PAYMENT_GRACE_DAYS = 5;
 
 /** Empresa "em risco": sem acessar há tantos dias (sinal de churn/abandono). */
 export const AT_RISK_INACTIVE_DAYS = 7;
@@ -10,12 +14,13 @@ export const AT_RISK_INACTIVE_DAYS = 7;
 export const companyPlans = ["TRIAL", "ACTIVE"] as const;
 export type CompanyPlan = (typeof companyPlans)[number];
 
-/** Status efetivo de acesso (derivado de plano + suspensão + prazo do trial). */
+/** Status efetivo de acesso (plano + suspensão + assinatura + prazo do trial). */
 export const companyAccessStatuses = [
   "TRIAL",
   "ACTIVE",
   "EXPIRED",
   "SUSPENDED",
+  "PAYMENT_OVERDUE", // assinatura com pagamento pendente além da carência
 ] as const;
 export type CompanyAccessStatus = (typeof companyAccessStatuses)[number];
 
@@ -27,6 +32,7 @@ export type PlatformAdminRole = (typeof platformAdminRoles)[number];
 export const ACCESS_DENIED_CODES = {
   SUSPENDED: "COMPANY_SUSPENDED",
   EXPIRED: "TRIAL_EXPIRED",
+  PAYMENT_OVERDUE: "PAYMENT_OVERDUE",
   EMAIL_NOT_VERIFIED: "EMAIL_NOT_VERIFIED",
 } as const;
 
@@ -36,6 +42,10 @@ export interface CompanyAccess {
   suspended: boolean;
   /** Fim do período gratuito (ISO) — só relevante no plano TRIAL. */
   trialEndsAt: string | Date | null;
+  /** Status da assinatura recorrente (denormalizado do billing); null sem assinatura. */
+  subscriptionStatus?: SubscriptionStatus | null;
+  /** Início da pendência de pagamento (falha de cobrança/cancelamento). */
+  paymentFailedAt?: string | Date | null;
 }
 
 export interface ResolvedAccess {
@@ -44,31 +54,65 @@ export interface ResolvedAccess {
   allowed: boolean;
   /** Dias restantes do trial (arredondado p/ cima, >=0) quando TRIAL; senão null. */
   trialDaysLeft: number | null;
+  /** Dias restantes da carência quando há pagamento pendente; senão null. */
+  graceDaysLeft: number | null;
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 /**
  * Resolve o status efetivo de acesso de uma empresa. Precedência:
- * SUSPENDED > ACTIVE (plano liberado) > TRIAL (dentro do prazo) > EXPIRED.
- * Função pura — usada no guard do cliente, nas métricas do console e no front.
+ * SUSPENDED > ACTIVE (liberação manual) > assinatura (com carência de
+ * PAYMENT_GRACE_DAYS quando há pagamento pendente) > TRIAL (dentro do prazo) >
+ * EXPIRED. Função pura — usada no guard do cliente, no console e no front.
  */
 export function resolveCompanyAccess(
   access: CompanyAccess,
   now: Date = new Date(),
 ): ResolvedAccess {
+  const none = { trialDaysLeft: null, graceDaysLeft: null };
   if (access.suspended) {
-    return { status: "SUSPENDED", allowed: false, trialDaysLeft: null };
+    return { status: "SUSPENDED", allowed: false, ...none };
   }
   if (access.plan === "ACTIVE") {
-    return { status: "ACTIVE", allowed: true, trialDaysLeft: null };
+    return { status: "ACTIVE", allowed: true, ...none };
   }
+
+  // Assinatura recorrente. Quem cancela/pausa sempre ganha `paymentFailedAt`
+  // (início da carência); AUTHORIZED sem pendência é acesso pleno.
+  const sub = access.subscriptionStatus;
+  const failedAt = access.paymentFailedAt
+    ? new Date(access.paymentFailedAt)
+    : null;
+  if (sub === "AUTHORIZED" || ((sub === "PAUSED" || sub === "CANCELLED") && failedAt)) {
+    if (!failedAt) {
+      return { status: "ACTIVE", allowed: true, ...none };
+    }
+    const graceEnds = failedAt.getTime() + PAYMENT_GRACE_DAYS * DAY_MS;
+    if (now.getTime() <= graceEnds) {
+      const graceDaysLeft = Math.max(
+        0,
+        Math.ceil((graceEnds - now.getTime()) / DAY_MS),
+      );
+      return { status: "ACTIVE", allowed: true, trialDaysLeft: null, graceDaysLeft };
+    }
+    if (sub !== "CANCELLED") {
+      return { status: "PAYMENT_OVERDUE", allowed: false, ...none };
+    }
+    // Cancelada e fora da carência: cai para trial/EXPIRED (reassinar).
+  }
+
   const ends = access.trialEndsAt ? new Date(access.trialEndsAt) : null;
   if (ends && now.getTime() <= ends.getTime()) {
     const daysLeft = Math.max(0, Math.ceil((ends.getTime() - now.getTime()) / DAY_MS));
-    return { status: "TRIAL", allowed: true, trialDaysLeft: daysLeft };
+    return {
+      status: "TRIAL",
+      allowed: true,
+      trialDaysLeft: daysLeft,
+      graceDaysLeft: null,
+    };
   }
-  return { status: "EXPIRED", allowed: false, trialDaysLeft: 0 };
+  return { status: "EXPIRED", allowed: false, trialDaysLeft: 0, graceDaysLeft: null };
 }
 
 /** Dias inteiros desde o último acesso (`lastSeenAt`); null se nunca acessou. */

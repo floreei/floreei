@@ -1,5 +1,6 @@
 import { ArrangementItemEntity } from "../modules/arrangements/infrastructure/arrangement-item.entity";
 import { ArrangementEntity } from "../modules/arrangements/infrastructure/arrangement.entity";
+import { SubscriptionEntity } from "../modules/billing/infrastructure/subscription.entity";
 import { CategoryEntity } from "../modules/catalog/infrastructure/category.entity";
 import { ProductEntity } from "../modules/catalog/infrastructure/product.entity";
 import { CompanyEntity } from "../modules/companies/infrastructure/company.entity";
@@ -45,4 +46,5 @@ export const entities = [
   ExpenseAttachmentEntity,
   PlatformAdminEntity,
   StoreOrderEntity,
+  SubscriptionEntity,
 ];
