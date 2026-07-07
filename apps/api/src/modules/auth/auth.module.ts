@@ -5,12 +5,16 @@ import { FirebaseAuthGuard } from "../../common/auth/firebase-auth.guard";
 import { FirebaseTokenGuard } from "../../common/auth/firebase-token.guard";
 import { RolesGuard } from "../../common/auth/roles.guard";
 import { CompanyEntity } from "../companies/infrastructure/company.entity";
+import { PlatformNotificationsModule } from "../platform/notifications/platform-notifications.module";
 import { UserEntity } from "../users/infrastructure/user.entity";
 import { AuthService } from "./application/auth.service";
 import { AuthController } from "./presentation/auth.controller";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, CompanyEntity])],
+  imports: [
+    TypeOrmModule.forFeature([UserEntity, CompanyEntity]),
+    PlatformNotificationsModule,
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

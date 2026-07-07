@@ -34,6 +34,7 @@ import { BillingService } from "../../billing/application/billing.service";
 import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
 import { PlatformAdminsService } from "../application/platform-admins.service";
 import { PlatformCompaniesService } from "../application/platform-companies.service";
+import { PlatformNotificationsService } from "../notifications/platform-notifications.service";
 
 class CompaniesQueryDto extends createZodDto(companiesQuerySchema) {}
 class ExtendTrialDto extends createZodDto(extendTrialSchema) {}
@@ -54,11 +55,23 @@ export class PlatformController {
     private readonly admins: PlatformAdminsService,
     private readonly planDefs: PlanDefinitionsService,
     private readonly billing: BillingService,
+    private readonly notifications: PlatformNotificationsService,
   ) {}
 
   @Get("me")
   me(@CurrentAdmin() admin: PlatformAdminContext): PlatformSession {
     return { email: admin.email, name: admin.name, role: admin.role };
+  }
+
+  @Get("notifications")
+  listNotifications() {
+    return this.notifications.list();
+  }
+
+  @Post("notifications/read")
+  async markNotificationsRead() {
+    await this.notifications.markAllRead();
+    return { ok: true };
   }
 
   @Get("overview")

@@ -13,6 +13,7 @@ import { ExpenseAttachmentEntity } from "../modules/expenses/infrastructure/expe
 import { ExpenseEntity } from "../modules/expenses/infrastructure/expense.entity";
 import { PaymentEntity } from "../modules/finance/infrastructure/payment.entity";
 import { PlatformAdminEntity } from "../modules/platform/infrastructure/platform-admin.entity";
+import { PlatformNotificationEntity } from "../modules/platform/infrastructure/platform-notification.entity";
 import { PurchaseAttachmentEntity } from "../modules/purchases/infrastructure/purchase-attachment.entity";
 import { PurchaseItemEntity } from "../modules/purchases/infrastructure/purchase-item.entity";
 import { PurchaseEntity } from "../modules/purchases/infrastructure/purchase.entity";
@@ -46,6 +47,7 @@ export const entities = [
   ArrangementItemEntity,
   ExpenseAttachmentEntity,
   PlatformAdminEntity,
+  PlatformNotificationEntity,
   StoreOrderEntity,
   SubscriptionEntity,
   PlanDefinitionEntity,

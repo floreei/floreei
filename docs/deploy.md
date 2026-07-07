@@ -104,7 +104,13 @@ FIREBASE_PROJECT_ID=meuflorista-7dfd5
 FIREBASE_API_KEY=<apiKey pública>
 PLATFORM_OWNER_EMAILS=voce@floreei.com
 CORS_ORIGINS=https://app.floreei.com.br,https://admin.floreei.com.br
+# E-mail transacional (Resend). Sem RESEND_API_KEY, os avisos viram no-op logado.
+RESEND_API_KEY=<secret>
+EMAIL_FROM=Floreei <nao-responda@floreei.com.br>   # domínio verificado no Resend
+PLATFORM_NOTIFY_EMAIL=hugouraga61@gmail.com          # destino dos avisos de cadastro
 ```
+> **Resend:** crie a conta, verifique o domínio de `EMAIL_FROM` (registros DNS) e gere a
+> API key. Sem a key, o cadastro funciona normalmente — só não sai o e-mail (fica logado).
 **web / admin (Vercel):** `NEXT_PUBLIC_API_URL=https://api.floreei.com.br/api` + `NEXT_PUBLIC_FIREBASE_*`.
 **landing (Cloudflare):** `NEXT_PUBLIC_WHATSAPP_LINK`, `NEXT_PUBLIC_CONTACT_EMAIL`.
 

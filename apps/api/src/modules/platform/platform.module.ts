@@ -9,6 +9,7 @@ import { PlatformAdminGuard } from "./auth/platform-admin.guard";
 import { PlatformAdminsService } from "./application/platform-admins.service";
 import { PlatformCompaniesService } from "./application/platform-companies.service";
 import { PlatformAdminEntity } from "./infrastructure/platform-admin.entity";
+import { PlatformNotificationsModule } from "./notifications/platform-notifications.module";
 import { PlatformController } from "./presentation/platform.controller";
 
 /** Console do operador do SaaS: rotas `/admin/*` para gerir os tenants. */
@@ -21,6 +22,7 @@ import { PlatformController } from "./presentation/platform.controller";
       SubscriptionEntity,
     ]),
     BillingModule,
+    PlatformNotificationsModule,
   ],
   controllers: [PlatformController],
   providers: [

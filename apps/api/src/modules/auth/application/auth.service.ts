@@ -1,10 +1,12 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
+  documentDigits,
   type ProvisionInput,
   type PublicUser,
   resolveCompanyAccess,
@@ -13,8 +15,10 @@ import {
 } from "@sistema-flores/types";
 import { DataSource, Repository } from "typeorm";
 import type { FirebaseIdentity } from "../../../common/auth/firebase-token.guard";
+import { EmailService } from "../../../common/email/email.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
+import { PlatformNotificationsService } from "../../platform/notifications/platform-notifications.service";
 import { UserEntity } from "../../users/infrastructure/user.entity";
 
 function toPublicUser(user: UserEntity): PublicUser {
@@ -29,6 +33,8 @@ function toPublicUser(user: UserEntity): PublicUser {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     @InjectRepository(UserEntity)
@@ -36,7 +42,45 @@ export class AuthService {
     @InjectRepository(CompanyEntity)
     private readonly companies: Repository<CompanyEntity>,
     private readonly planDefs: PlanDefinitionsService,
+    private readonly email: EmailService,
+    private readonly notifications: PlatformNotificationsService,
   ) {}
+
+  /**
+   * Avisa o gestor de um novo cadastro: registra a notificação no console e
+   * dispara um e-mail para o operador da plataforma. Melhor esforço — o
+   * chamador engole erros para não afetar o cadastro.
+   */
+  private async announceNewCompany(
+    company: CompanyEntity,
+    user: UserEntity,
+  ): Promise<void> {
+    const title = `Nova empresa: ${company.name}`;
+    const body = `${user.name} (${user.email}) cadastrou "${company.name}" — documento ${company.document ?? "—"}.`;
+
+    await this.notifications.create({
+      type: "NEW_COMPANY",
+      title,
+      body,
+      companyId: company.id,
+    });
+
+    const to = process.env.PLATFORM_NOTIFY_EMAIL ?? "hugouraga61@gmail.com";
+    await this.email.send({
+      to,
+      subject: `Floreei — nova empresa cadastrada: ${company.name}`,
+      html: `
+        <h2>Nova empresa no Floreei</h2>
+        <p><strong>${company.name}</strong> começou o período gratuito.</p>
+        <ul>
+          <li>Documento (CNPJ/CPF): ${company.document ?? "—"}</li>
+          <li>Responsável: ${user.name}</li>
+          <li>E-mail: ${user.email}</li>
+          <li>Data: ${new Date().toLocaleString("pt-BR")}</li>
+        </ul>
+      `,
+    });
+  }
 
   private async withCompanyInfo(user: PublicUser): Promise<PublicUser> {
     const company = await this.companies.findOne({
@@ -92,28 +136,54 @@ export class AuthService {
     if (await this.users.findOne({ where: { email: firebase.email } })) {
       throw new ConflictException("Já existe uma conta com este e-mail.");
     }
+    // Um cadastro por CNPJ/CPF: trava trial repetido do mesmo negócio (e-mail é
+    // grátis de criar; o documento não). Compara só os dígitos.
+    const digits = documentDigits(input.document);
+    const [dup] = (await this.dataSource.query(
+      `SELECT 1 FROM companies WHERE regexp_replace(coalesce(document,''), '\\D', '', 'g') = $1 LIMIT 1`,
+      [digits],
+    )) as unknown[];
+    if (dup) {
+      throw new ConflictException(
+        "Já existe um cadastro com este CNPJ/CPF. Entre na sua conta ou fale com a gente.",
+      );
+    }
 
     const now = new Date();
-    const user = await this.dataSource.transaction(async (manager) => {
-      const company = await manager.save(
-        manager.create(CompanyEntity, {
-          name: input.companyName,
-          // Trial começa no cadastro (= primeiro acesso).
-          plan: "TRIAL",
-          firstAccessAt: now,
-          trialEndsAt: new Date(now.getTime() + TRIAL_LENGTH_DAYS * 86_400_000),
-          lastSeenAt: now,
-        }),
-      );
-      return manager.save(
-        manager.create(UserEntity, {
-          companyId: company.id,
-          name: input.name,
-          email: firebase.email,
-          firebaseUid: firebase.uid,
-          role: "ADMIN",
-          active: true,
-        }),
+    const { company, user } = await this.dataSource.transaction(
+      async (manager) => {
+        const company = await manager.save(
+          manager.create(CompanyEntity, {
+            name: input.companyName,
+            document: input.document,
+            // Trial começa no cadastro (= primeiro acesso).
+            plan: "TRIAL",
+            firstAccessAt: now,
+            trialEndsAt: new Date(
+              now.getTime() + TRIAL_LENGTH_DAYS * 86_400_000,
+            ),
+            lastSeenAt: now,
+          }),
+        );
+        const user = await manager.save(
+          manager.create(UserEntity, {
+            companyId: company.id,
+            name: input.name,
+            email: firebase.email,
+            firebaseUid: firebase.uid,
+            role: "ADMIN",
+            active: true,
+          }),
+        );
+        return { company, user };
+      },
+    );
+
+    // Avisa o gestor (console + e-mail). Nunca quebra o cadastro por isso.
+    await this.announceNewCompany(company, user).catch((error) => {
+      this.logger.error(
+        `Falha ao avisar sobre o novo cadastro ${company.id}`,
+        error instanceof Error ? error.stack : String(error),
       );
     });
 

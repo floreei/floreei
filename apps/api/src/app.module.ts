@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { CommonModule } from "./common/common.module";
+import { EmailModule } from "./common/email/email.module";
 import { FirebaseModule } from "./common/firebase/firebase.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthController } from "./health/health.controller";
@@ -41,6 +42,7 @@ import { UsersModule } from "./modules/users/users.module";
     ]),
     DatabaseModule,
     FirebaseModule,
+    EmailModule,
     CommonModule,
     PlansModule,
     AuthModule,
