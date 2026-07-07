@@ -87,6 +87,22 @@ O container roda `migration:run` (data-source compilado) no start e então sobe 
 - **Firebase Console → Authentication → Settings → Authorized domains**: adicione
   `app.floreei.com.br`, `admin.floreei.com.br` (e o domínio da landing).
 
+### 4.1 Service account (Admin SDK) — necessária para apagar usuários
+Sem a service account, a API só verifica tokens e cria/loga via REST; operações
+privilegiadas como **apagar um usuário do Firebase** (ao excluir a empresa pelo
+console) viram no-op — o banco é limpo, mas o login continua no Firebase.
+
+1. **Firebase Console → Configurações do projeto → Contas de serviço → Gerar nova
+   chave privada** → baixa um `service-account.json`. **É segredo — nunca comitar.**
+2. No App Runner, em vez de montar arquivo, passe o JSON por env (base64):
+   ```bash
+   base64 -i service-account.json | tr -d '\n'   # cole o resultado no secret
+   ```
+   Setar `FIREBASE_SERVICE_ACCOUNT_B64=<base64>` (guardar no AWS Secrets Manager).
+   Localmente dá para usar o arquivo: `GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json`.
+3. A API detecta a credencial sozinha e habilita o Admin SDK — a exclusão passa a
+   remover os logins do Firebase também.
+
 ---
 
 ## 5. Matriz de variáveis de ambiente
@@ -102,6 +118,8 @@ DATABASE_NAME=<db>
 DATABASE_SSL=true                 # Neon exige TLS
 FIREBASE_PROJECT_ID=***REMOVED***
 FIREBASE_API_KEY=<apiKey pública>
+# Admin SDK (apagar usuário ao excluir empresa). Sem isso, exclui só do banco.
+FIREBASE_SERVICE_ACCOUNT_B64=<base64 do service-account.json>   # ver 4.1
 PLATFORM_OWNER_EMAILS=voce@floreei.com
 CORS_ORIGINS=https://app.floreei.com.br,https://admin.floreei.com.br
 # E-mail transacional (Resend). Sem RESEND_API_KEY, os avisos viram no-op logado.
