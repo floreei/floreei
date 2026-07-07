@@ -38,7 +38,7 @@ export function TrialBanner() {
         {label}
       </span>
       <span className="text-foreground/70">
-        Assine para continuar usando o sistema.
+        Faça o upgrade para continuar usando o sistema.
       </span>
       <Button
         asChild
@@ -46,7 +46,7 @@ export function TrialBanner() {
         variant={urgent ? "destructive" : "default"}
         className="h-7 px-3"
       >
-        <Link href="/plano">Assinar</Link>
+        <Link href="/plano">Fazer upgrade</Link>
       </Button>
     </div>
   );
