@@ -110,8 +110,8 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
         <CardTitle className="text-base">
           {plan.name}
           <span className="ml-2 text-sm font-normal text-muted-foreground tabular">
-            {formatCurrency(plan.basePrice)}/mês + {formatCurrency(plan.userPrice)}
-            /usuário
+            {formatCurrency(plan.basePrice)}/mês (1 usuário) +{" "}
+            {formatCurrency(plan.userPrice)}/usuário adicional
           </span>
         </CardTitle>
       </CardHeader>
@@ -131,7 +131,7 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
           />
         </FieldRow>
         <div className="grid grid-cols-2 gap-3">
-          <FieldRow label="Preço-base (R$/mês)">
+          <FieldRow label="Base — 1 usuário (R$/mês)">
             <Input
               type="number"
               min={0}
@@ -142,7 +142,7 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
               onChange={(e) => setBasePrice(e.target.value)}
             />
           </FieldRow>
-          <FieldRow label="Por usuário (R$/mês)">
+          <FieldRow label="Usuário adicional (R$/mês)">
             <Input
               type="number"
               min={0}

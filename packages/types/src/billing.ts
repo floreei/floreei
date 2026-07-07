@@ -22,7 +22,7 @@ export interface PlanOffer {
   name: string;
   tagline: string;
   basePrice: number;
-  /** Preço por usuário ativo (R$/mês). */
+  /** Preço por usuário ADICIONAL (R$/mês); o 1º já está na base. */
   userPrice: number;
   features: Feature[];
 }

@@ -182,8 +182,8 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .set(auth())
       .expect(200);
     expect(sub.body.subscription.status).toBe("PENDING");
-    // 149 (base) + 1 usuário × 16
-    expect(Number(sub.body.subscription.amount)).toBe(165);
+    // LOJA base 149 já inclui 1 usuário → só a base.
+    expect(Number(sub.body.subscription.amount)).toBe(149);
     // Checkout não concluído fica retomável ("continuar pagamento").
     expect(sub.body.subscription.initPoint).toContain(
       "https://mp.test/checkout/",
@@ -267,13 +267,13 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       })
       .expect(201);
 
-    // 149 + 2 usuários × 16 = 181, refletido no MP e no espelho local.
-    expect(mp.preapprovals.get(preapprovalId)?.amount).toBe(181);
+    // 149 base (1 incluso) + 1 usuário adicional × 16 = 165.
+    expect(mp.preapprovals.get(preapprovalId)?.amount).toBe(165);
     let sub = await http
       .get("/api/billing/subscription")
       .set(auth())
       .expect(200);
-    expect(Number(sub.body.subscription.amount)).toBe(181);
+    expect(Number(sub.body.subscription.amount)).toBe(165);
     expect(sub.body.subscription.billedUsers).toBe(2);
 
     await http
@@ -281,7 +281,8 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .set(auth())
       .send({ active: false })
       .expect(200);
-    expect(mp.preapprovals.get(preapprovalId)?.amount).toBe(165);
+    // Voltou a 1 usuário → só a base.
+    expect(mp.preapprovals.get(preapprovalId)?.amount).toBe(149);
     sub = await http
       .get("/api/billing/subscription")
       .set(auth())
@@ -296,8 +297,8 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .send({ tier: "COMPLETO" })
       .expect(201);
 
-    // 229 + 1 usuário × 16 = 245
-    expect(mp.preapprovals.get(preapprovalId)?.amount).toBe(245);
+    // COMPLETO base 229 já inclui 1 usuário → só a base.
+    expect(mp.preapprovals.get(preapprovalId)?.amount).toBe(229);
     const profile = await me();
     expect(profile.access.tier).toBe("COMPLETO");
     expect(profile.access.features).toContain("REPORTS");
@@ -330,7 +331,7 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
   });
 
   it("editar o preço do plano no console reaplica nas assinaturas em vigor", async () => {
-    // Nova assinatura ESSENCIAL autorizada (79 + 1 usuário × 16 = 95).
+    // Nova assinatura ESSENCIAL autorizada (1 usuário → só a base, 79).
     mp.authorize(secondPreapprovalId);
     await webhook("subscription_preapproval", secondPreapprovalId);
     await http.get("/api/customers").set(auth()).expect(200);
@@ -342,13 +343,13 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .send({ basePrice: 99 })
       .expect(200);
 
-    // Preapproval do assinante atualizado (99 + 16) e espelho local também.
-    expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(115);
+    // 1 usuário → o novo valor é só a base (99), no MP e no espelho local.
+    expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(99);
     const sub = await http
       .get("/api/billing/subscription")
       .set(auth())
       .expect(200);
-    expect(Number(sub.body.subscription.amount)).toBe(115);
+    expect(Number(sub.body.subscription.amount)).toBe(99);
 
     // E a vitrine de planos passa a mostrar o preço vigente.
     const plans = await http.get("/api/billing/plans").set(auth()).expect(200);
@@ -363,7 +364,7 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .set(bearer(ownerToken))
       .send({ basePrice: 79 })
       .expect(200);
-    expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(95);
+    expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(79);
   });
 
   it("cockpit de vendas do console soma o MRR das assinaturas ativas", async () => {
@@ -372,9 +373,9 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .set(bearer(ownerToken))
       .expect(200);
     const sales = res.body.sales;
-    // Única assinatura AUTHORIZED da rodada: ESSENCIAL a R$95 (79 + 1×16).
+    // Única assinatura AUTHORIZED da rodada: ESSENCIAL com 1 usuário → R$79.
     expect(sales.subscribers).toBe(1);
-    expect(sales.mrr).toBe(95);
+    expect(sales.mrr).toBe(79);
     expect(sales.byTier).toEqual([{ tier: "ESSENCIAL", count: 1 }]);
     expect(Array.isArray(sales.trialsEndingSoon)).toBe(true);
     expect(Array.isArray(sales.pendingCheckouts)).toBe(true);
