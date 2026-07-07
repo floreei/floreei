@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  CreditCard,
   Flower2,
   LayoutDashboard,
   Loader2,
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
   { href: "/empresas", label: "Empresas", icon: Building2 },
+  { href: "/planos", label: "Planos", icon: CreditCard },
   { href: "/gestores", label: "Gestores", icon: ShieldCheck },
 ];
 

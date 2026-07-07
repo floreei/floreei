@@ -3,15 +3,10 @@
 import type {
   CompanyDetail,
   Feature,
-  PlanTier,
+  PlanOffer,
   UpdateEntitlementsInput,
 } from "@sistema-flores/types";
-import {
-  ALL_FEATURES,
-  FEATURE_INFO,
-  PLAN_TIER_LIST,
-  PLAN_TIERS,
-} from "@sistema-flores/types";
+import { ALL_FEATURES, FEATURE_INFO } from "@sistema-flores/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -39,6 +34,13 @@ export default function CompanyDetailPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["company", id],
     queryFn: () => api.get<CompanyDetail>(`/admin/companies/${id}`),
+  });
+
+  // Definições vigentes dos planos (nomes/features editáveis no console).
+  const { data: planDefs } = useQuery({
+    queryKey: ["plans"],
+    queryFn: () => api.get<PlanOffer[]>("/admin/plans"),
+    staleTime: 30_000,
   });
 
   const mutation = useMutation({
@@ -237,7 +239,7 @@ export default function CompanyDetailPage() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Plano</p>
               <div className="grid grid-cols-2 gap-2">
-                {PLAN_TIER_LIST.map((t) => (
+                {(planDefs ?? []).map((t) => (
                   <Button
                     key={t.id}
                     size="sm"
@@ -267,7 +269,9 @@ export default function CompanyDetailPage() {
                 <FeatureRow
                   key={feature}
                   feature={feature}
-                  tier={data.tier}
+                  tierFeatures={
+                    planDefs?.find((p) => p.id === data.tier)?.features ?? []
+                  }
                   override={data.featureOverrides?.[feature]}
                   disabled={entitlements.isPending}
                   onChange={(value) => {
@@ -360,19 +364,18 @@ const SUBSCRIPTION_LABEL: Record<string, string> = {
  */
 function FeatureRow({
   feature,
-  tier,
+  tierFeatures,
   override,
   disabled,
   onChange,
 }: {
   feature: Feature;
-  tier: PlanTier | null;
+  tierFeatures: Feature[];
   override: boolean | undefined;
   disabled: boolean;
   onChange: (value: boolean | undefined) => void;
 }) {
-  const inPlan = tier ? PLAN_TIERS[tier].features.includes(feature) : false;
-  const effective = override ?? inPlan;
+  const effective = override ?? tierFeatures.includes(feature);
 
   const options: { label: string; value: boolean | undefined }[] = [
     { label: "Plano", value: undefined },

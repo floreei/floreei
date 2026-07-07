@@ -14,6 +14,7 @@ import {
 import { DataSource, Repository } from "typeorm";
 import type { FirebaseIdentity } from "../../../common/auth/firebase-token.guard";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
+import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
 import { UserEntity } from "../../users/infrastructure/user.entity";
 
 function toPublicUser(user: UserEntity): PublicUser {
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly users: Repository<UserEntity>,
     @InjectRepository(CompanyEntity)
     private readonly companies: Repository<CompanyEntity>,
+    private readonly planDefs: PlanDefinitionsService,
   ) {}
 
   private async withCompanyInfo(user: PublicUser): Promise<PublicUser> {
@@ -65,7 +67,7 @@ export class AuthService {
         subscriptionStatus: company.subscriptionStatus,
         graceDaysLeft: resolved.graceDaysLeft,
         features: resolveEntitlements(
-          company.tier,
+          await this.planDefs.featuresOf(company.tier),
           company.featureOverrides,
           resolved.status,
         ),

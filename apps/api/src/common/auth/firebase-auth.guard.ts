@@ -16,6 +16,7 @@ import {
 } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { CompanyEntity } from "../../modules/companies/infrastructure/company.entity";
+import { PlanDefinitionsService } from "../../modules/plans/plan-definitions.service";
 import { UserEntity } from "../../modules/users/infrastructure/user.entity";
 import { FirebaseService } from "../firebase/firebase.service";
 import { ALLOW_BLOCKED_COMPANY_KEY } from "./allow-blocked-company.decorator";
@@ -56,6 +57,7 @@ export class FirebaseAuthGuard implements CanActivate {
     private readonly users: Repository<UserEntity>,
     @InjectRepository(CompanyEntity)
     private readonly companies: Repository<CompanyEntity>,
+    private readonly planDefs: PlanDefinitionsService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -158,7 +160,7 @@ export class FirebaseAuthGuard implements CanActivate {
     // dispensados (rotas de billing, para a empresa conseguir reassinar).
     if (!resolved.allowed && allowBlocked && resolved.status !== "SUSPENDED") {
       return resolveEntitlements(
-        company.tier,
+        await this.planDefs.featuresOf(company.tier),
         company.featureOverrides,
         resolved.status,
       );
@@ -186,7 +188,7 @@ export class FirebaseAuthGuard implements CanActivate {
     }
 
     return resolveEntitlements(
-      company.tier,
+      await this.planDefs.featuresOf(company.tier),
       company.featureOverrides,
       resolved.status,
     );

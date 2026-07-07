@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Post,
   Put,
@@ -13,8 +14,11 @@ import {
   companiesQuerySchema,
   extendTrialSchema,
   invitePlatformAdminSchema,
+  type PlanTier,
+  planTiers,
   type PlatformSession,
   updateEntitlementsSchema,
+  updatePlanDefinitionSchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { Public } from "../../../common/auth/public.decorator";
@@ -26,6 +30,8 @@ import {
   PlatformAdminGuard,
   type PlatformAdminContext,
 } from "../auth/platform-admin.guard";
+import { BillingService } from "../../billing/application/billing.service";
+import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
 import { PlatformAdminsService } from "../application/platform-admins.service";
 import { PlatformCompaniesService } from "../application/platform-companies.service";
 
@@ -33,6 +39,7 @@ class CompaniesQueryDto extends createZodDto(companiesQuerySchema) {}
 class ExtendTrialDto extends createZodDto(extendTrialSchema) {}
 class InviteAdminDto extends createZodDto(invitePlatformAdminSchema) {}
 class UpdateEntitlementsDto extends createZodDto(updateEntitlementsSchema) {}
+class UpdatePlanDto extends createZodDto(updatePlanDefinitionSchema) {}
 
 /**
  * Console do gestor da plataforma. `@Public()` pula o guard de tenant do cliente;
@@ -45,6 +52,8 @@ export class PlatformController {
   constructor(
     private readonly companies: PlatformCompaniesService,
     private readonly admins: PlatformAdminsService,
+    private readonly planDefs: PlanDefinitionsService,
+    private readonly billing: BillingService,
   ) {}
 
   @Get("me")
@@ -93,6 +102,27 @@ export class PlatformController {
     @Body() dto: UpdateEntitlementsDto,
   ) {
     return this.companies.updateEntitlements(id, dto);
+  }
+
+  /** Definições vigentes dos planos (preço, preço/usuário, features). */
+  @Get("plans")
+  async listPlans() {
+    const defs = await this.planDefs.list();
+    return defs.map((d) => this.planDefs.toOffer(d));
+  }
+
+  /** Edita um plano e reaplica o preço às assinaturas em vigor (OWNER). */
+  @UseGuards(PlatformOwnerGuard)
+  @Put("plans/:tier")
+  async updatePlan(@Param("tier") tier: string, @Body() dto: UpdatePlanDto) {
+    if (!(planTiers as readonly string[]).includes(tier)) {
+      throw new NotFoundException("Plano não encontrado.");
+    }
+    const saved = await this.planDefs.update(tier as PlanTier, dto);
+    if (dto.basePrice !== undefined || dto.userPrice !== undefined) {
+      await this.billing.resyncTierAmounts(saved.tier);
+    }
+    return this.planDefs.toOffer(saved);
   }
 
   @Get("admins")
