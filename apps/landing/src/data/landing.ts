@@ -179,63 +179,9 @@ export const testimonials = [
   },
 ];
 
-export interface Plan {
-  name: string;
-  seats: string;
-  priceFrom: string;
-  featured: boolean;
-  cta: string;
-  clay: boolean;
-  items: string[];
-}
-
-/** Placeholder — confirmar tabela real de preços. */
-export const plans: Plan[] = [
-  {
-    name: "Balcão",
-    seats: "Ideal para 1 a 2 acessos",
-    priceFrom: "89",
-    featured: false,
-    cta: "Começar",
-    clay: false,
-    items: [
-      "Orçamentos e vendas",
-      "Cadastro de clientes",
-      "Controle de estoque",
-      "Suporte em português",
-    ],
-  },
-  {
-    name: "Floricultura",
-    seats: "Ideal para 3 a 6 acessos",
-    priceFrom: "167",
-    featured: true,
-    cta: "Pedir proposta",
-    clay: true,
-    items: [
-      "Tudo do plano Balcão",
-      "Financeiro e fluxo de caixa",
-      "Agenda de eventos",
-      "Relatórios do mês",
-      "Acessos por função",
-    ],
-  },
-  {
-    name: "Rede",
-    seats: "Ideal para 7+ acessos ou lojas",
-    priceFrom: "359",
-    featured: false,
-    cta: "Falar com vendas",
-    clay: false,
-    items: [
-      "Tudo do plano Floricultura",
-      "Múltiplas lojas / unidades",
-      "Painel consolidado",
-      "Suporte prioritário",
-      "Treinamento da equipe",
-    ],
-  },
-];
+// Os planos exibidos na seção de preços vêm da API (planos vigentes, editáveis
+// pelo console) com fallback para PLAN_TIER_LIST de @sistema-flores/types —
+// ver components/landing/plans.tsx.
 
 export const faqData = [
   {
@@ -244,7 +190,7 @@ export const faqData = [
   },
   {
     q: "Quanto custa?",
-    a: "O plano é sob medida para o tamanho da sua floricultura e da sua equipe. Fale com a gente no WhatsApp e montamos um orçamento sem compromisso.",
+    a: "Os planos partem de R$ 79/mês, mais R$ 16 por pessoa da equipe — você paga pelos recursos que precisa e pelo tamanho do seu time. Antes de pagar qualquer coisa, você testa tudo grátis por 7 dias, sem cartão.",
   },
   {
     q: "Serve para decoração de eventos, não só loja?",
