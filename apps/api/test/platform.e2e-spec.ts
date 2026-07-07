@@ -186,6 +186,42 @@ describe("Platform console (e2e)", () => {
       .expect(200);
   });
 
+  it("define plano e exceções de feature pelo console; reflete no cliente", async () => {
+    const res = await http
+      .put(`/api/admin/companies/${companyA.user.companyId}/entitlements`)
+      .set(bearer(ownerToken))
+      .send({ tier: "ESSENCIAL", featureOverrides: { REPORTS: true } })
+      .expect(200);
+    const detail = res.body as CompanyDetail;
+    expect(detail.tier).toBe("ESSENCIAL");
+    expect(detail.featureOverrides).toEqual({ REPORTS: true });
+    expect(detail.subscription).toBeNull();
+
+    // Empresa liberada manualmente para ver as features fora do trial.
+    await http
+      .post(`/api/admin/companies/${companyA.user.companyId}/activate`)
+      .set(bearer(ownerToken))
+      .expect(201);
+
+    const meRes = await http
+      .get("/api/auth/me")
+      .set(bearer(companyA.accessToken))
+      .expect(200);
+    const features = meRes.body.access.features as string[];
+    // ESSENCIAL (vendas + orçamentos) + a exceção de relatórios ligada.
+    expect(features).toContain("SALES");
+    expect(features).toContain("REPORTS");
+    expect(features).not.toContain("STORE");
+  });
+
+  it("rejeita payload inválido de entitlements", async () => {
+    await http
+      .put(`/api/admin/companies/${companyA.user.companyId}/entitlements`)
+      .set(bearer(ownerToken))
+      .send({ tier: "INEXISTENTE" })
+      .expect(400);
+  });
+
   it("gestores: OWNER convida SUPPORT; SUPPORT vê mas não convida", async () => {
     const admins = await http
       .get("/api/admin/admins")
