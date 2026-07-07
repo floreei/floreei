@@ -9,6 +9,7 @@ import { FeatureUpsell } from "@/components/billing/feature-upsell";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { navItems, navItemUnlocked } from "@/components/layout/nav";
 import { PaymentBanner } from "@/components/layout/payment-banner";
+import { WelcomeDialog } from "@/components/onboarding/welcome-dialog";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { TrialBanner } from "@/components/layout/trial-banner";
@@ -57,6 +58,7 @@ export default function DashboardLayout({
 
   return (
     <CommandPaletteProvider>
+      <WelcomeDialog />
       <div className="flex min-h-screen bg-muted/20">
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-border bg-card lg:block">
           <SidebarNav />
