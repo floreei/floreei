@@ -14,6 +14,7 @@ import {
   companiesQuerySchema,
   extendTrialSchema,
   invitePlatformAdminSchema,
+  setTrialEndSchema,
   type PlanTier,
   planTiers,
   type PlatformSession,
@@ -38,6 +39,7 @@ import { PlatformNotificationsService } from "../notifications/platform-notifica
 
 class CompaniesQueryDto extends createZodDto(companiesQuerySchema) {}
 class ExtendTrialDto extends createZodDto(extendTrialSchema) {}
+class SetTrialEndDto extends createZodDto(setTrialEndSchema) {}
 class InviteAdminDto extends createZodDto(invitePlatformAdminSchema) {}
 class UpdateEntitlementsDto extends createZodDto(updateEntitlementsSchema) {}
 class UpdatePlanDto extends createZodDto(updatePlanDefinitionSchema) {}
@@ -92,6 +94,11 @@ export class PlatformController {
   @Post("companies/:id/extend-trial")
   extendTrial(@Param("id") id: string, @Body() dto: ExtendTrialDto) {
     return this.companies.extendTrial(id, dto.days);
+  }
+
+  @Post("companies/:id/set-trial-end")
+  setTrialEnd(@Param("id") id: string, @Body() dto: SetTrialEndDto) {
+    return this.companies.setTrialEnd(id, dto.date);
   }
 
   @Post("companies/:id/activate")

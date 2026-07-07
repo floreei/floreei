@@ -186,6 +186,38 @@ describe("Platform console (e2e)", () => {
       .expect(200);
   });
 
+  it("define o fim do trial por uma data exata; recusa data no passado", async () => {
+    const future = new Date();
+    future.setDate(future.getDate() + 20);
+    const date = future.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const res = await http
+      .post(`/api/admin/companies/${companyB.user.companyId}/set-trial-end`)
+      .set(bearer(ownerToken))
+      .send({ date })
+      .expect(201);
+    // Fim = 23:59:59.999 do dia escolhido no horário de Brasília (UTC-3).
+    const end = (res.body as CompanyDetail).trialEndsAt;
+    expect(end).not.toBeNull();
+    expect(new Date(end as string).getTime()).toBe(
+      new Date(`${date}T23:59:59.999-03:00`).getTime(),
+    );
+
+    // Data no passado é recusada.
+    await http
+      .post(`/api/admin/companies/${companyB.user.companyId}/set-trial-end`)
+      .set(bearer(ownerToken))
+      .send({ date: "2020-01-01" })
+      .expect(400);
+
+    // Formato inválido → 400.
+    await http
+      .post(`/api/admin/companies/${companyB.user.companyId}/set-trial-end`)
+      .set(bearer(ownerToken))
+      .send({ date: "15/08/2026" })
+      .expect(400);
+  });
+
   it("define plano e exceções de feature pelo console; reflete no cliente", async () => {
     const res = await http
       .put(`/api/admin/companies/${companyA.user.companyId}/entitlements`)

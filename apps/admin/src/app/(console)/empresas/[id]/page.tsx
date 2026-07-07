@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
+  CalendarClock,
   CheckCircle2,
   Loader2,
   Lock,
@@ -163,27 +164,13 @@ export default function CompanyDetailPage() {
             </dl>
 
             <div className="space-y-2 border-t border-border pt-4">
-              <p className="text-xs font-medium text-muted-foreground">
-                Estender período gratuito
-              </p>
-              <div className="flex gap-2">
-                {[7, 15, 30].map((d) => (
-                  <Button
-                    key={d}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={busy}
-                    onClick={() =>
-                      run("extend-trial", `Período estendido em ${d} dias.`, {
-                        days: d,
-                      })
-                    }
-                  >
-                    +{d}d
-                  </Button>
-                ))}
-              </div>
+              <TrialExtender
+                currentEnd={data.trialEndsAt}
+                busy={busy}
+                onSet={(date) =>
+                  run("set-trial-end", "Período gratuito atualizado.", { date })
+                }
+              />
 
               {!isActivePlan ? (
                 <Button
@@ -463,6 +450,84 @@ function DangerZone({
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+/** Data local YYYY-MM-DD (sem UTC shift) a partir de um Date. */
+function ymd(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function inDays(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+}
+/** "YYYY-MM-DD" → "DD/MM/YYYY" (à prova de fuso). */
+function brDate(value: string): string {
+  const [y, m, d] = value.split("-");
+  return d && m && y ? `${d}/${m}/${y}` : value;
+}
+
+/**
+ * Define o fim do período gratuito por uma DATA exata (com calendário), em vez
+ * de somar dias — os atalhos +7/+15/+30 só preenchem a data, e nada é aplicado
+ * até "Definir". Assim clicar várias vezes não acumula dias sem querer.
+ */
+function TrialExtender({
+  currentEnd,
+  busy,
+  onSet,
+}: {
+  currentEnd: string | null;
+  busy: boolean;
+  onSet: (date: string) => void;
+}) {
+  const today = ymd(new Date());
+  const current = currentEnd ? ymd(new Date(currentEnd)) : "";
+  const [date, setDate] = useState(current || inDays(7));
+
+  const valid = date >= today;
+  const changed = date !== current;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">
+        Fim do período gratuito
+      </p>
+      <div className="flex gap-2">
+        {[7, 15, 30].map((d) => (
+          <Button
+            key={d}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            disabled={busy}
+            onClick={() => setDate(inDays(d))}
+          >
+            +{d}d
+          </Button>
+        ))}
+      </div>
+      <Input
+        type="date"
+        min={today}
+        value={date}
+        disabled={busy}
+        onChange={(e) => setDate(e.target.value)}
+        aria-label="Data de fim do período gratuito"
+      />
+      <Button
+        size="sm"
+        className="w-full"
+        disabled={busy || !valid || !changed}
+        onClick={() => onSet(date)}
+      >
+        <CalendarClock className="h-4 w-4" />
+        {valid ? `Definir para ${brDate(date)}` : "Escolha uma data futura"}
+      </Button>
+    </div>
   );
 }
 
