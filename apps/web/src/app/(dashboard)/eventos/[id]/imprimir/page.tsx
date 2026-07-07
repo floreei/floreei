@@ -148,18 +148,6 @@ export default function OrderNotePage() {
         </section>
       ) : null}
 
-      <section className="mt-10 grid grid-cols-2 gap-8 pt-6">
-        <div>
-          <div className="border-t border-foreground/50 pt-2 text-xs text-muted-foreground">
-            Recebi os itens acima em conformidade
-          </div>
-        </div>
-        <div>
-          <div className="border-t border-foreground/50 pt-2 text-xs text-muted-foreground">
-            Data / assinatura
-          </div>
-        </div>
-      </section>
     </PrintDocument>
   );
 }
