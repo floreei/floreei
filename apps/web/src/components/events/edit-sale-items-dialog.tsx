@@ -120,15 +120,18 @@ export function EditSaleItemsDialog({
         name: a.name,
         price: a.salePrice,
       })),
-      ...(products?.data ?? []).map((p) => ({
-        kind: "product" as const,
-        id: p.id,
-        name: p.name,
-        price: p.defaultSalePrice,
-        packSize: p.packSize,
-        purchaseUnit: p.purchaseUnit,
-        unit: p.unit,
-      })),
+      // Só insumos vendidos avulso (preço > 0) — os "só buquê" ficam de fora.
+      ...(products?.data ?? [])
+        .filter((p) => p.defaultSalePrice > 0)
+        .map((p) => ({
+          kind: "product" as const,
+          id: p.id,
+          name: p.name,
+          price: p.defaultSalePrice,
+          packSize: p.packSize,
+          purchaseUnit: p.purchaseUnit,
+          unit: p.unit,
+        })),
     ],
     [arrangements, products],
   );

@@ -201,7 +201,16 @@ export default function CatalogPage() {
                       {formatCurrency(product.defaultPurchasePrice)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
-                      {formatCurrency(product.defaultSalePrice)}
+                      {product.defaultSalePrice > 0 ? (
+                        formatCurrency(product.defaultSalePrice)
+                      ) : (
+                        <span
+                          className="text-muted-foreground"
+                          title="Não vendido avulso — usado só em buquês"
+                        >
+                          —
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
