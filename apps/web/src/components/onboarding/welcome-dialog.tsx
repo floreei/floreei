@@ -65,7 +65,7 @@ export function WelcomeDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && dismiss()}>
-      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-w-lg flex-col gap-0 overflow-hidden p-0">
         <WelcomeVideo />
 
         <motion.div
