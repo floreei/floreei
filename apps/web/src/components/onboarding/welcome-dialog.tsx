@@ -2,6 +2,7 @@
 
 import { Check, Flower2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useGuide } from "@/components/onboarding/guide";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +40,7 @@ function longDate(iso: string): string {
  */
 export function WelcomeDialog() {
   const { user } = useAuth();
+  const guide = useGuide();
   const [open, setOpen] = useState(false);
 
   const access = user?.access;
@@ -111,9 +113,20 @@ export function WelcomeDialog() {
           </p>
         </div>
 
-        <Button className="w-full" onClick={dismiss}>
-          Começar a usar
-        </Button>
+        <div className="space-y-2">
+          <Button
+            className="w-full"
+            onClick={() => {
+              dismiss();
+              guide.open();
+            }}
+          >
+            Ver como funciona
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={dismiss}>
+            Explorar sozinho
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

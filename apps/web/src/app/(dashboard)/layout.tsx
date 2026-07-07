@@ -9,6 +9,7 @@ import { FeatureUpsell } from "@/components/billing/feature-upsell";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { navItems, navItemUnlocked } from "@/components/layout/nav";
 import { PaymentBanner } from "@/components/layout/payment-banner";
+import { GuideProvider } from "@/components/onboarding/guide";
 import { WelcomeDialog } from "@/components/onboarding/welcome-dialog";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -58,20 +59,26 @@ export default function DashboardLayout({
 
   return (
     <CommandPaletteProvider>
-      <WelcomeDialog />
-      <div className="flex min-h-screen bg-muted/20">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-border bg-card lg:block">
-          <SidebarNav />
-        </aside>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TrialBanner />
-          <PaymentBanner />
-          <Topbar />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-            {lockedFeature ? <FeatureUpsell feature={lockedFeature} /> : children}
-          </main>
+      <GuideProvider>
+        <WelcomeDialog />
+        <div className="flex min-h-screen bg-muted/20">
+          <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-border bg-card lg:block">
+            <SidebarNav />
+          </aside>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TrialBanner />
+            <PaymentBanner />
+            <Topbar />
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+              {lockedFeature ? (
+                <FeatureUpsell feature={lockedFeature} />
+              ) : (
+                children
+              )}
+            </main>
+          </div>
         </div>
-      </div>
+      </GuideProvider>
     </CommandPaletteProvider>
   );
 }
