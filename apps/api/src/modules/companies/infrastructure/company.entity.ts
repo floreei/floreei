@@ -46,6 +46,10 @@ export class CompanyEntity extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: true })
   address!: string | null;
 
+  /** Chave Pix (QR code de pagamento na nota da venda). */
+  @Column({ name: "pix_key", type: "varchar", length: 140, nullable: true })
+  pixKey!: string | null;
+
   @Column({ type: "text", nullable: true })
   logo!: string | null;
 

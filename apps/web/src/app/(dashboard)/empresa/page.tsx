@@ -34,6 +34,7 @@ export default function CompanyPage() {
       phone: "",
       email: "",
       address: "",
+      pixKey: "",
     },
   });
 
@@ -45,6 +46,7 @@ export default function CompanyPage() {
         phone: data.phone ?? "",
         email: data.email ?? "",
         address: data.address ?? "",
+        pixKey: data.pixKey ?? "",
       });
       setLogo(data.logo ?? null);
     }
@@ -121,6 +123,18 @@ export default function CompanyPage() {
             </Field>
             <Field label="Endereço" htmlFor="c-address" optional>
               <Input id="c-address" placeholder="Rua, número, bairro, cidade" {...form.register("address")} />
+            </Field>
+            <Field
+              label="Chave Pix"
+              htmlFor="c-pix"
+              optional
+              hint="Com a chave preenchida, a nota da venda sai com um QR code de pagamento."
+            >
+              <Input
+                id="c-pix"
+                placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória"
+                {...form.register("pixKey")}
+              />
             </Field>
           </CardContent>
         </Card>

@@ -46,12 +46,14 @@ describe("Dados da empresa (e2e)", () => {
         phone: "11999998888",
         email: "contato@belaflor.com",
         address: "Rua das Flores, 100 - São Paulo",
+        pixKey: "pagamentos@belaflor.com",
         logo: "data:image/png;base64,iVBORw0KGgo=",
       })
       .expect(200);
 
     expect(updated.body.name).toBe("Bela Flor Decorações");
     expect(updated.body.document).toBe("12.345.678/0001-90");
+    expect(updated.body.pixKey).toBe("pagamentos@belaflor.com");
     expect(updated.body.logo).toContain("data:image/png");
   });
 

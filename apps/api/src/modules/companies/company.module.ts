@@ -49,6 +49,7 @@ function toSettings(c: CompanyEntity): CompanySettings {
     phone: c.phone,
     email: c.email,
     address: c.address,
+    pixKey: c.pixKey,
     logo: c.logo,
   };
 }
@@ -80,6 +81,7 @@ export class CompanyService {
     company.phone = input.phone ?? null;
     company.email = input.email ?? null;
     company.address = input.address ?? null;
+    company.pixKey = input.pixKey ?? null;
     company.logo = input.logo ?? null;
     return toSettings(await this.companies.save(company));
   }
