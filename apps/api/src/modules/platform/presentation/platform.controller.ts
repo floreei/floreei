@@ -117,6 +117,13 @@ export class PlatformController {
     return this.companies.updateEntitlements(id, dto);
   }
 
+  /** Exclui a empresa por completo (Firebase + banco). Irreversível, só OWNER. */
+  @UseGuards(PlatformOwnerGuard)
+  @Delete("companies/:id")
+  deleteCompany(@Param("id") id: string) {
+    return this.companies.deleteCompany(id);
+  }
+
   /** Definições vigentes dos planos (preço, preço/usuário, features). */
   @Get("plans")
   async listPlans() {

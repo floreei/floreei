@@ -53,6 +53,14 @@ export class FirebaseService {
     }
   }
 
+  /**
+   * Se o Admin SDK está configurado (service account). Sem ele, apagar/gerir
+   * usuários no Firebase vira no-op — o chamador avisa o operador.
+   */
+  isAdminEnabled(): boolean {
+    return hasFirebaseAdminCredentials();
+  }
+
   /** Cadastro via Identity Toolkit REST (apiKey pública) — sem service account. */
   private async restSignUp(
     input: CreateAuthUserInput,

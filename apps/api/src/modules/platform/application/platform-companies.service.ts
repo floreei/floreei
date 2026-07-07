@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   AT_RISK_INACTIVE_DAYS,
@@ -18,6 +18,7 @@ import {
   resolveCompanyAccess,
 } from "@sistema-flores/types";
 import { Between, DataSource, In, Repository } from "typeorm";
+import { FirebaseService } from "../../../common/firebase/firebase.service";
 import { SubscriptionEntity } from "../../billing/infrastructure/subscription.entity";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
@@ -48,6 +49,8 @@ function health(c: CompanyEntity, now: Date) {
 
 @Injectable()
 export class PlatformCompaniesService {
+  private readonly logger = new Logger(PlatformCompaniesService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     @InjectRepository(CompanyEntity)
@@ -56,6 +59,7 @@ export class PlatformCompaniesService {
     private readonly users: Repository<UserEntity>,
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptions: Repository<SubscriptionEntity>,
+    private readonly firebase: FirebaseService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -311,6 +315,67 @@ export class PlatformCompaniesService {
     company.suspended = false;
     await this.companies.save(company);
     return this.detail(id);
+  }
+
+  /**
+   * Tabelas com `company_id`, na ordem de exclusão (referenciadora antes da
+   * referenciada, por causa das FKs RESTRICT internas). Os filhos (itens,
+   * anexos, movimentos) caem por CASCADE do pai. Deletar nesta ordem evita
+   * violar FK; a raiz `companies` sai por último.
+   */
+  private static readonly DELETE_ORDER = [
+    "subscriptions",
+    "store_orders",
+    "payments",
+    "platform_notifications",
+    "events", // → event_items, event_attachments
+    "quotes", // → quote_items
+    "arrangements", // → arrangement_items
+    "purchases", // → purchase_items, purchase_attachments
+    "expenses", // → expense_attachments
+    "products", // → stock_movements
+    "customers",
+    "suppliers",
+    "categories",
+    "users",
+  ] as const;
+
+  /**
+   * Exclui a empresa por completo: apaga todos os usuários no Firebase Auth e
+   * todos os dados no banco (transacional). Operação irreversível — só OWNER.
+   * Se o Firebase Admin não estiver configurado, o banco é limpo mesmo assim e
+   * fica um aviso no log (os logins continuariam órfãos no Firebase).
+   */
+  async deleteCompany(id: string): Promise<{ ok: true; firebaseCleared: boolean }> {
+    await this.load(id); // 404 se não existe
+    const users = await this.users.find({ where: { companyId: id } });
+
+    await this.dataSource.transaction(async (manager) => {
+      for (const table of PlatformCompaniesService.DELETE_ORDER) {
+        await manager.query(`DELETE FROM "${table}" WHERE company_id = $1`, [id]);
+      }
+      await manager.query(`DELETE FROM "companies" WHERE id = $1`, [id]);
+    });
+
+    // Firebase depois do commit (best-effort) — não desfaz a exclusão do banco.
+    const firebaseEnabled = this.firebase.isAdminEnabled();
+    if (!firebaseEnabled) {
+      this.logger.warn(
+        `Empresa ${id} excluída do banco, mas o Firebase Admin não está configurado — ${users.length} login(s) permanecem no Firebase Auth.`,
+      );
+    } else {
+      for (const user of users) {
+        if (!user.firebaseUid) continue;
+        await this.firebase.deleteAuthUser(user.firebaseUid).catch((error) => {
+          this.logger.error(
+            `Falha ao apagar o usuário ${user.email} do Firebase`,
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
+      }
+    }
+
+    return { ok: true, firebaseCleared: firebaseEnabled };
   }
 
   /** Define plano, overrides de feature e marca de fundador da empresa. */

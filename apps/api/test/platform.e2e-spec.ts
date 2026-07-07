@@ -318,4 +318,54 @@ describe("Platform console (e2e)", () => {
       .send({ email: uniqueEmail("x2"), name: "X", role: "SUPPORT" })
       .expect(403);
   });
+
+  it("OWNER exclui a empresa por completo; SUPPORT não pode", async () => {
+    const victim = await registerCompany(http, { companyName: "Para Excluir" });
+    const vId = victim.user.companyId;
+    // Um dado de negócio para garantir que a limpeza remove tudo (não trava em FK).
+    await http
+      .post("/api/customers")
+      .set(bearer(victim.accessToken))
+      .send({ name: "Cliente da vítima" })
+      .expect(201);
+
+    // SUPPORT (gestor comum) não pode excluir — só OWNER.
+    const supportEmail = uniqueEmail("supdel");
+    await http
+      .post("/api/admin/admins")
+      .set(bearer(ownerToken))
+      .send({ email: supportEmail, name: "Sup", role: "SUPPORT" })
+      .expect(201);
+    const supportToken = await firebaseSignUp(supportEmail, "Segredo123!");
+    await http
+      .delete(`/api/admin/companies/${vId}`)
+      .set(bearer(supportToken))
+      .expect(403);
+
+    // OWNER exclui: 200 e some do banco.
+    const res = await http
+      .delete(`/api/admin/companies/${vId}`)
+      .set(bearer(ownerToken))
+      .expect(200);
+    expect(res.body.ok).toBe(true);
+
+    // Usuário e empresa foram apagados.
+    await http.get("/api/auth/me").set(bearer(victim.accessToken)).expect(401);
+    await http
+      .get(`/api/admin/companies/${vId}`)
+      .set(bearer(ownerToken))
+      .expect(404);
+    // O cliente da vítima também sumiu (limpeza completa).
+    const [row] = (await ctx.dataSource.query(
+      `SELECT COUNT(*)::int AS n FROM customers WHERE company_id = $1`,
+      [vId],
+    )) as [{ n: number }];
+    expect(row.n).toBe(0);
+
+    // Empresa inexistente → 404.
+    await http
+      .delete(`/api/admin/companies/${vId}`)
+      .set(bearer(ownerToken))
+      .expect(404);
+  });
 });
