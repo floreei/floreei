@@ -1,0 +1,63 @@
+import { z } from "zod";
+import type { Feature, PlanTier } from "./entitlements";
+import { planTiers } from "./entitlements";
+
+/** Status da assinatura recorrente (espelha o preapproval do Mercado Pago). */
+export const subscriptionStatuses = [
+  "PENDING", // criada, aguardando o cliente autorizar no checkout do MP
+  "AUTHORIZED", // ativa, cobrando todo mês
+  "PAUSED", // pausada pelo MP (falhas de cobrança)
+  "CANCELLED", // cancelada (pelo cliente ou pela plataforma)
+] as const;
+export type SubscriptionStatus = (typeof subscriptionStatuses)[number];
+
+export const subscribeSchema = z.object({
+  tier: z.enum(planTiers),
+});
+export type SubscribeInput = z.infer<typeof subscribeSchema>;
+
+/** Oferta de plano como a página de assinatura exibe (preço já calculado). */
+export interface PlanOffer {
+  id: PlanTier;
+  name: string;
+  tagline: string;
+  basePrice: number;
+  /** Preço por usuário ativo (R$/mês). */
+  userPrice: number;
+  features: Feature[];
+}
+
+/** Assinatura vigente, como o ERP a exibe. */
+export interface SubscriptionView {
+  id: string;
+  tier: PlanTier;
+  status: SubscriptionStatus;
+  /** Valor mensal vigente (base + usuários × R$16). */
+  amount: number;
+  /** Nº de usuários considerado no último cálculo do valor. */
+  billedUsers: number;
+  paymentFailedAt: string | null;
+  /** Dias restantes da carência para regularizar; null sem pendência. */
+  graceDaysLeft: number | null;
+  createdAt: string;
+}
+
+/** Resposta de `GET /billing/subscription`. */
+export interface BillingSummary {
+  subscription: SubscriptionView | null;
+  activeUsers: number;
+}
+
+/** Resposta de `GET /billing/plans`. */
+export interface BillingPlans {
+  plans: PlanOffer[];
+  activeUsers: number;
+  currentTier: PlanTier | null;
+}
+
+/** Resposta de `POST /billing/subscribe` — segue para o checkout do MP. */
+export interface SubscribeResult {
+  subscriptionId: string;
+  /** URL de autorização da assinatura no Mercado Pago. */
+  initPoint: string;
+}

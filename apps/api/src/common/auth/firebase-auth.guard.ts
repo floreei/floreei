@@ -18,6 +18,7 @@ import { Repository } from "typeorm";
 import { CompanyEntity } from "../../modules/companies/infrastructure/company.entity";
 import { UserEntity } from "../../modules/users/infrastructure/user.entity";
 import { FirebaseService } from "../firebase/firebase.service";
+import { ALLOW_BLOCKED_COMPANY_KEY } from "./allow-blocked-company.decorator";
 import type { AuthUser } from "./auth-user";
 import { IS_PUBLIC_KEY } from "./public.decorator";
 
@@ -91,7 +92,15 @@ export class FirebaseAuthGuard implements CanActivate {
       throw new UnauthorizedException("Conta não encontrada.");
     }
 
-    const features = await this.enforceCompanyAccess(user.companyId);
+    // Rotas de billing continuam acessíveis com a empresa bloqueada (reassinar).
+    const allowBlocked = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_BLOCKED_COMPANY_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    const features = await this.enforceCompanyAccess(
+      user.companyId,
+      allowBlocked === true,
+    );
 
     req.user = {
       id: user.id,
@@ -107,7 +116,10 @@ export class FirebaseAuthGuard implements CanActivate {
    * Controle de acesso do tenant: inicia o trial no primeiro acesso, registra o
    * último acesso (com throttle) e bloqueia empresa suspensa ou com trial expirado.
    */
-  private async enforceCompanyAccess(companyId: string): Promise<Feature[]> {
+  private async enforceCompanyAccess(
+    companyId: string,
+    allowBlocked = false,
+  ): Promise<Feature[]> {
     const company = await this.companies.findOne({ where: { id: companyId } });
     if (!company) throw new UnauthorizedException("Empresa não encontrada.");
 
@@ -137,20 +149,38 @@ export class FirebaseAuthGuard implements CanActivate {
         plan: company.plan,
         suspended: company.suspended,
         trialEndsAt: company.trialEndsAt,
+        subscriptionStatus: company.subscriptionStatus,
+        paymentFailedAt: company.paymentFailedAt,
       },
       now,
     );
+    // Suspensão manual do gestor barra sempre; os demais bloqueios podem ser
+    // dispensados (rotas de billing, para a empresa conseguir reassinar).
+    if (!resolved.allowed && allowBlocked && resolved.status !== "SUSPENDED") {
+      return resolveEntitlements(
+        company.tier,
+        company.featureOverrides,
+        resolved.status,
+      );
+    }
     if (!resolved.allowed) {
-      const suspended = resolved.status === "SUSPENDED";
+      const denial = {
+        SUSPENDED: {
+          code: ACCESS_DENIED_CODES.SUSPENDED,
+          message: "Acesso suspenso. Fale com o suporte para reativar.",
+        },
+        PAYMENT_OVERDUE: {
+          code: ACCESS_DENIED_CODES.PAYMENT_OVERDUE,
+          message: "Pagamento da assinatura pendente. Regularize para continuar.",
+        },
+      }[resolved.status as string] ?? {
+        code: ACCESS_DENIED_CODES.EXPIRED,
+        message: "Seu período gratuito terminou. Assine para continuar.",
+      };
       throw new ForbiddenException({
         statusCode: 403,
         status: resolved.status,
-        code: suspended
-          ? ACCESS_DENIED_CODES.SUSPENDED
-          : ACCESS_DENIED_CODES.EXPIRED,
-        message: suspended
-          ? "Acesso suspenso. Fale com o suporte para reativar."
-          : "Seu período gratuito terminou. Fale com a gente para continuar.",
+        ...denial,
         trialEndsAt: company.trialEndsAt,
       });
     }

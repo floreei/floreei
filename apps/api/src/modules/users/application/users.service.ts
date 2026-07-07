@@ -5,6 +5,8 @@ import type {
   UpdateUserInput,
 } from "@sistema-flores/types";
 import { FirebaseService } from "../../../common/firebase/firebase.service";
+import { TenantContextService } from "../../../common/tenant/tenant-context.service";
+import { BillingService } from "../../billing/application/billing.service";
 import { UserRepository } from "../infrastructure/user.repository";
 import { toPublicUser } from "./user.mapper";
 
@@ -13,6 +15,8 @@ export class UsersService {
   constructor(
     private readonly users: UserRepository,
     private readonly firebase: FirebaseService,
+    private readonly tenant: TenantContextService,
+    private readonly billing: BillingService,
   ) {}
 
   /** Lista os membros da equipe da empresa atual. */
@@ -36,7 +40,10 @@ export class UsersService {
         role: input.role,
         active: true,
       });
-      return toPublicUser(await this.users.save(user));
+      const saved = await this.users.save(user);
+      // Usuários são cobrados por cabeça: recalcula o valor da assinatura.
+      await this.billing.syncUserCount(this.tenant.getCompanyIdOrThrow());
+      return toPublicUser(saved);
     } catch (error) {
       // Compensa a criação no Firebase se a persistência local falhar.
       await this.firebase.deleteAuthUser(firebaseUser.uid).catch(() => undefined);
@@ -47,8 +54,13 @@ export class UsersService {
   /** Atualiza nome, papel ou status de um membro. */
   async update(id: string, input: UpdateUserInput): Promise<PublicUser> {
     const user = await this.users.findByIdOrFail(id);
+    const wasActive = user.active;
     Object.assign(user, input);
-    return toPublicUser(await this.users.save(user));
+    const saved = await this.users.save(user);
+    if (saved.active !== wasActive) {
+      await this.billing.syncUserCount(this.tenant.getCompanyIdOrThrow());
+    }
+    return toPublicUser(saved);
   }
 
   private async createFirebaseUser(

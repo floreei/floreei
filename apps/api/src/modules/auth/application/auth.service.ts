@@ -46,6 +46,8 @@ export class AuthService {
         plan: company.plan,
         suspended: company.suspended,
         trialEndsAt: company.trialEndsAt,
+        subscriptionStatus: company.subscriptionStatus,
+        paymentFailedAt: company.paymentFailedAt,
       },
       new Date(),
     );
@@ -60,6 +62,8 @@ export class AuthService {
           ? company.trialEndsAt.toISOString()
           : null,
         tier: company.tier,
+        subscriptionStatus: company.subscriptionStatus,
+        graceDaysLeft: resolved.graceDaysLeft,
         features: resolveEntitlements(
           company.tier,
           company.featureOverrides,
