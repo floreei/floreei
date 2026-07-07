@@ -268,6 +268,7 @@ export class PlatformCompaniesService {
       atRisk,
       tier: company.tier,
       featureOverrides: company.featureOverrides ?? {},
+      founder: company.founder,
       subscription,
       metrics,
       team,
@@ -312,7 +313,7 @@ export class PlatformCompaniesService {
     return this.detail(id);
   }
 
-  /** Define plano e/ou overrides de feature da empresa (nível de acesso). */
+  /** Define plano, overrides de feature e marca de fundador da empresa. */
   async updateEntitlements(
     id: string,
     input: UpdateEntitlementsInput,
@@ -322,6 +323,7 @@ export class PlatformCompaniesService {
     if (input.featureOverrides !== undefined) {
       company.featureOverrides = input.featureOverrides;
     }
+    if (input.founder !== undefined) company.founder = input.founder;
     await this.companies.save(company);
     return this.detail(id);
   }

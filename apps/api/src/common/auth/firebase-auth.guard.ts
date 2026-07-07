@@ -177,7 +177,7 @@ export class FirebaseAuthGuard implements CanActivate {
         },
       }[resolved.status as string] ?? {
         code: ACCESS_DENIED_CODES.EXPIRED,
-        message: "Seu período gratuito terminou. Assine para continuar.",
+        message: "Seu período gratuito terminou. Faça o upgrade para continuar.",
       };
       throw new ForbiddenException({
         statusCode: 403,

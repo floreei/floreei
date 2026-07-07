@@ -1,27 +1,13 @@
 "use client";
 
-import type { PlanOffer } from "@sistema-flores/types";
-import {
-  ALL_FEATURES,
-  FEATURE_INFO,
-  PLAN_TIER_LIST,
-} from "@sistema-flores/types";
+import { ALL_FEATURES, FEATURE_INFO } from "@sistema-flores/types";
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
-import { API_URL, APP_URL, whatsappWith } from "@/lib/site";
+import { useState } from "react";
+import { useLandingData } from "@/lib/landing-data";
+import { APP_URL, whatsappWith } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Cta } from "./cta";
 import { SectionHeading } from "./section-heading";
-
-/** Valores-padrão (semente dos planos) — usados se a API estiver fora do ar. */
-const FALLBACK: PlanOffer[] = PLAN_TIER_LIST.map((t) => ({
-  id: t.id,
-  name: t.name,
-  tagline: t.tagline,
-  basePrice: t.basePrice,
-  userPrice: t.userPrice,
-  features: t.features,
-}));
 
 function price(value: number): string {
   return `R$ ${value.toLocaleString("pt-BR", {
@@ -32,18 +18,9 @@ function price(value: number): string {
 
 export function Plans() {
   const [users, setUsers] = useState(2);
-  const [offers, setOffers] = useState<PlanOffer[]>(FALLBACK);
-
   // Preços vigentes vêm da API (o gestor pode mudá-los a qualquer momento);
   // a landing é estática, então a busca é no navegador, com fallback local.
-  useEffect(() => {
-    fetch(`${API_URL}/billing/public-plans`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: PlanOffer[] | null) => {
-        if (Array.isArray(data) && data.length > 0) setOffers(data);
-      })
-      .catch(() => undefined);
-  }, []);
+  const { plans: offers } = useLandingData();
 
   const userPrice = offers[0]?.userPrice ?? 16;
   const usersLabel = users === 1 ? "1 pessoa" : `${users} pessoas`;

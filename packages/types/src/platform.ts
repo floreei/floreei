@@ -151,6 +151,8 @@ export const updateEntitlementsSchema = z.object({
   featureOverrides: z
     .record(z.enum(ALL_FEATURES as [Feature, ...Feature[]]), z.boolean())
     .optional(),
+  /** Marca/desmarca a empresa como fundadora (fechamentos por WhatsApp). */
+  founder: z.boolean().optional(),
 });
 export type UpdateEntitlementsInput = z.infer<typeof updateEntitlementsSchema>;
 
@@ -240,6 +242,8 @@ export interface CompanyDetail {
   atRisk: boolean;
   tier: PlanTier | null;
   featureOverrides: FeatureOverrides;
+  /** Uma das 10 vagas de fundador (consumida na 1ª assinatura ou pelo gestor). */
+  founder: boolean;
   subscription: CompanySubscriptionInfo | null;
   metrics: CompanyMetrics;
   team: PlatformCompanyUser[];

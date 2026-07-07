@@ -98,6 +98,20 @@ Quatro reforços de conversão, aprovados após revisão de negócio:
 - **Retomar checkout** — `subscriptions.mp_init_point` persiste o link do MP; assinatura
   PENDING mostra "Continuar pagamento" na página de plano e na tela de bloqueio.
 
+### Fundador e posicionamento (2026-07-07)
+
+- **Vagas de fundador (10)** — `companies.founder` (permanente): consumida
+  automaticamente na 1ª assinatura AUTHORIZED (enquanto houver vaga) ou marcada
+  manualmente pelo gestor no console (fechamentos por WhatsApp; cancelar não devolve).
+- **Endpoint público ÚNICO** — `GET /billing/public-landing` (o webhook é o outro
+  @Public, sem leitura): devolve somente planos vigentes + contagem de vagas
+  ({total, taken, remaining}), com `Cache-Control: max-age=60` e sob o throttle
+  global. Nenhum dado de empresa/usuário. A landing usa esse endpoint nas seções
+  de planos e de oferta de fundador (contador ao vivo, com estado de esgotado).
+- **ERP fala "upgrade", landing fala "assinar"** — dentro do produto o CTA é
+  "Fazer upgrade" (banner do trial, página Plano, bloqueio; inadimplente vê
+  "Reativar plano"); a venda/assinatura é linguagem da landing.
+
 ## Fora de escopo (v1)
 
 Pró-rata, nota fiscal, notificações de cobrança próprias (canal = WhatsApp manual
