@@ -1,11 +1,24 @@
 "use client";
 
 import type { PlanTier } from "@sistema-flores/types";
-import { AlertTriangle, Check, Clock, Flower2, Loader2, Lock } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Clock,
+  Flower2,
+  Loader2,
+  Lock,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useBillingPlans, useSubscribe } from "@/lib/api/billing";
+import {
+  useBillingPlans,
+  useBillingSubscription,
+  useSubscribe,
+  useTrialSummary,
+} from "@/lib/api/billing";
 import type { BlockedAccess } from "@/lib/auth/auth-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { FEATURE_INFO } from "@/lib/billing/features";
@@ -66,6 +79,9 @@ export function AccessBlocked({ blocked }: { blocked: BlockedAccess }) {
           </p>
         </div>
 
+        <PendingCheckoutNotice />
+        {!overdue ? <TrialRecap /> : null}
+
         <PlanPicker />
 
         <div className="flex flex-col items-center gap-3">
@@ -88,9 +104,66 @@ export function AccessBlocked({ blocked }: { blocked: BlockedAccess }) {
   );
 }
 
+/**
+ * Checkout iniciado e não concluído: oferece retomar o pagamento no MP em vez
+ * de começar do zero — recupera o quase-cliente.
+ */
+function PendingCheckoutNotice() {
+  const { data } = useBillingSubscription();
+  const sub = data?.subscription;
+  if (!sub || sub.status !== "PENDING" || !sub.initPoint) return null;
+
+  return (
+    <div className="mx-auto flex w-full max-w-xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left">
+      <p className="text-sm">
+        <span className="font-medium">Você começou a assinar</span> e o
+        pagamento não foi concluído. Dá para continuar de onde parou.
+      </p>
+      <Button asChild size="sm">
+        <a href={sub.initPoint}>
+          Continuar pagamento
+          <ArrowRight className="h-4 w-4" />
+        </a>
+      </Button>
+    </div>
+  );
+}
+
+/** O que a empresa fez no trial — vender com os números dela mesma. */
+function TrialRecap() {
+  const { data } = useTrialSummary();
+  if (!data) return null;
+
+  const parts: string[] = [];
+  if (data.sales > 0) {
+    parts.push(
+      `${data.sales} ${data.sales === 1 ? "venda" : "vendas"} (${formatCurrency(data.revenue)})`,
+    );
+  }
+  if (data.quotes > 0) {
+    parts.push(`${data.quotes} ${data.quotes === 1 ? "orçamento" : "orçamentos"}`);
+  }
+  if (data.products > 0) {
+    parts.push(`${data.products} ${data.products === 1 ? "produto" : "produtos"}`);
+  }
+  if (data.customers > 0) {
+    parts.push(`${data.customers} ${data.customers === 1 ? "cliente" : "clientes"}`);
+  }
+  if (parts.length === 0) return null;
+
+  return (
+    <p className="mx-auto max-w-xl text-center text-sm">
+      No seu período gratuito você registrou{" "}
+      <span className="font-medium">{parts.join(", ")}</span>. Continue de onde
+      parou — está tudo guardado.
+    </p>
+  );
+}
+
 /** Grade dos 3 planos com botão de assinar (redireciona ao Mercado Pago). */
 function PlanPicker() {
   const { data, isLoading } = useBillingPlans();
+  const { data: summary } = useTrialSummary();
   const subscribe = useSubscribe();
   const [pendingTier, setPendingTier] = useState<PlanTier | null>(null);
 
@@ -123,16 +196,23 @@ function PlanPicker() {
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       {data.plans.map((offer, index) => {
-        const highlighted = index === 1; // plano do meio em evidência
+        // Destaca o plano recomendado pelo uso no trial; sem resumo, o do meio.
+        const recommended = summary?.recommendedTier === offer.id;
+        const highlighted = summary ? recommended : index === 1;
         const total = offer.basePrice + activeUsers * offer.userPrice;
         return (
           <div
             key={offer.id}
             className={cn(
-              "flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-left shadow-card",
+              "relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-left shadow-card",
               highlighted && "border-primary/40 ring-1 ring-primary/30",
             )}
           >
+            {recommended ? (
+              <span className="absolute -top-3 left-5 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
+                Recomendado para você
+              </span>
+            ) : null}
             <div className="space-y-1">
               <h2 className="text-lg font-semibold">{offer.name}</h2>
               <p className="text-sm text-muted-foreground">{offer.tagline}</p>

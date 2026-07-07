@@ -136,15 +136,28 @@ export default function PlanoPage() {
                 {subscription.billedUsers === 1 ? "usuário" : "usuários"}
               </p>
             </div>
-            {subscription.status !== "CANCELLED" ? (
-              <Button
-                variant="outline"
-                onClick={() => setConfirmCancel(true)}
-              >
-                Cancelar assinatura
-              </Button>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {subscription.status === "PENDING" && subscription.initPoint ? (
+                <Button asChild>
+                  <a href={subscription.initPoint}>Continuar pagamento</a>
+                </Button>
+              ) : null}
+              {subscription.status !== "CANCELLED" ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmCancel(true)}
+                >
+                  Cancelar assinatura
+                </Button>
+              ) : null}
+            </div>
           </div>
+          {subscription.status === "PENDING" ? (
+            <p className="text-sm text-muted-foreground">
+              O pagamento ainda não foi concluído no Mercado Pago. Continue de
+              onde parou ou escolha outro plano abaixo.
+            </p>
+          ) : null}
           {subscription.graceDaysLeft !== null ? (
             <p className="inline-flex items-center gap-1.5 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <AlertTriangle className="h-4 w-4" />
