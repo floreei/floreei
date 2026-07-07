@@ -38,6 +38,14 @@ export function uniqueEmail(prefix = "user"): string {
   return `${slug}.${RUN}.${seq}@e2e.flores.test`;
 }
 
+// CNPJ (14 dígitos) único por chamada e por rodada — o banco de teste persiste
+// entre execuções e o cadastro trava documento repetido (409).
+let docCounter = Date.now();
+export function uniqueDocument(): string {
+  docCounter += 1;
+  return String(docCounter).padStart(14, "0").slice(-14);
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface IdentityError extends Error {
@@ -167,6 +175,7 @@ export async function registerCompany(
   overrides: Partial<{
     companyName: string;
     name: string;
+    document: string;
     email: string;
     password: string;
   }> = {},
@@ -175,11 +184,12 @@ export async function registerCompany(
   const password = overrides.password ?? "Segredo123!";
   const companyName = overrides.companyName ?? `Empresa ${seq}`;
   const name = overrides.name ?? "Admin";
+  const document = overrides.document ?? uniqueDocument();
   const idToken = await firebaseSignUp(email, password);
   const res = await http
     .post("/api/auth/provision")
     .set("Authorization", `Bearer ${idToken}`)
-    .send({ companyName, name })
+    .send({ companyName, name, document })
     .expect(201);
   return { user: res.body as PublicUser, accessToken: idToken, email, password };
 }

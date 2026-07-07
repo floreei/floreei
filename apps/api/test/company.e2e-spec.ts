@@ -35,7 +35,8 @@ describe("Dados da empresa (e2e)", () => {
   it("retorna e atualiza os dados da empresa", async () => {
     const before = await http.get("/api/company").set(auth()).expect(200);
     expect(before.body.name).toBe("Floricultura Bela Flor");
-    expect(before.body.document).toBeNull();
+    // Documento vem do cadastro (CNPJ/CPF exigido no provision).
+    expect(typeof before.body.document).toBe("string");
 
     const updated = await http
       .patch("/api/company")
@@ -85,7 +86,8 @@ describe("Dados da empresa (e2e)", () => {
       .get("/api/company")
       .set(bearer(other.accessToken))
       .expect(200);
-    expect(res.body.document).toBeNull();
+    // Não vê os dados da Empresa A (isolamento por tenant).
     expect(res.body.name).not.toBe("Empresa A");
+    expect(res.body.document).not.toBe("AAA");
   });
 });
