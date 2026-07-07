@@ -4,6 +4,7 @@ import {
   firebaseSignUp,
   loginAs,
   registerCompany,
+  uniqueDocument,
   uniqueEmail,
 } from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
@@ -42,15 +43,16 @@ describe("Auth (e2e)", () => {
 
   it("recusa provisionar a mesma conta duas vezes", async () => {
     const idToken = await firebaseSignUp(uniqueEmail("dup"), "Segredo123!");
+    const document = uniqueDocument();
     await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
-      .send({ companyName: "Bela Flor", name: "Ana" })
+      .send({ companyName: "Bela Flor", name: "Ana", document })
       .expect(201);
     await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
-      .send({ companyName: "Bela Flor", name: "Ana" })
+      .send({ companyName: "Bela Flor", name: "Ana", document: uniqueDocument() })
       .expect(409);
   });
 
@@ -59,14 +61,45 @@ describe("Auth (e2e)", () => {
     await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
-      .send({ companyName: "B", name: "A" })
+      .send({ companyName: "B", name: "A", document: uniqueDocument() })
       .expect(400);
+  });
+
+  it("exige CNPJ/CPF no cadastro (sem documento → 400)", async () => {
+    const idToken = await firebaseSignUp(uniqueEmail("nodoc"), "Segredo123!");
+    await http
+      .post("/api/auth/provision")
+      .set(bearer(idToken))
+      .send({ companyName: "Bela Flor", name: "Ana" })
+      .expect(400);
+    await http
+      .post("/api/auth/provision")
+      .set(bearer(idToken))
+      .send({ companyName: "Bela Flor", name: "Ana", document: "123" })
+      .expect(400);
+  });
+
+  it("bloqueia segundo cadastro com o mesmo CNPJ/CPF (com ou sem máscara)", async () => {
+    const digits = uniqueDocument();
+    await registerCompany(http, { document: digits });
+    // Outra conta, mesmo documento agora mascarado → 409.
+    const masked = digits.replace(
+      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+      "$1.$2.$3/$4-$5",
+    );
+    const idToken = await firebaseSignUp(uniqueEmail("clone"), "Segredo123!");
+    const res = await http
+      .post("/api/auth/provision")
+      .set(bearer(idToken))
+      .send({ companyName: "Outra Flor", name: "Bia", document: masked });
+    expect(res.status).toBe(409);
+    expect(res.body.message).toContain("CNPJ/CPF");
   });
 
   it("recusa provisionamento sem token do Firebase", async () => {
     await http
       .post("/api/auth/provision")
-      .send({ companyName: "Bela Flor", name: "Ana" })
+      .send({ companyName: "Bela Flor", name: "Ana", document: uniqueDocument() })
       .expect(401);
   });
 
