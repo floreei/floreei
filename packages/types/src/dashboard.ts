@@ -8,6 +8,15 @@ export interface RevenuePoint {
   profit: number;
 }
 
+/** Primeiros passos do onboarding (checklist do trial no Início). */
+export interface FirstSteps {
+  hasProduct: boolean;
+  hasCustomer: boolean;
+  hasSale: boolean;
+  storeEnabled: boolean;
+  hasTeammate: boolean;
+}
+
 /** Resumo consolidado exibido no dashboard. */
 export interface DashboardSummary {
   month: string; // AAAA-MM de referência

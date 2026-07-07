@@ -19,6 +19,13 @@ class SubscribeDto extends createZodDto(subscribeSchema) {}
 export class BillingController {
   constructor(private readonly billing: BillingService) {}
 
+  /** Planos vigentes para a landing (estática) — sem autenticação. */
+  @Public()
+  @Get("public-plans")
+  publicPlans() {
+    return this.billing.publicPlans();
+  }
+
   @Get("plans")
   plans() {
     return this.billing.plans();
@@ -27,6 +34,12 @@ export class BillingController {
   @Get("subscription")
   subscription() {
     return this.billing.summary();
+  }
+
+  /** Uso da empresa no trial + plano recomendado (tela de fim de trial). */
+  @Get("trial-summary")
+  trialSummary() {
+    return this.billing.trialSummary();
   }
 
   @Roles("ADMIN")

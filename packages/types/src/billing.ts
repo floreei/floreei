@@ -53,7 +53,23 @@ export interface SubscriptionView {
   paymentFailedAt: string | null;
   /** Dias restantes da carência para regularizar; null sem pendência. */
   graceDaysLeft: number | null;
+  /** Checkout do MP para retomar o pagamento — só quando `status = PENDING`. */
+  initPoint: string | null;
   createdAt: string;
+}
+
+/**
+ * O que a empresa fez durante o período gratuito — usado na tela de fim de
+ * trial para vender com dados ("você registrou N vendas…") e recomendar plano.
+ */
+export interface TrialSummary {
+  sales: number;
+  revenue: number;
+  quotes: number;
+  products: number;
+  customers: number;
+  storeEnabled: boolean;
+  recommendedTier: PlanTier;
 }
 
 /** Resposta de `GET /billing/subscription`. */

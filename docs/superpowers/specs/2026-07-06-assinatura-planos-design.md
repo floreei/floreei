@@ -79,6 +79,26 @@ e2e de entitlements (sem cap) e de billing (MP mockado: subscribe → webhook au
 libera; pagamento rejeitado → carência → `PAYMENT_OVERDUE`; usuários mudam o amount;
 endpoint do console reflete no `/auth/me`). `pnpm typecheck && lint && build` + migrações.
 
+## Funil de venda (adição de 2026-07-06)
+
+Quatro reforços de conversão, aprovados após revisão de negócio:
+
+- **Landing com planos vigentes** — a seção de preços busca `GET /billing/public-plans`
+  (endpoint público) com fallback para `PLAN_TIER_LIST`; calculadora por nº de pessoas;
+  CTA primário "Testar grátis por 7 dias" → `NEXT_PUBLIC_APP_URL`; WhatsApp secundário.
+- **Trial que vende** — checklist "Primeiros passos" no Início durante o trial
+  (`GET /dashboard/first-steps`); a tela de fim de trial mostra o uso da empresa
+  (`GET /billing/trial-summary`, acessível bloqueada) e destaca o plano recomendado
+  (heurística: usou loja → STORE; usou compras/despesas/buquês → estoque+financeiro;
+  ambos → COMPLETO, um → LOJA, nenhum → ESSENCIAL).
+- **Cockpit de vendas no console** — `PlatformOverview.sales`: MRR (Σ das AUTHORIZED),
+  assinantes por plano e listas acionáveis (trials vencendo em ≤3 dias, checkouts
+  PENDING de 1h–14d, pagamentos pendentes), cada empresa com botão de WhatsApp
+  pré-preenchido (o canal do público; e-mail transacional ficou fora por decisão).
+- **Retomar checkout** — `subscriptions.mp_init_point` persiste o link do MP; assinatura
+  PENDING mostra "Continuar pagamento" na página de plano e na tela de bloqueio.
+
 ## Fora de escopo (v1)
 
-Pró-rata, nota fiscal, preços na landing, notificações de cobrança próprias.
+Pró-rata, nota fiscal, notificações de cobrança próprias (canal = WhatsApp manual
+guiado pelo console), plano anual com desconto, cupons, programa de indicação.
