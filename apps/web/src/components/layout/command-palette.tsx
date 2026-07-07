@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/command";
 import { useSearch } from "@/lib/api/search";
 import { useDebounce } from "@/lib/use-debounce";
-import { navItems } from "./nav";
+import { navItems, navItemUnlocked } from "./nav";
 import { useAuth } from "@/lib/auth/auth-context";
 
 const CommandPaletteContext = createContext<{ open: () => void } | null>(null);
@@ -147,6 +147,7 @@ export function CommandPaletteProvider({
               <CommandGroup heading="Navegar">
                 {navItems
                   .filter((i) => !i.adminOnly || user?.role === "ADMIN")
+                  .filter((i) => navItemUnlocked(i, user?.access?.features))
                   .map((item) => {
                     const Icon = item.icon;
                     return (

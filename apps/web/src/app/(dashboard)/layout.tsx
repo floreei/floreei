@@ -1,11 +1,14 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AccessBlocked } from "@/components/auth/access-blocked";
 import { VerifyEmailScreen } from "@/components/auth/verify-email-screen";
+import { FeatureUpsell } from "@/components/billing/feature-upsell";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
+import { navItems, navItemUnlocked } from "@/components/layout/nav";
+import { PaymentBanner } from "@/components/layout/payment-banner";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { TrialBanner } from "@/components/layout/trial-banner";
@@ -18,6 +21,7 @@ export default function DashboardLayout({
 }) {
   const { user, ready, blocked, awaitingVerification } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (ready && !user && !blocked && !awaitingVerification) {
@@ -41,6 +45,16 @@ export default function DashboardLayout({
     );
   }
 
+  // Módulo fora do plano: mostra o convite de upgrade no lugar da página.
+  // (A API também bloqueia com 403 FEATURE_LOCKED — aqui é só a experiência.)
+  const navItem = navItems.find(
+    (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
+  );
+  const lockedFeature =
+    navItem && !navItemUnlocked(navItem, user.access?.features)
+      ? navItem.feature
+      : undefined;
+
   return (
     <CommandPaletteProvider>
       <div className="flex min-h-screen bg-muted/20">
@@ -49,9 +63,10 @@ export default function DashboardLayout({
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
           <TrialBanner />
+          <PaymentBanner />
           <Topbar />
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-            {children}
+            {lockedFeature ? <FeatureUpsell feature={lockedFeature} /> : children}
           </main>
         </div>
       </div>
