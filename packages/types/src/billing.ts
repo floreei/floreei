@@ -91,3 +91,19 @@ export interface SubscribeResult {
   /** URL de autorização da assinatura no Mercado Pago. */
   initPoint: string;
 }
+
+/** Vagas da oferta de fundador (escassez real na landing). */
+export const FOUNDER_SLOTS = 10;
+
+/**
+ * Dados públicos da landing — o ÚNICO endpoint sem autenticação além do
+ * webhook: só definições de plano e contagem de vagas, nada de empresas.
+ */
+export interface PublicLanding {
+  plans: PlanOffer[];
+  founder: {
+    total: number;
+    taken: number;
+    remaining: number;
+  };
+}

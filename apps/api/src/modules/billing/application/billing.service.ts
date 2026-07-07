@@ -8,14 +8,18 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type {
   BillingPlans,
   BillingSummary,
-  PlanOffer,
   PlanTier,
+  PublicLanding,
   SubscribeResult,
   SubscriptionStatus,
   SubscriptionView,
   TrialSummary,
 } from "@sistema-flores/types";
-import { PAYMENT_GRACE_DAYS, planPrice } from "@sistema-flores/types";
+import {
+  FOUNDER_SLOTS,
+  PAYMENT_GRACE_DAYS,
+  planPrice,
+} from "@sistema-flores/types";
 import { DataSource, In, Repository } from "typeorm";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
@@ -58,10 +62,24 @@ export class BillingService {
     private readonly dataSource: DataSource,
   ) {}
 
-  /** Planos vigentes para vitrines públicas (landing) — sem dados de empresa. */
-  async publicPlans(): Promise<PlanOffer[]> {
-    const defs = await this.planDefs.list();
-    return defs.map((d) => this.planDefs.toOffer(d));
+  /**
+   * Dados públicos da landing — o único endpoint aberto além do webhook.
+   * Devolve SOMENTE definições de plano e contagem de vagas de fundador;
+   * nenhum dado de empresa/usuário sai daqui.
+   */
+  async publicLanding(): Promise<PublicLanding> {
+    const [defs, taken] = await Promise.all([
+      this.planDefs.list(),
+      this.companies.count({ where: { founder: true } }),
+    ]);
+    return {
+      plans: defs.map((d) => this.planDefs.toOffer(d)),
+      founder: {
+        total: FOUNDER_SLOTS,
+        taken: Math.min(taken, FOUNDER_SLOTS),
+        remaining: Math.max(0, FOUNDER_SLOTS - taken),
+      },
+    };
   }
 
   /**
@@ -332,8 +350,24 @@ export class BillingService {
       subscriptionStatus: status,
       paymentFailedAt: row.paymentFailedAt,
     };
-    if (status === "AUTHORIZED") patch.tier = row.tier;
+    if (status === "AUTHORIZED") {
+      patch.tier = row.tier;
+      await this.claimFounderSlot(row.companyId);
+    }
     await this.companies.update({ id: row.companyId }, patch);
+  }
+
+  /**
+   * Consome uma vaga de fundador na primeira assinatura autorizada, enquanto
+   * houver vaga. A marca é permanente (cancelar não devolve); o gestor também
+   * pode marcar/desmarcar pelo console.
+   */
+  private async claimFounderSlot(companyId: string): Promise<void> {
+    const company = await this.companies.findOne({ where: { id: companyId } });
+    if (!company || company.founder) return;
+    const taken = await this.companies.count({ where: { founder: true } });
+    if (taken >= FOUNDER_SLOTS) return;
+    await this.companies.update({ id: companyId }, { founder: true });
   }
 
   private async setPaymentFailure(

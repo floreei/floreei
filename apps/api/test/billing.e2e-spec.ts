@@ -123,6 +123,8 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     );
     http = request(ctx.app.getHttpServer());
     await ctx.resetBusiness();
+    // Zera vagas de fundador de rodadas anteriores (companies persistem).
+    await ctx.dataSource.query(`UPDATE companies SET founder = false`);
     const reg = await registerCompany(http, { email: "billing" });
     token = reg.accessToken;
     companyId = reg.user.companyId;
@@ -142,10 +144,14 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     expect(loja.userPrice).toBe(16);
   });
 
-  it("expõe os planos vigentes sem autenticação (landing)", async () => {
-    const res = await http.get("/api/billing/public-plans").expect(200);
-    expect(res.body).toHaveLength(3);
-    expect(res.body[0]).toMatchObject({ id: "ESSENCIAL", basePrice: 79 });
+  it("expõe planos e vagas de fundador sem autenticação — e nada além disso", async () => {
+    const res = await http.get("/api/billing/public-landing").expect(200);
+    expect(res.body.plans).toHaveLength(3);
+    expect(res.body.plans[0]).toMatchObject({ id: "ESSENCIAL", basePrice: 79 });
+    expect(res.body.founder).toEqual({ total: 10, taken: 0, remaining: 10 });
+    // Só definições e contagens — nenhum dado de empresa/usuário vaza.
+    expect(Object.keys(res.body).sort()).toEqual(["founder", "plans"]);
+    expect(res.headers["cache-control"]).toContain("max-age=60");
   });
 
   it("resume o uso do trial e recomenda um plano", async () => {
@@ -202,6 +208,10 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     // Features do plano LOJA valem imediatamente.
     expect(profile.access.features).toContain("STORE");
     expect(profile.access.features).not.toContain("REPORTS");
+
+    // Primeira assinatura autorizada consome uma vaga de fundador.
+    const landing = await http.get("/api/billing/public-landing").expect(200);
+    expect(landing.body.founder).toEqual({ total: 10, taken: 1, remaining: 9 });
   });
 
   it("pagamento rejeitado abre a carência (aviso, sem bloquear)", async () => {

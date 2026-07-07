@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  HttpCode,
+  Post,
+  Query,
+} from "@nestjs/common";
 import { subscribeSchema } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { AllowBlockedCompany } from "../../../common/auth/allow-blocked-company.decorator";
@@ -19,11 +27,17 @@ class SubscribeDto extends createZodDto(subscribeSchema) {}
 export class BillingController {
   constructor(private readonly billing: BillingService) {}
 
-  /** Planos vigentes para a landing (estática) — sem autenticação. */
+  /**
+   * ÚNICO endpoint público de dados (o webhook é o outro @Public, sem leitura):
+   * planos vigentes + vagas de fundador para a landing. Devolve apenas
+   * definições e contagens — nada de empresas/usuários — e sai com cache curto
+   * para aliviar carga/scraping (o throttle global também se aplica).
+   */
   @Public()
-  @Get("public-plans")
-  publicPlans() {
-    return this.billing.publicPlans();
+  @Get("public-landing")
+  @Header("Cache-Control", "public, max-age=60")
+  publicLanding() {
+    return this.billing.publicLanding();
   }
 
   @Get("plans")

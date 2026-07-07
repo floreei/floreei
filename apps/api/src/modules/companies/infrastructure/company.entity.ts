@@ -86,6 +86,10 @@ export class CompanyEntity extends BaseEntity {
   @Column({ name: "feature_overrides", type: "jsonb", default: () => "'{}'" })
   featureOverrides!: FeatureOverrides;
 
+  /** Vaga de fundador (permanente): 1ª assinatura autorizada ou marca manual. */
+  @Column({ type: "boolean", default: false })
+  founder!: boolean;
+
   /** Status da assinatura vigente (denormalizado do billing p/ o guard). */
   @Column({ name: "subscription_status", type: "varchar", length: 16, nullable: true })
   subscriptionStatus!: SubscriptionStatus | null;

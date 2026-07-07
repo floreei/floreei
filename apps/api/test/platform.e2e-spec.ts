@@ -214,6 +214,26 @@ describe("Platform console (e2e)", () => {
     expect(features).not.toContain("STORE");
   });
 
+  it("marca e desmarca a vaga de fundador pelo console", async () => {
+    const marked = await http
+      .put(`/api/admin/companies/${companyA.user.companyId}/entitlements`)
+      .set(bearer(ownerToken))
+      .send({ founder: true })
+      .expect(200);
+    expect(marked.body.founder).toBe(true);
+
+    const landing = await http.get("/api/billing/public-landing").expect(200);
+    expect(landing.body.founder.taken).toBe(1);
+    expect(landing.body.founder.remaining).toBe(9);
+
+    const cleared = await http
+      .put(`/api/admin/companies/${companyA.user.companyId}/entitlements`)
+      .set(bearer(ownerToken))
+      .send({ founder: false })
+      .expect(200);
+    expect(cleared.body.founder).toBe(false);
+  });
+
   it("rejeita payload inválido de entitlements", async () => {
     await http
       .put(`/api/admin/companies/${companyA.user.companyId}/entitlements`)

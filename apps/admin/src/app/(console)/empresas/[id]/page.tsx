@@ -261,6 +261,25 @@ export default function CompanyDetailPage() {
               </div>
             </div>
 
+            <div className="flex items-center justify-between gap-2 border-t border-border pt-4">
+              <div>
+                <p className="text-sm font-medium">Fundador</p>
+                <p className="text-xs text-muted-foreground">
+                  {data.founder
+                    ? "Ocupa uma das 10 vagas"
+                    : "Não ocupa vaga de fundador"}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant={data.founder ? "outline" : "secondary"}
+                disabled={entitlements.isPending}
+                onClick={() => entitlements.mutate({ founder: !data.founder })}
+              >
+                {data.founder ? "Remover marca" : "Marcar como fundador"}
+              </Button>
+            </div>
+
             <div className="space-y-2 border-t border-border pt-4">
               <p className="text-xs font-medium text-muted-foreground">
                 Recursos (exceções por cima do plano)
