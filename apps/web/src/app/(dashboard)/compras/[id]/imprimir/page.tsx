@@ -36,6 +36,7 @@ export default function PurchaseNotePage() {
     <PrintDocument
       backHref={`/compras/${purchase.id}`}
       backLabel="Voltar à compra"
+      documentTitle={`${purchase.supplier?.name ?? company} — Floreei — Pedido de compra ${ref}`}
       footer={
         <>
           Documento não fiscal · gerado por {company} ·{" "}

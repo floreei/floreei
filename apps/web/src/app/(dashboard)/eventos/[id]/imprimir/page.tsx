@@ -6,6 +6,7 @@ import {
   PrintDocument,
   printTheadClass,
 } from "@/components/shared/print-document";
+import { PrintPix } from "@/components/shared/print-pix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompany } from "@/lib/api/company";
 import { useEvent } from "@/lib/api/events";
@@ -36,6 +37,7 @@ export default function OrderNotePage() {
     <PrintDocument
       backHref={`/eventos/${event.id}`}
       backLabel="Voltar à venda"
+      documentTitle={`${event.customer?.name ?? "Consumidor"} — Floreei — Pedido ${ref}`}
       footer={
         <>
           Documento não fiscal · gerado por {company} ·{" "}
@@ -127,6 +129,15 @@ export default function OrderNotePage() {
           ) : null}
         </div>
       </div>
+
+      {settings?.pixKey && pending > 0 ? (
+        <PrintPix
+          pixKey={settings.pixKey}
+          merchantName={company}
+          amount={pending}
+          txid={ref}
+        />
+      ) : null}
 
       {event.notes ? (
         <section className="mt-8 border-t border-border pt-4">

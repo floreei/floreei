@@ -33,6 +33,7 @@ export default function QuotePrintPage() {
     <PrintDocument
       backHref={`/orcamentos/${quote.id}`}
       backLabel="Voltar ao orçamento"
+      documentTitle={`${quote.customer?.name ?? company} — Floreei — Orçamento ${quote.number}`}
       footer={
         <>
           Proposta gerada por {company} · {formatDate(new Date().toISOString())}
