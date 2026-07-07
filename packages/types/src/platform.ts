@@ -136,6 +136,12 @@ export const extendTrialSchema = z.object({
 });
 export type ExtendTrialInput = z.infer<typeof extendTrialSchema>;
 
+/** Define o fim do período gratuito por uma data exata (YYYY-MM-DD). */
+export const setTrialEndSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+});
+export type SetTrialEndInput = z.infer<typeof setTrialEndSchema>;
+
 export const invitePlatformAdminSchema = z.object({
   email: z.string().trim().toLowerCase().email("E-mail inválido"),
   name: z.string().trim().min(2, "Informe o nome").max(160),

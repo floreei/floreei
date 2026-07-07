@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   AT_RISK_INACTIVE_DAYS,
@@ -289,6 +294,26 @@ export class PlatformCompaniesService {
     const now = Date.now();
     const base = Math.max(now, company.trialEndsAt?.getTime() ?? now);
     company.trialEndsAt = new Date(base + days * DAY_MS);
+    company.plan = "TRIAL";
+    await this.companies.save(company);
+    return this.detail(id);
+  }
+
+  /**
+   * Define o fim do período gratuito por uma data exata (YYYY-MM-DD) — sem
+   * risco de somar dias sem querer. Vale até o fim do dia escolhido no horário
+   * de Brasília (UTC-3). Não aceita data no passado.
+   */
+  async setTrialEnd(id: string, date: string): Promise<CompanyDetail> {
+    const company = await this.load(id);
+    const end = new Date(`${date}T23:59:59.999-03:00`);
+    if (Number.isNaN(end.getTime())) {
+      throw new BadRequestException("Data inválida.");
+    }
+    if (end.getTime() < Date.now()) {
+      throw new BadRequestException("Escolha uma data de hoje em diante.");
+    }
+    company.trialEndsAt = end;
     company.plan = "TRIAL";
     await this.companies.save(company);
     return this.detail(id);
