@@ -18,9 +18,9 @@ interface Step {
 const STEPS: Step[] = [
   {
     key: "hasProduct",
-    label: "Cadastre um produto ou flor",
-    hint: "É a base do catálogo e das vendas",
-    href: "/catalogo",
+    label: "Cadastre um insumo (flor, papel, cola…)",
+    hint: "É a base das vendas e dos buquês",
+    href: "/insumos",
   },
   {
     key: "hasCustomer",

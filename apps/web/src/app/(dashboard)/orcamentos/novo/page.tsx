@@ -8,7 +8,7 @@ export default function NewQuotePage() {
     <div className="space-y-6">
       <PageHeader
         title="Novo orçamento"
-        description="Adicione itens do catálogo e veja custo, venda, lucro e margem em tempo real."
+        description="Adicione insumos e buquês e veja custo, venda, lucro e margem em tempo real."
       />
       <QuoteBuilder />
     </div>

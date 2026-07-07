@@ -35,7 +35,7 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Compras"
-        description="Registre pedidos aos fornecedores, marque a entrega e controle o que ainda deve."
+        description="Comprar insumos dos fornecedores — dá entrada no estoque, atualiza o custo e controla o que ainda deve."
       >
         <Button
           onClick={() => {

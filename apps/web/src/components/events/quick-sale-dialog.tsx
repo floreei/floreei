@@ -316,7 +316,7 @@ export function QuickSaleDialog({
                     {loadingProducts
                       ? "Carregando…"
                       : sellables.length === 0
-                        ? "Nada no catálogo ainda. Cadastre buquês ou produtos."
+                        ? "Nada cadastrado ainda. Cadastre buquês ou insumos."
                         : "Nada encontrado."}
                   </p>
                 ) : null}

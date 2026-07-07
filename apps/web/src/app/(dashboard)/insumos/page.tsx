@@ -60,8 +60,8 @@ export default function CatalogPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Catálogo"
-        description="Flores, folhagens, materiais, doces e decorativos — organizados por categoria."
+        title="Insumos"
+        description="Tudo que você compra — flores, folhagens, papel, cola, decorativos. Cada insumo tem custo e preço de venda: vende no atacado e compõe buquês."
       >
         <Button
           variant="outline"
@@ -81,7 +81,7 @@ export default function CatalogPage() {
           }}
         >
           <Plus className="h-4 w-4" />
-          Novo produto
+          Novo insumo
         </Button>
       </PageHeader>
 
@@ -102,7 +102,7 @@ export default function CatalogPage() {
                   !selected ? "bg-primary/10 text-primary" : "hover:bg-muted",
                 )}
               >
-                <span className="font-medium">Todos os produtos</span>
+                <span className="font-medium">Todos os insumos</span>
               </button>
               {categories?.map((cat) => (
                 <div
@@ -166,7 +166,7 @@ export default function CatalogPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Produto</TableHead>
+                  <TableHead>Insumo</TableHead>
                   <TableHead>Unidade</TableHead>
                   <TableHead className="text-right">Compra</TableHead>
                   <TableHead className="text-right">Venda</TableHead>
@@ -238,11 +238,11 @@ export default function CatalogPage() {
             <EmptyState
               className="border-0"
               icon={<Sprout />}
-              title="Nenhum produto"
+              title="Nenhum insumo"
               description={
                 categories?.length
-                  ? "Cadastre produtos para usar nos orçamentos."
-                  : "Crie uma categoria antes de adicionar produtos."
+                  ? "Cadastre insumos para vender e compor buquês."
+                  : "Crie uma categoria antes de adicionar insumos."
               }
             />
           )}
@@ -266,7 +266,7 @@ export default function CatalogPage() {
         open={Boolean(deletingCat)}
         onOpenChange={(o) => !o && setDeletingCat(null)}
         title="Excluir categoria"
-        description={`Excluir "${deletingCat?.name}"? Só é possível se não houver produtos nela.`}
+        description={`Excluir "${deletingCat?.name}"? Só é possível se não houver insumos nela.`}
         onConfirm={async () => {
           await deleteCategory.mutateAsync(deletingCat!.id);
           toast.success("Categoria excluída.");
@@ -275,11 +275,11 @@ export default function CatalogPage() {
       <ConfirmDialog
         open={Boolean(deletingProd)}
         onOpenChange={(o) => !o && setDeletingProd(null)}
-        title="Excluir produto"
+        title="Excluir insumo"
         description={`Excluir "${deletingProd?.name}"?`}
         onConfirm={async () => {
           await deleteProduct.mutateAsync(deletingProd!.id);
-          toast.success("Produto excluído.");
+          toast.success("Insumo excluído.");
         }}
       />
     </div>

@@ -148,7 +148,7 @@ export function PurchaseDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar compra" : "Nova compra"}</DialogTitle>
           <DialogDescription>
-            Escolha o fornecedor, liste os itens (do catálogo, para atualizar o
+            Escolha o fornecedor, liste os itens (insumos, para atualizar o
             estoque) — flores, materiais, doces, decorativos — a entrega e o valor.
           </DialogDescription>
         </DialogHeader>
@@ -202,9 +202,9 @@ export function PurchaseDialog({
           {/* Itens (flores) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Itens do catálogo</Label>
+              <Label>Insumos</Label>
               <span className="text-xs text-muted-foreground">
-                Ligue ao catálogo para entrar no estoque
+                Ligue ao insumo para entrar no estoque
               </span>
             </div>
             <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -236,7 +236,7 @@ export function PurchaseDialog({
                               className="h-9 flex-1"
                               data-testid="purchase-item-product"
                             >
-                              <SelectValue placeholder="Produto do catálogo" />
+                              <SelectValue placeholder="Insumo" />
                             </SelectTrigger>
                             <SelectContent>
                               {products?.data.map((p) => (

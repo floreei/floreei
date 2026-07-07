@@ -197,7 +197,7 @@ export function QuoteBuilder({ quote }: QuoteBuilderProps) {
                           onValueChange={(v) => onSelectProduct(index, v)}
                         >
                           <SelectTrigger className="h-9" data-testid="item-product-select">
-                            <SelectValue placeholder="Escolher do catálogo" />
+                            <SelectValue placeholder="Escolher insumo" />
                           </SelectTrigger>
                           <SelectContent>
                             {products?.data.map((p) => (
