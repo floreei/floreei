@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { BillingModule } from "../billing/billing.module";
 import { SubscriptionEntity } from "../billing/infrastructure/subscription.entity";
 import { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { UserEntity } from "../users/infrastructure/user.entity";
@@ -19,6 +20,7 @@ import { PlatformController } from "./presentation/platform.controller";
       UserEntity,
       SubscriptionEntity,
     ]),
+    BillingModule,
   ],
   controllers: [PlatformController],
   providers: [

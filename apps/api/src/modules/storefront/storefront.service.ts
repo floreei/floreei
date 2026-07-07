@@ -25,6 +25,7 @@ import { CompanyService } from "../companies/company.module";
 import type { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { CustomerRepository } from "../customers/infrastructure/customer.repository";
 import { EventsService } from "../events/application/events.service";
+import { PlanDefinitionsService } from "../plans/plan-definitions.service";
 import { createPreference, getPayment } from "./mercadopago";
 import { StoreOrderRepository } from "./infrastructure/store-order.repository";
 import type { StoreOrderEntity } from "./infrastructure/store-order.entity";
@@ -38,6 +39,7 @@ export class StorefrontService {
     private readonly customers: CustomerRepository,
     private readonly events: EventsService,
     private readonly tenant: TenantContextService,
+    private readonly planDefs: PlanDefinitionsService,
   ) {}
 
   /** Empresa da loja ativa, resolvida pelo slug. 404 se inexistente/desligada. */
@@ -55,7 +57,7 @@ export class StorefrontService {
       paymentFailedAt: company.paymentFailedAt,
     }).status;
     const features = resolveEntitlements(
-      company.tier,
+      await this.planDefs.featuresOf(company.tier),
       company.featureOverrides,
       status,
     );

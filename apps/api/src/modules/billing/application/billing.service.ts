@@ -13,15 +13,11 @@ import type {
   SubscriptionStatus,
   SubscriptionView,
 } from "@sistema-flores/types";
-import {
-  PAYMENT_GRACE_DAYS,
-  PLAN_TIER_LIST,
-  planPrice,
-  USER_PRICE,
-} from "@sistema-flores/types";
+import { PAYMENT_GRACE_DAYS, planPrice } from "@sistema-flores/types";
 import { In, Repository } from "typeorm";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
+import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
 import { UserEntity } from "../../users/infrastructure/user.entity";
 import { SubscriptionEntity } from "../infrastructure/subscription.entity";
 import {
@@ -56,24 +52,19 @@ export class BillingService {
     private readonly users: Repository<UserEntity>,
     private readonly tenant: TenantContextService,
     private readonly mp: MercadoPagoBillingClient,
+    private readonly planDefs: PlanDefinitionsService,
   ) {}
 
-  /** Planos com o preço da empresa atual (base + usuários ativos × R$16). */
+  /** Planos vigentes (definidos no console) com o contexto da empresa atual. */
   async plans(): Promise<BillingPlans> {
     const companyId = this.tenant.getCompanyIdOrThrow();
-    const [company, activeUsers] = await Promise.all([
+    const [company, activeUsers, defs] = await Promise.all([
       this.companyById(companyId),
       this.activeUsers(companyId),
+      this.planDefs.list(),
     ]);
     return {
-      plans: PLAN_TIER_LIST.map((t) => ({
-        id: t.id,
-        name: t.name,
-        tagline: t.tagline,
-        basePrice: t.basePrice,
-        userPrice: USER_PRICE,
-        features: t.features,
-      })),
+      plans: defs.map((d) => this.planDefs.toOffer(d)),
       activeUsers,
       currentTier: company.tier,
     };
@@ -102,15 +93,15 @@ export class BillingService {
       );
     }
 
-    const [company, activeUsers] = await Promise.all([
+    const [company, activeUsers, def] = await Promise.all([
       this.companyById(companyId),
       this.activeUsers(companyId),
+      this.planDefs.get(tier),
     ]);
-    const amount = planPrice(tier, activeUsers);
-    const def = PLAN_TIER_LIST.find((t) => t.id === tier);
+    const amount = planPrice(def, activeUsers);
 
     const preapproval = await this.mp.createPreapproval({
-      reason: `Floreei — plano ${def?.name ?? tier} (${company.name})`,
+      reason: `Floreei — plano ${def.name} (${company.name})`,
       amount,
       externalReference: companyId,
       payerEmail,
@@ -149,8 +140,11 @@ export class BillingService {
       throw new BadRequestException("A empresa já está neste plano.");
     }
 
-    const activeUsers = await this.activeUsers(companyId);
-    const amount = planPrice(tier, activeUsers);
+    const [activeUsers, def] = await Promise.all([
+      this.activeUsers(companyId),
+      this.planDefs.get(tier),
+    ]);
+    const amount = planPrice(def, activeUsers);
     await this.mp.updatePreapprovalAmount(current.mpPreapprovalId, amount);
 
     current.tier = tier;
@@ -180,8 +174,11 @@ export class BillingService {
     try {
       const current = await this.currentSubscription(companyId);
       if (!current || current.status !== "AUTHORIZED") return;
-      const activeUsers = await this.activeUsers(companyId);
-      const amount = planPrice(current.tier, activeUsers);
+      const [activeUsers, def] = await Promise.all([
+        this.activeUsers(companyId),
+        this.planDefs.get(current.tier),
+      ]);
+      const amount = planPrice(def, activeUsers);
       if (amount === current.amount && activeUsers === current.billedUsers) {
         return;
       }
@@ -195,6 +192,35 @@ export class BillingService {
         `Falha ao sincronizar valor da assinatura da empresa ${companyId}`,
         error instanceof Error ? error.stack : String(error),
       );
+    }
+  }
+
+  /**
+   * Reaplica o preço vigente do plano a todas as assinaturas em vigor do tier —
+   * chamado quando o gestor edita o plano no console. O novo valor entra na
+   * próxima cobrança de cada assinante; falhas são logadas por assinatura.
+   */
+  async resyncTierAmounts(tier: PlanTier): Promise<void> {
+    const def = await this.planDefs.get(tier);
+    const rows = await this.subscriptions.find({
+      where: { tier, status: In(["AUTHORIZED", "PAUSED"]) },
+    });
+    for (const row of rows) {
+      try {
+        const activeUsers = await this.activeUsers(row.companyId);
+        const amount = planPrice(def, activeUsers);
+        if (amount === row.amount && activeUsers === row.billedUsers) continue;
+        await this.mp.updatePreapprovalAmount(row.mpPreapprovalId, amount);
+        await this.subscriptions.update(
+          { id: row.id },
+          { amount, billedUsers: activeUsers },
+        );
+      } catch (error) {
+        this.logger.error(
+          `Falha ao reaplicar preço do plano ${tier} na assinatura ${row.id}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
     }
   }
 

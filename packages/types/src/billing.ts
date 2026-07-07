@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Feature, PlanTier } from "./entitlements";
-import { planTiers } from "./entitlements";
+import { ALL_FEATURES, planTiers } from "./entitlements";
 
 /** Status da assinatura recorrente (espelha o preapproval do Mercado Pago). */
 export const subscriptionStatuses = [
@@ -26,6 +26,20 @@ export interface PlanOffer {
   userPrice: number;
   features: Feature[];
 }
+
+/**
+ * Edição de um plano pelo console do gestor (nada é fixo no código): nome,
+ * preços e features vigentes. Vale para novas contas e assinantes atuais
+ * (preço novo entra na próxima cobrança).
+ */
+export const updatePlanDefinitionSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome").max(40).optional(),
+  tagline: z.string().trim().max(80).optional(),
+  basePrice: z.coerce.number().min(0).max(100_000).optional(),
+  userPrice: z.coerce.number().min(0).max(10_000).optional(),
+  features: z.array(z.enum(ALL_FEATURES as [Feature, ...Feature[]])).optional(),
+});
+export type UpdatePlanDefinitionInput = z.infer<typeof updatePlanDefinitionSchema>;
 
 /** Assinatura vigente, como o ERP a exibe. */
 export interface SubscriptionView {

@@ -1,23 +1,25 @@
 "use client";
 
 import type { Feature } from "@sistema-flores/types";
-import { PLAN_TIERS } from "@sistema-flores/types";
+import { FEATURE_INFO } from "@sistema-flores/types";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { cheapestTierWith, FEATURE_INFO } from "@/lib/billing/features";
+import { useBillingPlans } from "@/lib/api/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
  * Tela exibida no lugar de um módulo fora do plano da empresa. Diz qual plano
- * libera o recurso e leva o administrador à página de plano.
+ * vigente libera o recurso (definições vêm do console, não são fixas) e leva
+ * o administrador à página de plano.
  */
 export function FeatureUpsell({ feature }: { feature: Feature }) {
   const { user } = useAuth();
+  const { data: plans } = useBillingPlans();
   const isAdmin = user?.role === "ADMIN";
   const info = FEATURE_INFO[feature];
-  const tierId = cheapestTierWith(feature);
-  const tier = tierId ? PLAN_TIERS[tierId] : null;
+  // Lista já vem ordenada do mais barato ao mais completo.
+  const tier = plans?.plans.find((p) => p.features.includes(feature)) ?? null;
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">

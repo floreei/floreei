@@ -41,6 +41,8 @@ export async function truncateBusiness(dataSource: DataSource): Promise<void> {
     "users",
     "migrations",
     "typeorm_metadata",
+    // Configuração global (semeada por migração), não é dado de negócio.
+    "plan_definitions",
   ]);
   const rows: { tablename: string }[] = await dataSource.query(
     `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,

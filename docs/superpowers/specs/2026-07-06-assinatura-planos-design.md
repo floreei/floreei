@@ -24,9 +24,21 @@ Trial de 7 dias segue igual (todas as features liberadas).
 
 ## Modelo de preço
 
-- `planPrice(tier, activeUsers) = basePrice + activeUsers × USER_PRICE` (`USER_PRICE = 16`).
+- `planPrice(def, activeUsers) = basePrice + activeUsers × userPrice` (padrão R$16).
 - Sem `includedSeats`/cap de assentos: criar usuário nunca é bloqueado por plano;
   apenas muda o valor da assinatura.
+
+## Planos parametrizáveis (decisão de 2026-07-06, mesma data)
+
+Nada de plano é fixo no código: nome, descrição, **preço-base, preço por usuário e
+features** de cada tier moram na tabela `plan_definitions` (semeada pela migração com
+os valores acima) e são editados pelo console do gestor em **Planos** (`/planos`,
+gravação restrita a OWNER via `PUT /admin/plans/:tier`). A API lê via
+`PlanDefinitionsService` (cache em memória de 30s; o update invalida na hora).
+Os códigos dos 3 tiers (`ESSENCIAL | LOJA | COMPLETO`) permanecem fixos — o que é
+editável é o conteúdo de cada um. Mudança de preço **reaplica o valor nas
+assinaturas em vigor** do tier (`resyncTierAmounts`): o novo valor entra na próxima
+cobrança de cada assinante.
 
 ## Assinatura Mercado Pago (API)
 

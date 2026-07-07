@@ -52,7 +52,7 @@ export const FEATURE_INFO: Record<Feature, { label: string; description: string 
 export const planTiers = ["ESSENCIAL", "LOJA", "COMPLETO"] as const;
 export type PlanTier = (typeof planTiers)[number];
 
-/** Preço por usuário ativo (R$/mês), igual em todos os planos. */
+/** Preço padrão por usuário ativo (R$/mês) — semente; o valor vigente vem do banco. */
 export const USER_PRICE = 16;
 
 export interface PlanTierDef {
@@ -62,15 +62,23 @@ export interface PlanTierDef {
   tagline: string;
   /** Preço-base mensal (R$) pelas features; usuários são cobrados à parte. */
   basePrice: number;
+  /** Preço mensal por usuário ativo (R$). */
+  userPrice: number;
   features: Feature[];
 }
 
+/**
+ * Definições-padrão dos planos. São a SEMENTE (migração) e o fallback — as
+ * definições vigentes moram no banco (`plan_definitions`) e são editáveis pelo
+ * console do gestor (preço, preço por usuário e features).
+ */
 export const PLAN_TIERS: Record<PlanTier, PlanTierDef> = {
   ESSENCIAL: {
     id: "ESSENCIAL",
     name: "Essencial",
     tagline: "Venda direta",
     basePrice: 79,
+    userPrice: USER_PRICE,
     features: [FEATURES.SALES, FEATURES.QUOTES],
   },
   LOJA: {
@@ -78,6 +86,7 @@ export const PLAN_TIERS: Record<PlanTier, PlanTierDef> = {
     name: "Loja",
     tagline: "Lojinha online",
     basePrice: 149,
+    userPrice: USER_PRICE,
     features: [
       FEATURES.SALES,
       FEATURES.QUOTES,
@@ -92,6 +101,7 @@ export const PLAN_TIERS: Record<PlanTier, PlanTierDef> = {
     name: "Completo",
     tagline: "Varejista",
     basePrice: 229,
+    userPrice: USER_PRICE,
     features: [...ALL_FEATURES],
   },
 };
@@ -102,9 +112,12 @@ export const PLAN_TIER_LIST: PlanTierDef[] = [
   PLAN_TIERS.COMPLETO,
 ];
 
-/** Preço mensal do plano = base + (nº de usuários ativos) × R$16. */
-export function planPrice(tier: PlanTier, activeUsers: number): number {
-  return PLAN_TIERS[tier].basePrice + Math.max(0, activeUsers) * USER_PRICE;
+/** Preço mensal = base do plano + (nº de usuários ativos) × preço por usuário. */
+export function planPrice(
+  def: Pick<PlanTierDef, "basePrice" | "userPrice">,
+  activeUsers: number,
+): number {
+  return def.basePrice + Math.max(0, activeUsers) * def.userPrice;
 }
 
 /** Overrides por-empresa (backoffice): liga (true) / desliga (false) uma feature. */
@@ -118,16 +131,17 @@ export interface CompanyEntitlements {
 /**
  * Features efetivas de uma empresa.
  * - **TRIAL**: libera tudo (experimenta o produto inteiro → converte melhor).
- * - Senão: as features do tier, com os overrides do backoffice tendo precedência.
- * - Sem tier e fora do trial: nenhuma feature.
+ * - Senão: as features do plano vigente (vindas do banco), com os overrides do
+ *   backoffice tendo precedência.
+ * - Sem plano e fora do trial: nenhuma feature.
  */
 export function resolveEntitlements(
-  tier: PlanTier | null,
+  tierFeatures: readonly Feature[] | null | undefined,
   overrides: FeatureOverrides | null | undefined,
   accessStatus: CompanyAccessStatus,
 ): Feature[] {
   if (accessStatus === "TRIAL") return [...ALL_FEATURES];
-  const set = new Set<Feature>(tier ? PLAN_TIERS[tier].features : []);
+  const set = new Set<Feature>(tierFeatures ?? []);
   if (overrides) {
     for (const f of ALL_FEATURES) {
       if (overrides[f] === true) set.add(f);

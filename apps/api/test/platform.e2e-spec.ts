@@ -222,6 +222,52 @@ describe("Platform console (e2e)", () => {
       .expect(400);
   });
 
+  it("edita as features de um plano e o cliente passa a vê-las", async () => {
+    const plans = await http
+      .get("/api/admin/plans")
+      .set(bearer(ownerToken))
+      .expect(200);
+    expect(plans.body).toHaveLength(3);
+    const essencial = plans.body.find(
+      (p: { id: string }) => p.id === "ESSENCIAL",
+    );
+    expect(essencial.features).toEqual(["SALES", "QUOTES"]);
+
+    // Gestor inclui estoque no Essencial (nada é fixo no código).
+    await http
+      .put("/api/admin/plans/ESSENCIAL")
+      .set(bearer(ownerToken))
+      .send({ features: ["SALES", "QUOTES", "INVENTORY"] })
+      .expect(200);
+
+    // companyA está no ESSENCIAL (teste anterior) e liberada (ACTIVE).
+    const meRes = await http
+      .get("/api/auth/me")
+      .set(bearer(companyA.accessToken))
+      .expect(200);
+    expect(meRes.body.access.features).toContain("INVENTORY");
+
+    // Restaura o padrão para não vazar estado.
+    await http
+      .put("/api/admin/plans/ESSENCIAL")
+      .set(bearer(ownerToken))
+      .send({ features: ["SALES", "QUOTES"] })
+      .expect(200);
+  });
+
+  it("plano inexistente e payload inválido são rejeitados", async () => {
+    await http
+      .put("/api/admin/plans/TURBO")
+      .set(bearer(ownerToken))
+      .send({ basePrice: 10 })
+      .expect(404);
+    await http
+      .put("/api/admin/plans/ESSENCIAL")
+      .set(bearer(ownerToken))
+      .send({ features: ["NAO_EXISTE"] })
+      .expect(400);
+  });
+
   it("gestores: OWNER convida SUPPORT; SUPPORT vê mas não convida", async () => {
     const admins = await http
       .get("/api/admin/admins")

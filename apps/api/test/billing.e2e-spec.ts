@@ -5,12 +5,20 @@ import {
   type MpPreapproval,
   type MpPreapprovalStatus,
 } from "../src/modules/billing/mercadopago-billing.client";
-import { bearer, registerCompany, uniqueEmail } from "./utils/auth-helper";
+import {
+  bearer,
+  firebaseSignUp,
+  registerCompany,
+  uniqueEmail,
+} from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
 /** Mercado Pago em memória: preapprovals + pagamentos de recorrência. */
 class FakeMpBillingClient {
   private seq = 0;
+  // Ids únicos por rodada: o banco de teste persiste entre execuções e
+  // `mp_preapproval_id` tem constraint UNIQUE.
+  private readonly run = Date.now().toString(36);
   readonly preapprovals = new Map<
     string,
     { status: MpPreapprovalStatus; amount: number; externalReference: string }
@@ -22,7 +30,7 @@ class FakeMpBillingClient {
     externalReference: string;
   }): Promise<MpPreapproval> {
     this.seq += 1;
-    const id = `pre_${this.seq}`;
+    const id = `pre_${this.run}_${this.seq}`;
     this.preapprovals.set(id, {
       status: "pending",
       amount: opts.amount,
@@ -79,6 +87,9 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
   let token: string;
   let companyId: string;
   let preapprovalId: string;
+  let secondPreapprovalId: string;
+  let ownerEmail: string;
+  let ownerToken: string;
   const auth = () => bearer(token);
 
   const sql = (q: string, params: unknown[] = []) =>
@@ -104,16 +115,21 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
   };
 
   beforeAll(async () => {
+    ownerEmail = uniqueEmail("owner");
+    process.env.PLATFORM_OWNER_EMAILS = ownerEmail;
     mp = new FakeMpBillingClient();
     ctx = await createTestApp((builder) =>
       builder.overrideProvider(MercadoPagoBillingClient).useValue(mp),
     );
     http = request(ctx.app.getHttpServer());
+    await ctx.resetBusiness();
     const reg = await registerCompany(http, { email: "billing" });
     token = reg.accessToken;
     companyId = reg.user.companyId;
+    ownerToken = await firebaseSignUp(ownerEmail, "Segredo123!");
   });
   afterAll(async () => {
+    delete process.env.PLATFORM_OWNER_EMAILS;
     await ctx.close();
   });
 
@@ -274,5 +290,43 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .send({ tier: "ESSENCIAL" })
       .expect(201);
     expect(again.body.initPoint).toContain("https://mp.test/checkout/");
+    secondPreapprovalId = again.body.initPoint.split("/").pop();
+  });
+
+  it("editar o preço do plano no console reaplica nas assinaturas em vigor", async () => {
+    // Nova assinatura ESSENCIAL autorizada (79 + 1 usuário × 16 = 95).
+    mp.authorize(secondPreapprovalId);
+    await webhook("subscription_preapproval", secondPreapprovalId);
+    await http.get("/api/customers").set(auth()).expect(200);
+
+    // Gestor OWNER muda o preço-base do plano: 79 → 99.
+    await http
+      .put("/api/admin/plans/ESSENCIAL")
+      .set(bearer(ownerToken))
+      .send({ basePrice: 99 })
+      .expect(200);
+
+    // Preapproval do assinante atualizado (99 + 16) e espelho local também.
+    expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(115);
+    const sub = await http
+      .get("/api/billing/subscription")
+      .set(auth())
+      .expect(200);
+    expect(Number(sub.body.subscription.amount)).toBe(115);
+
+    // E a vitrine de planos passa a mostrar o preço vigente.
+    const plans = await http.get("/api/billing/plans").set(auth()).expect(200);
+    const essencial = plans.body.plans.find(
+      (p: { id: string }) => p.id === "ESSENCIAL",
+    );
+    expect(essencial.basePrice).toBe(99);
+
+    // Restaura o padrão para não vazar estado para outras suítes.
+    await http
+      .put("/api/admin/plans/ESSENCIAL")
+      .set(bearer(ownerToken))
+      .send({ basePrice: 79 })
+      .expect(200);
+    expect(mp.preapprovals.get(secondPreapprovalId)?.amount).toBe(95);
   });
 });
