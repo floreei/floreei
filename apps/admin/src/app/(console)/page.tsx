@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { SalesPanel } from "@/components/sales-panel";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api/client";
@@ -77,6 +78,8 @@ export default function OverviewPage() {
           icon={CircleDollarSign}
         />
       </div>
+
+      <SalesPanel sales={data.sales} />
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">
