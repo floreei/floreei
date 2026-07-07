@@ -1,6 +1,9 @@
 "use client";
 
+import type { PlatformNotificationsResult } from "@sistema-flores/types";
+import { useQuery } from "@tanstack/react-query";
 import {
+  Bell,
   Building2,
   CreditCard,
   Flower2,
@@ -13,12 +16,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api/client";
 import { useAdminAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
   { href: "/empresas", label: "Empresas", icon: Building2 },
+  { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/planos", label: "Planos", icon: CreditCard },
   { href: "/gestores", label: "Gestores", icon: ShieldCheck },
 ];
@@ -31,6 +36,16 @@ export default function ConsoleLayout({
   const { session, ready, deniedEmail, logout } = useAdminAuth();
   const router = useRouter();
   const pathname = usePathname();
+
+  // Contador de não-lidas para o badge do menu (atualiza sozinho).
+  const { data: notifs } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () =>
+      api.get<PlatformNotificationsResult>("/admin/notifications"),
+    enabled: Boolean(session),
+    refetchInterval: 60_000,
+  });
+  const unread = notifs?.unread ?? 0;
 
   useEffect(() => {
     if (ready && !session) router.replace("/login");
@@ -74,7 +89,12 @@ export default function ConsoleLayout({
                 )}
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/notificacoes" && unread > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

@@ -56,7 +56,11 @@ interface AuthContextValue {
   register: (input: RegisterInput) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   /** Cria empresa + conta local para um usuário já autenticado no Firebase. */
-  provisionCompany: (companyName: string, name: string) => Promise<void>;
+  provisionCompany: (
+    companyName: string,
+    name: string,
+    document: string,
+  ) => Promise<void>;
   /** Reenvia o e-mail de verificação. */
   resendVerification: () => Promise<void>;
   /** Recarrega o usuário; se verificado, provisiona (se veio de cadastro) e segue. */
@@ -115,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pendingRegistration = useRef<{
     companyName: string;
     name: string;
+    document: string;
   } | null>(null);
 
   const refreshProfile = useCallback(async (): Promise<void> => {
@@ -179,14 +184,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = useCallback(
-    async ({ companyName, name, email, password }: RegisterInput) => {
+    async ({ companyName, name, document, email, password }: RegisterInput) => {
       try {
         await createUserWithEmailAndPassword(auth, email, password);
       } catch (error) {
         throw mapFirebaseError(error);
       }
       // Guarda os dados para provisionar depois da verificação e envia o link.
-      pendingRegistration.current = { companyName, name };
+      pendingRegistration.current = { companyName, name, document };
       try {
         if (auth.currentUser) await sendEmailVerification(auth.currentUser);
       } catch {
@@ -246,10 +251,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshProfile]);
 
   const provisionCompany = useCallback(
-    async (companyName: string, name: string) => {
+    async (companyName: string, name: string, document: string) => {
       provisioningRef.current = true;
       try {
-        await api.post<PublicUser>("/auth/provision", { companyName, name });
+        await api.post<PublicUser>("/auth/provision", {
+          companyName,
+          name,
+          document,
+        });
         setPendingProvision(null);
         await refreshProfile();
       } finally {

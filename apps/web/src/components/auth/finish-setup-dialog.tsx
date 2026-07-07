@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { PendingProvision } from "@/lib/auth/auth-context";
 import { useAuth } from "@/lib/auth/auth-context";
+import { maskCpfCnpj, withMask } from "@/lib/masks";
 
 interface FinishSetupDialogProps {
   pending: PendingProvision | null;
@@ -36,11 +37,11 @@ export function FinishSetupDialog({
   const { provisionCompany } = useAuth();
   const form = useForm({
     resolver: zodResolver(provisionSchema),
-    defaultValues: { companyName: "", name: "" },
+    defaultValues: { companyName: "", name: "", document: "" },
   });
 
   useEffect(() => {
-    if (pending) form.reset({ companyName: "", name: pending.name });
+    if (pending) form.reset({ companyName: "", name: pending.name, document: "" });
   }, [pending, form]);
 
   return (
@@ -56,9 +57,9 @@ export function FinishSetupDialog({
 
         <form
           className="space-y-5"
-          onSubmit={form.handleSubmit(async ({ companyName, name }) => {
+          onSubmit={form.handleSubmit(async ({ companyName, name, document }) => {
             try {
-              await provisionCompany(companyName, name);
+              await provisionCompany(companyName, name, document);
             } catch (error) {
               toast.error(
                 error instanceof Error
@@ -92,6 +93,21 @@ export function FinishSetupDialog({
               id="setup-name"
               placeholder="Ana Souza"
               {...form.register("name")}
+            />
+          </Field>
+
+          <Field
+            label="CNPJ ou CPF"
+            htmlFor="setup-document"
+            required
+            error={form.formState.errors.document?.message}
+            hint="Um cadastro por negócio."
+          >
+            <Input
+              id="setup-document"
+              inputMode="numeric"
+              placeholder="00.000.000/0000-00"
+              {...withMask(maskCpfCnpj, form.register("document"))}
             />
           </Field>
 
