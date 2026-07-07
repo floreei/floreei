@@ -21,6 +21,8 @@ export const companySettingsSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   address: optional(255),
+  /** Chave Pix (CPF/CNPJ, e-mail, telefone ou aleatória) — QR code na nota. */
+  pixKey: optional(140),
   // Logo em data URL (base64). Até ~1,5 MB.
   logo: z
     .string()
@@ -37,6 +39,7 @@ export interface CompanySettings {
   phone: string | null;
   email: string | null;
   address: string | null;
+  pixKey: string | null;
   logo: string | null;
 }
 
