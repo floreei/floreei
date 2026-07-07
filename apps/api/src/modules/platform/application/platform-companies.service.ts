@@ -6,13 +6,16 @@ import {
   type CompanyDetail,
   type CompanyListItem,
   type CompanyMetrics,
+  type CompanySubscriptionInfo,
   type Paginated,
   type PlatformCompanyUser,
   type PlatformOverview,
+  type UpdateEntitlementsInput,
   daysSince,
   resolveCompanyAccess,
 } from "@sistema-flores/types";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, In, Repository } from "typeorm";
+import { SubscriptionEntity } from "../../billing/infrastructure/subscription.entity";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
 
@@ -23,7 +26,13 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 /** Estado de saúde derivado (status de acesso + inatividade + risco). */
 function health(c: CompanyEntity, now: Date) {
   const resolved = resolveCompanyAccess(
-    { plan: c.plan, suspended: c.suspended, trialEndsAt: c.trialEndsAt },
+    {
+      plan: c.plan,
+      suspended: c.suspended,
+      trialEndsAt: c.trialEndsAt,
+      subscriptionStatus: c.subscriptionStatus,
+      paymentFailedAt: c.paymentFailedAt,
+    },
     now,
   );
   const daysInactive = daysSince(c.lastSeenAt ?? c.createdAt, now);
@@ -42,6 +51,8 @@ export class PlatformCompaniesService {
     private readonly companies: Repository<CompanyEntity>,
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
+    @InjectRepository(SubscriptionEntity)
+    private readonly subscriptions: Repository<SubscriptionEntity>,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -61,8 +72,9 @@ export class PlatformCompaniesService {
       const { resolved, atRisk: risk } = health(c, now);
       if (resolved.status === "ACTIVE") totals.active += 1;
       else if (resolved.status === "TRIAL") totals.trial += 1;
-      else if (resolved.status === "EXPIRED") totals.expired += 1;
       else if (resolved.status === "SUSPENDED") totals.suspended += 1;
+      // EXPIRED e PAYMENT_OVERDUE = sem acesso por falta de pagamento.
+      else totals.expired += 1;
       if (risk) atRisk += 1;
 
       const ageDays = daysSince(c.createdAt, now) ?? Infinity;
@@ -107,6 +119,7 @@ export class PlatformCompaniesService {
         name: c.name,
         status: resolved.status,
         plan: c.plan,
+        tier: c.tier,
         trialDaysLeft: resolved.trialDaysLeft,
         createdAt: c.createdAt.toISOString(),
         firstAccessAt: iso(c.firstAccessAt),
@@ -160,6 +173,7 @@ export class PlatformCompaniesService {
     const { resolved, daysInactive, atRisk } = health(company, now);
     const metrics = await this.companyMetrics(id);
     const team = await this.team(id);
+    const subscription = await this.subscriptionInfo(id);
 
     return {
       id: company.id,
@@ -176,6 +190,9 @@ export class PlatformCompaniesService {
       trialDaysLeft: resolved.trialDaysLeft,
       daysInactive,
       atRisk,
+      tier: company.tier,
+      featureOverrides: company.featureOverrides ?? {},
+      subscription,
       metrics,
       team,
     };
@@ -219,6 +236,20 @@ export class PlatformCompaniesService {
     return this.detail(id);
   }
 
+  /** Define plano e/ou overrides de feature da empresa (nível de acesso). */
+  async updateEntitlements(
+    id: string,
+    input: UpdateEntitlementsInput,
+  ): Promise<CompanyDetail> {
+    const company = await this.load(id);
+    if (input.tier !== undefined) company.tier = input.tier;
+    if (input.featureOverrides !== undefined) {
+      company.featureOverrides = input.featureOverrides;
+    }
+    await this.companies.save(company);
+    return this.detail(id);
+  }
+
   // -------------------------------------------------------------------------
   // Internos
   // -------------------------------------------------------------------------
@@ -227,6 +258,29 @@ export class PlatformCompaniesService {
     const company = await this.companies.findOne({ where: { id } });
     if (!company) throw new NotFoundException("Empresa não encontrada.");
     return company;
+  }
+
+  /** Assinatura em vigor (ou pendente) da empresa, para exibição no console. */
+  private async subscriptionInfo(
+    companyId: string,
+  ): Promise<CompanySubscriptionInfo | null> {
+    const row =
+      (await this.subscriptions.findOne({
+        where: { companyId, status: In(["AUTHORIZED", "PAUSED"]) },
+        order: { createdAt: "DESC" },
+      })) ??
+      (await this.subscriptions.findOne({
+        where: { companyId },
+        order: { createdAt: "DESC" },
+      }));
+    if (!row) return null;
+    return {
+      status: row.status,
+      tier: row.tier,
+      amount: row.amount,
+      billedUsers: row.billedUsers,
+      paymentFailedAt: iso(row.paymentFailedAt),
+    };
   }
 
   private async team(id: string): Promise<PlatformCompanyUser[]> {

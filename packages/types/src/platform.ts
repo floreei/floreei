@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { SubscriptionStatus } from "./billing";
+import type { Feature, FeatureOverrides, PlanTier } from "./entitlements";
+import { ALL_FEATURES, planTiers } from "./entitlements";
 
 /** Dias padrão do período gratuito, contados a partir do primeiro acesso. */
 export const TRIAL_LENGTH_DAYS = 7;
@@ -141,6 +143,17 @@ export const invitePlatformAdminSchema = z.object({
 });
 export type InvitePlatformAdminInput = z.infer<typeof invitePlatformAdminSchema>;
 
+/** Plano + overrides de feature de uma empresa, definidos pelo gestor. */
+export const updateEntitlementsSchema = z.object({
+  /** Plano da empresa; null limpa (volta a depender de trial/assinatura). */
+  tier: z.enum(planTiers).nullable().optional(),
+  /** Overrides por feature (true liga, false desliga; ausente herda do plano). */
+  featureOverrides: z
+    .record(z.enum(ALL_FEATURES as [Feature, ...Feature[]]), z.boolean())
+    .optional(),
+});
+export type UpdateEntitlementsInput = z.infer<typeof updateEntitlementsSchema>;
+
 export const companiesQuerySchema = z.object({
   search: z.string().trim().max(160).optional(),
   status: z.enum(companyAccessStatuses).optional(),
@@ -180,6 +193,7 @@ export interface CompanyListItem {
   name: string;
   status: CompanyAccessStatus;
   plan: CompanyPlan;
+  tier: PlanTier | null;
   trialDaysLeft: number | null;
   createdAt: string;
   firstAccessAt: string | null;
@@ -199,6 +213,15 @@ export interface PlatformCompanyUser {
   active: boolean;
 }
 
+/** Assinatura da empresa como o console a exibe. */
+export interface CompanySubscriptionInfo {
+  status: SubscriptionStatus;
+  tier: PlanTier;
+  amount: number;
+  billedUsers: number;
+  paymentFailedAt: string | null;
+}
+
 /** Detalhe completo de uma empresa no console. */
 export interface CompanyDetail {
   id: string;
@@ -215,6 +238,9 @@ export interface CompanyDetail {
   trialDaysLeft: number | null;
   daysInactive: number | null;
   atRisk: boolean;
+  tier: PlanTier | null;
+  featureOverrides: FeatureOverrides;
+  subscription: CompanySubscriptionInfo | null;
   metrics: CompanyMetrics;
   team: PlatformCompanyUser[];
 }
