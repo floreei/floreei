@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { FirstSteps } from "@/components/dashboard/first-steps";
 import { QuickSaleDialog } from "@/components/events/quick-sale-dialog";
 import {
   CashflowChart,
@@ -169,6 +170,8 @@ export default function InicioPage() {
         title={firstName ? `Olá, ${firstName}` : "Início"}
         description="O que você quer fazer agora?"
       />
+
+      <FirstSteps />
 
       {/* Ações grandes do dia a dia */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

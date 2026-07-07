@@ -4,6 +4,7 @@ import type {
   PlanTier,
   SubscribeResult,
   SubscriptionView,
+  TrialSummary,
 } from "@sistema-flores/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
@@ -21,6 +22,17 @@ export function useBillingSubscription() {
     queryKey: ["billing", "subscription"],
     queryFn: () => api.get<BillingSummary>("/billing/subscription"),
     staleTime: 30_000,
+  });
+}
+
+/** Uso da empresa no trial + plano recomendado (tela de fim de trial). */
+export function useTrialSummary(enabled = true) {
+  return useQuery({
+    queryKey: ["billing", "trial-summary"],
+    queryFn: () => api.get<TrialSummary>("/billing/trial-summary"),
+    enabled,
+    staleTime: 60_000,
+    retry: 1,
   });
 }
 
