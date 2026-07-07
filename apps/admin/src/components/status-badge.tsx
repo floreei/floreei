@@ -9,6 +9,7 @@ const MAP: Record<
   TRIAL: { label: "Período gratuito", variant: "default" },
   EXPIRED: { label: "Expirada", variant: "warning" },
   SUSPENDED: { label: "Suspensa", variant: "destructive" },
+  PAYMENT_OVERDUE: { label: "Pagamento pendente", variant: "destructive" },
 };
 
 /** Selo de status de acesso da empresa (com dias de trial quando couber). */

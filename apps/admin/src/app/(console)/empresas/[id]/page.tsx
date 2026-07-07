@@ -1,8 +1,20 @@
 "use client";
 
-import type { CompanyDetail } from "@sistema-flores/types";
+import type {
+  CompanyDetail,
+  Feature,
+  PlanTier,
+  UpdateEntitlementsInput,
+} from "@sistema-flores/types";
+import {
+  ALL_FEATURES,
+  FEATURE_INFO,
+  PLAN_TIER_LIST,
+  PLAN_TIERS,
+} from "@sistema-flores/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Loader2,
@@ -37,6 +49,18 @@ export default function CompanyDetailPage() {
       qc.invalidateQueries({ queryKey: ["companies"] });
       qc.invalidateQueries({ queryKey: ["overview"] });
     },
+  });
+
+  const entitlements = useMutation({
+    mutationFn: (body: UpdateEntitlementsInput) =>
+      api.put<CompanyDetail>(`/admin/companies/${id}/entitlements`, body),
+    onSuccess: (updated) => {
+      qc.setQueryData(["company", id], updated);
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Acesso atualizado.");
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível."),
   });
 
   const run = (path: string, msg: string, body?: unknown) =>
@@ -92,8 +116,9 @@ export default function CompanyDetailPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Acesso + ações */}
-        <Card className="lg:col-span-1">
+        {/* Acesso + plano */}
+        <div className="space-y-6 lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Acesso</CardTitle>
           </CardHeader>
@@ -170,6 +195,94 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Plano de preço + features (entitlements) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Plano e recursos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {data.subscription ? (
+              <div className="space-y-1 rounded-md border border-border/60 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Assinatura</span>
+                  <span className="font-medium">
+                    {SUBSCRIPTION_LABEL[data.subscription.status] ??
+                      data.subscription.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Valor</span>
+                  <span className="font-medium tabular">
+                    {formatCurrency(data.subscription.amount)}/mês ·{" "}
+                    {data.subscription.billedUsers}{" "}
+                    {data.subscription.billedUsers === 1
+                      ? "usuário"
+                      : "usuários"}
+                  </span>
+                </div>
+                {data.subscription.paymentFailedAt ? (
+                  <p className="inline-flex items-center gap-1.5 text-xs text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Pagamento pendente desde{" "}
+                    {formatDate(data.subscription.paymentFailedAt)}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Sem assinatura — o plano abaixo vale como cortesia/negociação.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Plano</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PLAN_TIER_LIST.map((t) => (
+                  <Button
+                    key={t.id}
+                    size="sm"
+                    variant={data.tier === t.id ? "default" : "outline"}
+                    disabled={entitlements.isPending}
+                    onClick={() => entitlements.mutate({ tier: t.id })}
+                  >
+                    {t.name}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant={data.tier === null ? "default" : "outline"}
+                  disabled={entitlements.isPending}
+                  onClick={() => entitlements.mutate({ tier: null })}
+                >
+                  Nenhum
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2 border-t border-border pt-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                Recursos (exceções por cima do plano)
+              </p>
+              {ALL_FEATURES.map((feature) => (
+                <FeatureRow
+                  key={feature}
+                  feature={feature}
+                  tier={data.tier}
+                  override={data.featureOverrides?.[feature]}
+                  disabled={entitlements.isPending}
+                  onChange={(value) => {
+                    const next = { ...(data.featureOverrides ?? {}) };
+                    if (value === undefined) delete next[feature];
+                    else next[feature] = value;
+                    entitlements.mutate({ featureOverrides: next });
+                  }}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        </div>
+
         {/* Métricas */}
         <div className="space-y-6 lg:col-span-2">
           <Card>
@@ -229,6 +342,72 @@ export default function CompanyDetailPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+    </div>
+  );
+}
+
+const SUBSCRIPTION_LABEL: Record<string, string> = {
+  PENDING: "Aguardando pagamento",
+  AUTHORIZED: "Ativa",
+  PAUSED: "Pausada",
+  CANCELLED: "Cancelada",
+};
+
+/**
+ * Linha de um recurso com o estado efetivo e o override em 3 posições:
+ * herdar do plano / ligar / desligar.
+ */
+function FeatureRow({
+  feature,
+  tier,
+  override,
+  disabled,
+  onChange,
+}: {
+  feature: Feature;
+  tier: PlanTier | null;
+  override: boolean | undefined;
+  disabled: boolean;
+  onChange: (value: boolean | undefined) => void;
+}) {
+  const inPlan = tier ? PLAN_TIERS[tier].features.includes(feature) : false;
+  const effective = override ?? inPlan;
+
+  const options: { label: string; value: boolean | undefined }[] = [
+    { label: "Plano", value: undefined },
+    { label: "Ligado", value: true },
+    { label: "Desligado", value: false },
+  ];
+
+  return (
+    <div className="flex items-center justify-between gap-2 py-1">
+      <div className="min-w-0">
+        <p className="truncate text-sm">{FEATURE_INFO[feature].label}</p>
+        <p className="text-xs text-muted-foreground">
+          {effective ? "Liberado" : "Bloqueado"}
+          {override !== undefined ? " · exceção" : ""}
+        </p>
+      </div>
+      <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
+        {options.map((opt) => {
+          const selected = override === opt.value;
+          return (
+            <button
+              key={opt.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => !selected && onChange(opt.value)}
+              className={`px-2 py-1 text-xs transition-colors ${
+                selected
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-transparent text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

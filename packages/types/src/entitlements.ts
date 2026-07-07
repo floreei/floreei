@@ -16,6 +16,38 @@ export const FEATURES = {
 export type Feature = (typeof FEATURES)[keyof typeof FEATURES];
 export const ALL_FEATURES = Object.values(FEATURES) as Feature[];
 
+/** Nome e descrição (pt-BR) de cada módulo, para telas de plano/upgrade. */
+export const FEATURE_INFO: Record<Feature, { label: string; description: string }> = {
+  SALES: {
+    label: "Vendas e caixa",
+    description: "Venda direta, eventos e controle de caixa do dia a dia.",
+  },
+  QUOTES: {
+    label: "Orçamentos",
+    description: "Monte orçamentos e transforme em venda com um clique.",
+  },
+  INVENTORY: {
+    label: "Estoque e compras",
+    description: "Compras de fornecedores, entradas e baixas de estoque.",
+  },
+  ARRANGEMENTS: {
+    label: "Buquês com custeio",
+    description: "Ficha técnica dos buquês com custo e margem calculados.",
+  },
+  FINANCE: {
+    label: "Financeiro completo",
+    description: "Contas a receber e a pagar, despesas e DRE.",
+  },
+  REPORTS: {
+    label: "Relatórios",
+    description: "Relatórios de vendas, produtos e desempenho.",
+  },
+  STORE: {
+    label: "Loja online",
+    description: "Sua lojinha na internet com pagamento pelo Mercado Pago.",
+  },
+};
+
 /** Planos de preço (tiers). */
 export const planTiers = ["ESSENCIAL", "LOJA", "COMPLETO"] as const;
 export type PlanTier = (typeof planTiers)[number];

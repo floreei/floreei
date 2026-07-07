@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -13,6 +14,7 @@ import {
   extendTrialSchema,
   invitePlatformAdminSchema,
   type PlatformSession,
+  updateEntitlementsSchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { Public } from "../../../common/auth/public.decorator";
@@ -30,6 +32,7 @@ import { PlatformCompaniesService } from "../application/platform-companies.serv
 class CompaniesQueryDto extends createZodDto(companiesQuerySchema) {}
 class ExtendTrialDto extends createZodDto(extendTrialSchema) {}
 class InviteAdminDto extends createZodDto(invitePlatformAdminSchema) {}
+class UpdateEntitlementsDto extends createZodDto(updateEntitlementsSchema) {}
 
 /**
  * Console do gestor da plataforma. `@Public()` pula o guard de tenant do cliente;
@@ -82,6 +85,14 @@ export class PlatformController {
   @Post("companies/:id/reactivate")
   reactivate(@Param("id") id: string) {
     return this.companies.reactivate(id);
+  }
+
+  @Put("companies/:id/entitlements")
+  updateEntitlements(
+    @Param("id") id: string,
+    @Body() dto: UpdateEntitlementsDto,
+  ) {
+    return this.companies.updateEntitlements(id, dto);
   }
 
   @Get("admins")

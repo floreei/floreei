@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { SubscriptionEntity } from "../billing/infrastructure/subscription.entity";
 import { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { UserEntity } from "../users/infrastructure/user.entity";
 import { PlatformOwnerGuard } from "./auth/platform-admin.decorator";
@@ -16,6 +17,7 @@ import { PlatformController } from "./presentation/platform.controller";
       PlatformAdminEntity,
       CompanyEntity,
       UserEntity,
+      SubscriptionEntity,
     ]),
   ],
   controllers: [PlatformController],
