@@ -18,14 +18,21 @@ export interface TestApp {
 
 /**
  * Sobe a aplicação Nest completa apontando para o banco de teste, garantindo o
- * schema via migrations. Use em testes e2e/integração de HTTP.
+ * schema via migrations. Use em testes e2e/integração de HTTP. `configure`
+ * permite substituir providers (ex.: mockar o client do Mercado Pago).
  */
-export async function createTestApp(): Promise<TestApp> {
+export async function createTestApp(
+  configure?: (
+    builder: ReturnType<typeof Test.createTestingModule>,
+  ) => ReturnType<typeof Test.createTestingModule>,
+): Promise<TestApp> {
   process.env.NODE_ENV = "test";
 
-  const moduleRef = await Test.createTestingModule({
+  let builder = Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  });
+  if (configure) builder = configure(builder);
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication();
   app.setGlobalPrefix("api");
