@@ -1,8 +1,9 @@
 "use client";
 
-import type { EventType } from "@sistema-flores/types";
-import { CalendarHeart, Plus } from "lucide-react";
+import type { Event, EventType } from "@sistema-flores/types";
+import { CalendarHeart, HandCoins, Plus } from "lucide-react";
 import { useState } from "react";
+import { ChargeDialog } from "@/components/events/charge-dialog";
 import { QuickSaleDialog } from "@/components/events/quick-sale-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -34,6 +35,7 @@ export default function EventsPage() {
   const [type, setType] = useState<EventType | undefined>();
   const { data, isLoading } = useEvents({ type });
   const [quickOpen, setQuickOpen] = useState(false);
+  const [chargeEvent, setChargeEvent] = useState<Event | null>(null);
 
   return (
     <div className="space-y-6">
@@ -81,6 +83,7 @@ export default function EventsPage() {
                 <TableHead className="hidden sm:table-cell">Status</TableHead>
                 <TableHead className="text-right">Vendido</TableHead>
                 <TableHead className="hidden text-right md:table-cell">Recebido</TableHead>
+                <TableHead className="w-28 text-right">Cobrança</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -113,6 +116,24 @@ export default function EventsPage() {
                   <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
                     {formatCurrency(event.receivedValue)}
                   </TableCell>
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {event.soldValue - event.receivedValue > 0 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => setChargeEvent(event)}
+                      >
+                        <HandCoins className="h-4 w-4" />
+                        Cobrar
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Quitado</span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -134,6 +155,11 @@ export default function EventsPage() {
       </Card>
 
       <QuickSaleDialog open={quickOpen} onOpenChange={setQuickOpen} />
+      <ChargeDialog
+        event={chargeEvent}
+        open={chargeEvent !== null}
+        onOpenChange={(open) => !open && setChargeEvent(null)}
+      />
     </div>
   );
 }
