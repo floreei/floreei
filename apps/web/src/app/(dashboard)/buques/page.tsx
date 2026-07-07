@@ -47,7 +47,7 @@ export default function ArrangementsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Buquês"
-        description="Produtos compostos com ficha técnica — o custo vem dos insumos e o lucro é calculado por buquê."
+        description="Composições feitas de insumos (ficha técnica) — o custo vem dos insumos e o lucro é calculado por buquê."
       >
         <Button
           onClick={() => {
@@ -143,7 +143,7 @@ export default function ArrangementsPage() {
             className="border-0"
             icon={<Flower />}
             title="Nenhum buquê"
-            description="Crie um buquê montando a ficha técnica com os insumos do catálogo."
+            description="Crie um buquê montando a ficha técnica com os seus insumos."
           />
         )}
       </Card>

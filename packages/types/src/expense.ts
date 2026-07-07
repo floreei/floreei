@@ -8,13 +8,19 @@ const optionalDate = dateString
   .or(z.literal("").transform(() => undefined));
 
 /** Centros de custo sugeridos (campo é livre, estes são atalhos na UI). */
+/**
+ * Categorias de despesa (overhead) — o que NÃO é insumo nem para revenda.
+ * Ferramentas, móveis e contas entram aqui; papel/cola/flor são insumos.
+ */
 export const COST_CENTERS = [
+  "Ferramentas",
+  "Equipamentos e móveis",
+  "Contas (água/luz/internet)",
   "Aluguel",
   "Salários",
   "Transporte",
   "Marketing",
-  "Embalagens",
-  "Impostos",
+  "Impostos e taxas",
   "Manutenção",
   "Outros",
 ] as const;

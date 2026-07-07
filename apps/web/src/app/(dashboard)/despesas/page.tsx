@@ -78,7 +78,7 @@ export default function ExpensesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Despesas"
-        description="Contas a pagar e pagas — vencimento, comprovantes e resultado (DRE)."
+        description="Gastos que não são insumos nem para revenda — ferramentas, móveis, contas (luz, aluguel). Com vencimento, comprovantes e resultado (DRE)."
       >
         <Button
           onClick={() => {

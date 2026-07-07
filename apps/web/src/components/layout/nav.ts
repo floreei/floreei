@@ -55,6 +55,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Suprimentos",
     items: [
+      { label: "Insumos", href: "/insumos", icon: Sprout },
       {
         label: "Compras",
         href: "/compras",
@@ -83,7 +84,6 @@ export const navGroups: NavGroup[] = [
         icon: BarChart3,
         feature: "REPORTS",
       },
-      { label: "Catálogo", href: "/catalogo", icon: Sprout },
       { label: "Buquês", href: "/buques", icon: Flower, feature: "ARRANGEMENTS" },
       {
         label: "Loja online",
