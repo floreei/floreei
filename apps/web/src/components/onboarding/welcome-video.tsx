@@ -16,7 +16,7 @@ export function WelcomeVideo() {
   const [playing, setPlaying] = useState(false);
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-primary">
+    <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-t-2xl bg-primary">
       {/* Fundo: gradiente da marca + pétalas flutuando */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-[hsl(var(--clay))]" />
       {!reduce
