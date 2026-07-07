@@ -89,15 +89,7 @@ export function PrintDocument({
               <span>
                 Nota criada com{" "}
                 <span className="font-semibold text-primary">Floreei</span> · o
-                sistema para floriculturas ·{" "}
-                <a
-                  href="https://floreei.com.br"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium underline-offset-2 hover:underline"
-                >
-                  floreei.com.br
-                </a>
+                sistema para floriculturas
               </span>
             </p>
           </footer>
