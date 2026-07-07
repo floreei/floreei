@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Field } from "@/components/shared/field";
 import { useAuth } from "@/lib/auth/auth-context";
+import { maskCpfCnpj, withMask } from "@/lib/masks";
 
 export default function LoginPage() {
   const {
@@ -239,13 +240,20 @@ function RegisterForm({
   onSubmit: (v: {
     companyName: string;
     name: string;
+    document: string;
     email: string;
     password: string;
   }) => Promise<void>;
 }) {
   const form = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { companyName: "", name: "", email: "", password: "" },
+    defaultValues: {
+      companyName: "",
+      name: "",
+      document: "",
+      email: "",
+      password: "",
+    },
   });
 
   return (
@@ -266,6 +274,9 @@ function RegisterForm({
       </Field>
       <Field label="Seu nome" htmlFor="reg-name" required error={form.formState.errors.name?.message}>
         <Input id="reg-name" placeholder="Ana Souza" {...form.register("name")} />
+      </Field>
+      <Field label="CNPJ ou CPF" htmlFor="reg-document" required error={form.formState.errors.document?.message} hint="Usamos para liberar seu acesso — um cadastro por negócio.">
+        <Input id="reg-document" inputMode="numeric" placeholder="00.000.000/0000-00" {...withMask(maskCpfCnpj, form.register("document"))} />
       </Field>
       <Field label="E-mail" htmlFor="reg-email" required error={form.formState.errors.email?.message}>
         <Input id="reg-email" type="email" placeholder="voce@floricultura.com" {...form.register("email")} />
