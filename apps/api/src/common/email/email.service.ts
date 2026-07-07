@@ -18,9 +18,13 @@ export interface EmailMessage {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  /** Remetente padrão; precisa ser de um domínio verificado no Resend. */
+  /**
+   * Remetente padrão. Usa o SUBDOMÍNIO verificado no Resend (`send.floreei.com.br`)
+   * — o domínio raiz é do e-mail profissional (Titan/HostGator), com SPF/MX
+   * próprios; enviar da raiz falharia no DMARC. Ajuste por `EMAIL_FROM`.
+   */
   private from(): string {
-    return process.env.EMAIL_FROM ?? "Floreei <nao-responda@floreei.com.br>";
+    return process.env.EMAIL_FROM ?? "Floreei <nao-responda@send.floreei.com.br>";
   }
 
   async send(message: EmailMessage): Promise<void> {
