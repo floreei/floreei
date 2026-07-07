@@ -40,6 +40,7 @@ export default function SupplierStatementPage() {
     <PrintDocument
       backHref={`/fornecedores/${supplier.id}`}
       backLabel="Voltar ao fornecedor"
+      documentTitle={`${supplier.name} — Floreei — Extrato`}
       footer={
         <>
           Documento não fiscal · gerado por {company} ·{" "}

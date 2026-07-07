@@ -4,6 +4,7 @@ import type { CompanySettings } from "@sistema-flores/types";
 import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { PrintLetterhead } from "./print-letterhead";
@@ -18,13 +19,28 @@ export function PrintDocument({
   backHref,
   backLabel,
   footer,
+  documentTitle,
   children,
 }: {
   backHref: string;
   backLabel: string;
   footer: ReactNode;
+  /**
+   * Título da aba enquanto o documento está aberto — vira o NOME DO ARQUIVO
+   * quando o navegador salva o PDF (ex.: "Maria Silva — Floreei — Orçamento 12").
+   */
+  documentTitle?: string;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    if (!documentTitle) return;
+    const previous = document.title;
+    document.title = documentTitle;
+    return () => {
+      document.title = previous;
+    };
+  }, [documentTitle]);
+
   return (
     <div className="space-y-6">
       <style>{`

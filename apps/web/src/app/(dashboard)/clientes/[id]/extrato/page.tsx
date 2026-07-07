@@ -40,6 +40,7 @@ export default function CustomerStatementPage() {
     <PrintDocument
       backHref={`/clientes/${customer.id}`}
       backLabel="Voltar ao cliente"
+      documentTitle={`${customer.name} — Floreei — Extrato`}
       footer={
         <>
           Documento não fiscal · gerado por {company} ·{" "}
