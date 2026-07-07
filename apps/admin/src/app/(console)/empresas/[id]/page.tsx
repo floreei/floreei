@@ -14,22 +14,28 @@ import {
   CheckCircle2,
   Loader2,
   Lock,
+  Trash2,
   TrendingDown,
   TrendingUp,
   Unlock,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api/client";
+import { useAdminAuth } from "@/lib/auth/auth-context";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const router = useRouter();
+  const { session } = useAdminAuth();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["company", id],
@@ -63,6 +69,27 @@ export default function CompanyDetailPage() {
     },
     onError: (e) =>
       toast.error(e instanceof Error ? e.message : "Não foi possível."),
+  });
+
+  const remove = useMutation({
+    mutationFn: () =>
+      api.delete<{ ok: boolean; firebaseCleared: boolean }>(
+        `/admin/companies/${id}`,
+      ),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+      toast.success(
+        res.firebaseCleared
+          ? "Empresa excluída (Firebase + banco)."
+          : "Empresa excluída do banco. Firebase Admin não configurado — logins não foram removidos.",
+      );
+      router.push("/empresas");
+    },
+    onError: (e) =>
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível excluir.",
+      ),
   });
 
   const run = (path: string, msg: string, body?: unknown) =>
@@ -364,9 +391,78 @@ export default function CompanyDetailPage() {
               ))}
             </CardContent>
           </Card>
+
+          {session?.role === "OWNER" ? (
+            <DangerZone
+              companyName={data.name}
+              teamCount={data.team.length}
+              pending={remove.isPending}
+              onDelete={() => remove.mutate()}
+            />
+          ) : null}
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Exclusão definitiva da empresa (Firebase + banco). Exige digitar o nome
+ * exato para evitar acidente. Só aparece para OWNER.
+ */
+function DangerZone({
+  companyName,
+  teamCount,
+  pending,
+  onDelete,
+}: {
+  companyName: string;
+  teamCount: number;
+  pending: boolean;
+  onDelete: () => void;
+}) {
+  const [confirm, setConfirm] = useState("");
+  const matches = confirm.trim() === companyName;
+
+  return (
+    <Card className="border-destructive/40">
+      <CardHeader>
+        <CardTitle className="text-base text-destructive">
+          Excluir empresa
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Apaga <span className="font-medium text-foreground">tudo</span> desta
+          empresa — {teamCount} {teamCount === 1 ? "usuário" : "usuários"} no
+          Firebase e todos os dados no banco (clientes, vendas, estoque,
+          financeiro, loja, assinatura). <strong>Não dá para desfazer.</strong>
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Para confirmar, digite o nome da empresa:{" "}
+          <span className="font-medium text-foreground">{companyName}</span>
+        </p>
+        <Input
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          placeholder={companyName}
+          aria-label="Confirmar nome da empresa"
+        />
+        <Button
+          variant="destructive"
+          className="w-full"
+          disabled={!matches || pending}
+          onClick={onDelete}
+        >
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+          Excluir empresa definitivamente
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
