@@ -32,7 +32,7 @@ jobs:
     # DEPLOY_API_ENABLED=true. Enquanto ausente, o job é pulado (não falha).
     if: ${{ vars.DEPLOY_API_ENABLED == 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Autenticar no GCP (Workload Identity, sem chave)
         uses: google-github-actions/auth@v2
