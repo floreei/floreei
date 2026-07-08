@@ -89,7 +89,7 @@ export default function CustomersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead className="hidden sm:table-cell">Documento</TableHead>
-                <TableHead />
+                <TableHead className="hidden sm:table-cell" />
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -110,7 +110,7 @@ export default function CustomersPage() {
                   <TableCell className="hidden text-muted-foreground sm:table-cell">
                     {customer.document || "—"}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="hidden text-right sm:table-cell">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/clientes/${customer.id}`}>
                         <Eye className="h-4 w-4" />

@@ -15,6 +15,7 @@ test("nova venda: filtra Buquês x Revenda mostrando só o conteúdo de cada", a
   await page.getByRole("tab", { name: "Criar conta" }).click();
   await page.getByLabel("Nome da empresa").fill("Floricultura Filtro");
   await page.getByLabel("Seu nome").fill("Ana");
+  await page.getByLabel("CNPJ ou CPF").fill(String(Date.now()).padEnd(14, "0").slice(0, 14));
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();

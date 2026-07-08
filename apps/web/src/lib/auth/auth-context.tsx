@@ -190,6 +190,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         throw mapFirebaseError(error);
       }
+      // Só em ambiente de teste (E2E): pula a verificação de e-mail e provisiona
+      // direto — o Firebase real não permite confirmar o e-mail num teste. A
+      // flag só é ligada no webServer do Playwright; em produção fica desligada.
+      if (process.env.NEXT_PUBLIC_E2E === "true") {
+        provisioningRef.current = true;
+        try {
+          await api.post<PublicUser>("/auth/provision", {
+            companyName,
+            name,
+            document,
+          });
+        } finally {
+          provisioningRef.current = false;
+        }
+        await refreshProfile();
+        return;
+      }
       // Guarda os dados para provisionar depois da verificação e envia o link.
       pendingRegistration.current = { companyName, name, document };
       try {
@@ -199,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setAwaitingVerification({ email });
     },
-    [],
+    [refreshProfile],
   );
 
   const loginWithGoogle = useCallback(async () => {

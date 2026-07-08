@@ -14,6 +14,7 @@ test("nota do pedido: abre pelo detalhe da venda e imprime", async ({ page }) =>
   await page.getByRole("tab", { name: "Criar conta" }).click();
   await page.getByLabel("Nome da empresa").fill("Floricultura Nota");
   await page.getByLabel("Seu nome").fill("Ana");
+  await page.getByLabel("CNPJ ou CPF").fill(String(Date.now()).padEnd(14, "0").slice(0, 14));
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
@@ -53,7 +54,7 @@ test("nota do pedido: abre pelo detalhe da venda e imprime", async ({ page }) =>
   await expect(note.getByText("Nota do pedido")).toBeVisible();
   await expect(note.getByText("Rosa Colombiana")).toBeVisible();
   await expect(note.getByText("R$ 36,00").first()).toBeVisible(); // 3 × 12
-  await expect(note.getByText("Recebi os itens acima em conformidade")).toBeVisible();
+  await expect(note.getByText(/Documento não fiscal/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Imprimir / Salvar PDF" }),
   ).toBeVisible();
