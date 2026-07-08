@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Field } from "@/components/shared/field";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,30 @@ export default function TeamPage() {
             ))}
           </div>
         ) : team && team.length > 0 ? (
+          <>
+            {/* Celular: cartões (remover fica a cargo do desktop/console) */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {team.map((member) => (
+                <ListCard
+                  key={`m-${member.id}`}
+                  title={member.name}
+                  subtitle={member.email}
+                  meta={
+                    <Badge variant={member.role === "ADMIN" ? "default" : "secondary"}>
+                      {member.role === "ADMIN" ? "Administrador" : "Operador"}
+                    </Badge>
+                  }
+                  metaSub={
+                    member.pending ? (
+                      <Badge variant="outline" className="text-amber-600">
+                        Convite pendente
+                      </Badge>
+                    ) : undefined
+                  }
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -124,6 +149,8 @@ export default function TeamPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState className="border-0" icon={<UsersRound />} title="Sem membros" />
         )}

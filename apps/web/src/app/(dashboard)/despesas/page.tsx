@@ -116,6 +116,81 @@ export default function ExpensesPage() {
             ))}
           </div>
         ) : data && data.data.length > 0 ? (
+          <>
+            {/* Celular: cartão tocável (edita) + menu de ações ao lado */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.data.map((expense) => (
+                <div
+                  key={`m-${expense.id}`}
+                  className="flex min-h-[64px] items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 shadow-xs"
+                >
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => {
+                      setEditing(expense);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate font-medium">{expense.description}</span>
+                      {expense.recurring ? (
+                        <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Recorrente" />
+                      ) : null}
+                    </span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {expense.costCenter} · vence {formatDate(expense.dueDate)}
+                    </span>
+                  </button>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5">
+                    <span className="font-semibold tabular-nums">
+                      {formatCurrency(expense.amount)}
+                    </span>
+                    <StatusBadge expense={expense} />
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" aria-label="Ações">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {expense.paid ? (
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            await unpay.mutateAsync(expense.id);
+                            toast.success("Pagamento desfeito (voltou para 'a pagar').");
+                          }}
+                        >
+                          Desfazer pagamento
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => setPaying(expense)}>
+                          Marcar como pago
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditing(expense);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        Editar
+                      </DropdownMenuItem>
+                      {user?.role === "ADMIN" ? (
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setDeleting(expense)}
+                        >
+                          Excluir
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -219,6 +294,8 @@ export default function ExpensesPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"

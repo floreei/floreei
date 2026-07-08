@@ -97,7 +97,7 @@ export function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent fullOnMobile>
         <DialogHeader>
           <DialogTitle>{product ? "Editar insumo" : "Novo insumo"}</DialogTitle>
           <DialogDescription>

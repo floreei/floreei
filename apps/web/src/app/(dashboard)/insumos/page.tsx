@@ -8,6 +8,7 @@ import { CategoryDialog } from "@/components/catalog/category-dialog";
 import { ProductDialog } from "@/components/catalog/product-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -163,6 +164,40 @@ export default function CatalogPage() {
               ))}
             </div>
           ) : products && products.data.length > 0 ? (
+            <>
+              {/* Celular: cartões — toque edita o insumo */}
+              <div className="space-y-2 p-3 sm:hidden">
+                {products.data.map((product) => (
+                  <ListCard
+                    key={product.id}
+                    onClick={() => {
+                      setEditingProd(product);
+                      setProdDialog(true);
+                    }}
+                    leading={
+                      product.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.imageUrl}
+                          alt=""
+                          className="h-10 w-10 rounded-md border border-border object-cover"
+                        />
+                      ) : undefined
+                    }
+                    title={product.name}
+                    subtitle={[product.category?.name, unitLabels[product.unit]]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    meta={
+                      product.defaultSalePrice > 0
+                        ? formatCurrency(product.defaultSalePrice)
+                        : "—"
+                    }
+                    metaSub={`compra ${formatCurrency(product.defaultPurchasePrice)}`}
+                  />
+                ))}
+              </div>
+              <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -243,6 +278,8 @@ export default function CatalogPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </>
           ) : (
             <EmptyState
               className="border-0"

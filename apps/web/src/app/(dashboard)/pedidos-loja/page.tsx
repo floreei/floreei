@@ -4,6 +4,7 @@ import type { StoreOrder, StoreOrderStatus } from "@sistema-flores/types";
 import { ExternalLink, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -54,6 +55,24 @@ export default function StoreOrdersPage() {
             ))}
           </div>
         ) : data && data.length > 0 ? (
+          <>
+            {/* Celular: cartões — toque abre a venda vinculada (quando há) */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.map((order) => {
+                const info = statusInfo[order.status];
+                return (
+                  <ListCard
+                    key={`m-${order.id}`}
+                    href={order.eventId ? `/eventos/${order.eventId}` : undefined}
+                    title={order.customerName}
+                    subtitle={`${formatDate(order.createdAt)} · ${itemsSummary(order)}`}
+                    meta={formatCurrency(order.total)}
+                    metaSub={<Badge variant={info.variant}>{info.label}</Badge>}
+                  />
+                );
+              })}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -105,6 +124,8 @@ export default function StoreOrdersPage() {
               })}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"

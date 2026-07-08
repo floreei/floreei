@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { AdjustBalanceDialog } from "@/components/stock/adjust-balance-dialog";
 import { MovementDialog } from "@/components/stock/movement-dialog";
@@ -113,6 +114,27 @@ export default function StockPage() {
             ))}
           </div>
         ) : data && data.levels.length > 0 ? (
+          <>
+            {/* Celular: cartões — toque ajusta o saldo */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.levels.map((level) => (
+                <ListCard
+                  key={level.productId}
+                  onClick={() => setAdjustLevel(level)}
+                  title={level.productName}
+                  subtitle={level.categoryName ?? "Sem categoria"}
+                  meta={`${level.onHand} ${unitLabels[level.unit].toLowerCase()}`}
+                  metaSub={
+                    level.low ? (
+                      <Badge variant="warning">Estoque baixo</Badge>
+                    ) : (
+                      <Badge variant="success">Ok</Badge>
+                    )
+                  }
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -164,6 +186,8 @@ export default function StockPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"
@@ -180,6 +204,17 @@ export default function StockPage() {
             <div className="border-b px-4 py-3 text-sm font-medium">
               Lotes a vencer
             </div>
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.expiringSoon.map((lot, i) => (
+                <ListCard
+                  key={`m-${lot.productId}-${i}`}
+                  title={lot.productName}
+                  subtitle={`vence ${formatDate(lot.expiresAt)}${lot.lot ? ` · lote ${lot.lot}` : ""}`}
+                  meta={lot.quantity}
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -206,6 +241,7 @@ export default function StockPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       ) : null}

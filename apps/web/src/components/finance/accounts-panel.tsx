@@ -4,6 +4,7 @@ import type { OpenAccount } from "@sistema-flores/types";
 import { CheckCircle2, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -186,6 +187,33 @@ function AccountsTab({
           Nenhuma conta com esses filtros.
         </p>
       ) : (
+        <>
+          {/* Celular: cartões — toque abre receber/pagar (a ação principal) */}
+          <div className="space-y-2 sm:hidden">
+            {rows.map((account) => {
+              const overdue = isOverdue(account.date);
+              return (
+                <ListCard
+                  key={`m-${account.kind}-${account.id}`}
+                  onClick={() => onAction(mode, account)}
+                  title={account.partyName}
+                  subtitle={
+                    <span className={overdue ? "font-medium text-destructive" : undefined}>
+                      {overdue ? "venceu " : "vence "}
+                      {formatDate(account.date)}
+                    </span>
+                  }
+                  meta={
+                    <span className={overdue ? "text-destructive" : "text-clay"}>
+                      {formatCurrency(account.balanceDue)}
+                    </span>
+                  }
+                  metaSub={`de ${formatCurrency(account.total)}`}
+                />
+              );
+            })}
+          </div>
+          <div className="hidden sm:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -252,6 +280,8 @@ function AccountsTab({
             })}
           </TableBody>
         </Table>
+          </div>
+        </>
       )}
     </Card>
   );

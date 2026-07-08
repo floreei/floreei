@@ -122,6 +122,12 @@
   * {
     @apply border-border;
   }
+  /* Grid de coluna única implícita (ex.: "grid gap-4 lg:grid-cols-2" abaixo do
+     breakpoint) por padrão cresce até o min-content do filho mais largo e
+     ESTOURA a tela no celular. Faz a coluna implícita encolher e preencher. */
+  .grid {
+    grid-auto-columns: minmax(0, 1fr);
+  }
   body {
     /* Papel sage sólido — sem gradientes decorativos (DS). Cards flutuam por sombra. */
     @apply bg-background text-foreground antialiased;

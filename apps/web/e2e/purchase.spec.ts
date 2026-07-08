@@ -57,9 +57,9 @@ test("fluxo de compra: pedido → receber → pagamento parcial → comprovante"
   await page.getByRole("button", { name: "Marcar como recebida" }).click();
   await expect(page.getByText("Recebida", { exact: true })).toBeVisible();
 
-  // Estoque atualizou
+  // Estoque atualizou (lista tem versão mobile + desktop no DOM — mira a tabela)
   await page.goto("/estoque");
-  await expect(page.getByText("Rosa Colombiana")).toBeVisible();
+  await expect(page.locator("table").getByText("Rosa Colombiana").first()).toBeVisible();
 
   // Pagamento parcial
   await page.goBack();

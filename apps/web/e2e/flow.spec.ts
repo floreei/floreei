@@ -45,7 +45,7 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   await page.getByLabel("Preço de compra").fill("400");
   await page.getByLabel("Preço de venda").fill("1000");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText(productName)).toBeVisible();
+  await expect(page.locator("table").getByText(productName)).toBeVisible();
 
   // 4) Criar orçamento com 10 unidades → venda 100, lucro 60
   await page.goto("/orcamentos/novo");
@@ -92,14 +92,16 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   // 7) Financeiro mostra o evento como conta a receber
   await page.goto("/financeiro");
   await expect(page.getByText("A receber").first()).toBeVisible();
-  await expect(page.getByText(customerName).first()).toBeVisible();
+  await expect(page.locator("table").getByText(customerName).first()).toBeVisible();
 
   // 8) Busca global (⌘K) encontra o cliente/evento
   await page.keyboard.press("Control+k");
   await page
     .getByPlaceholder(/Buscar clientes/i)
     .fill(`Casamento E2E ${stamp}`);
-  await expect(page.getByText(customerName).first()).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByText(customerName).first(),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
 
   // 9) Perfil do cliente com histórico e saldo

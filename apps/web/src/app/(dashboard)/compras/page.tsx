@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { PaymentDialog } from "@/components/finance/payment-dialog";
 import { PurchaseDialog } from "@/components/purchases/purchase-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,33 @@ export default function PurchasesPage() {
             ))}
           </div>
         ) : data && data.data.length > 0 ? (
+          <>
+            {/* Celular: cartões — toque abre o detalhe (receber/pagar ficam lá) */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.data.map((purchase) => (
+                <ListCard
+                  key={purchase.id}
+                  href={`/compras/${purchase.id}`}
+                  title={purchase.supplier?.name ?? "—"}
+                  subtitle={`${formatDate(purchase.date)} · total ${formatCurrency(purchase.total)}`}
+                  meta={
+                    purchase.balanceDue > 0 ? (
+                      <span className="text-clay">{formatCurrency(purchase.balanceDue)}</span>
+                    ) : (
+                      <Badge variant="success">Pago</Badge>
+                    )
+                  }
+                  metaSub={
+                    purchase.status === "ORDERED" ? (
+                      <Badge variant="warning">Pedido</Badge>
+                    ) : (
+                      <Badge variant="success">Recebida</Badge>
+                    )
+                  }
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -137,6 +165,8 @@ export default function PurchasesPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"

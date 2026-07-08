@@ -98,7 +98,7 @@ export function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent fullOnMobile className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar venda" : "Nova venda"}</DialogTitle>
           <DialogDescription>

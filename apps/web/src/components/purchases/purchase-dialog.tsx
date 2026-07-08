@@ -144,7 +144,7 @@ export function PurchaseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent fullOnMobile className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar compra" : "Nova compra"}</DialogTitle>
           <DialogDescription>

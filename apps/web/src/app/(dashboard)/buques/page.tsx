@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ArrangementDialog } from "@/components/arrangements/arrangement-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,28 @@ export default function ArrangementsPage() {
             ))}
           </div>
         ) : data && data.data.length > 0 ? (
+          <>
+            {/* Celular: cartões — toque edita o buquê */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.data.map((a) => (
+                <ListCard
+                  key={a.id}
+                  onClick={() => {
+                    setEditing(a);
+                    setDialog(true);
+                  }}
+                  title={a.name}
+                  subtitle={`${a.items.length} insumo${a.items.length === 1 ? "" : "s"} · custo ${formatCurrency(a.cost)}`}
+                  meta={formatCurrency(a.salePrice)}
+                  metaSub={
+                    <Badge variant={a.margin < 0 ? "destructive" : "success"}>
+                      {a.marginPercent.toFixed(1)}%
+                    </Badge>
+                  }
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -138,6 +161,8 @@ export default function ArrangementsPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"

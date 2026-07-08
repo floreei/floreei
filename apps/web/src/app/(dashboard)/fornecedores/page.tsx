@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { SupplierDialog } from "@/components/suppliers/supplier-dialog";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,21 @@ export default function SuppliersPage() {
             ))}
           </div>
         ) : data && data.data.length > 0 ? (
+          <>
+            {/* Celular: cartões — toque abre o detalhe */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.data.map((supplier) => (
+                <ListCard
+                  key={supplier.id}
+                  href={`/fornecedores/${supplier.id}`}
+                  title={supplier.name}
+                  subtitle={[supplier.city, supplier.whatsapp || supplier.contact]
+                    .filter(Boolean)
+                    .join(" · ") || "Sem contato"}
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -144,6 +160,8 @@ export default function SuppliersPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"

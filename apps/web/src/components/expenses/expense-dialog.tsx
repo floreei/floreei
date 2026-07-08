@@ -77,7 +77,7 @@ export function ExpenseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent fullOnMobile>
         <DialogHeader>
           <DialogTitle>{expense ? "Editar despesa" : "Nova despesa"}</DialogTitle>
           <DialogDescription>

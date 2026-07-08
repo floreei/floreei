@@ -5,6 +5,7 @@ import { FileText, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { QuoteStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,21 @@ export default function QuotesPage() {
             ))}
           </div>
         ) : data && data.data.length > 0 ? (
+          <>
+            {/* Celular: cartões — toque abre o orçamento */}
+            <div className="space-y-2 p-3 sm:hidden">
+              {data.data.map((quote) => (
+                <ListCard
+                  key={quote.id}
+                  href={`/orcamentos/${quote.id}`}
+                  title={quote.customer?.name ?? "—"}
+                  subtitle={`#${quote.number}`}
+                  meta={formatCurrency(quote.totalSale)}
+                  metaSub={<QuoteStatusBadge status={quote.status} />}
+                />
+              ))}
+            </div>
+            <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -109,6 +125,8 @@ export default function QuotesPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             className="border-0"
