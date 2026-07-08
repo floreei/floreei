@@ -104,6 +104,9 @@ jobs:
       # Config pública do Firebase (não é segredo) — o e2e usa o Firebase real.
       FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
       FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      # Higiene do Firebase real: cada usuário criado pelos testes se
+      # auto-deleta no teardown (senão acumulam milhares de contas de teste).
+      E2E_CLEANUP_USERS: "1"
 
     steps:
       - uses: actions/checkout@v4
