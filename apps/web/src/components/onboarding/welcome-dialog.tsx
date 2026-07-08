@@ -67,11 +67,13 @@ export function WelcomeDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && dismiss()}>
-      <DialogContent className="flex max-w-lg flex-col gap-0 overflow-hidden p-0">
+      {/* Sem overflow-hidden: o base rola (max-h 90dvh) — no celular o conteúdo
+          é mais alto que a tela e os botões precisam ser alcançáveis. */}
+      <DialogContent className="flex max-w-lg flex-col gap-0 p-0">
         <WelcomeVideo />
 
         <motion.div
-          className="space-y-5 p-6"
+          className="space-y-4 p-5 sm:space-y-5 sm:p-6"
           initial="hidden"
           animate="show"
           transition={{ staggerChildren: 0.08, delayChildren: 0.1 }}

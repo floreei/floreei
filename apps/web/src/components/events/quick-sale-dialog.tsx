@@ -477,16 +477,17 @@ export function QuickSaleDialog({
           </div>
         </div>
 
-        <div className="space-y-3 border-t border-border pt-3">
-          <div className="flex items-center justify-between rounded-xl bg-primary/[0.06] px-4 py-3">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-serif text-2xl font-semibold tabular-nums">
+        {/* Rodapé sticky COMPACTO (Total + ação numa linha só): o CTA fica
+            sempre visível no celular sem esconder o conteúdo acima. */}
+        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center gap-3 border-t border-border bg-card px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums">
               {formatCurrency(total)}
-            </span>
+            </p>
           </div>
-
           <Button
-            className="h-12 w-full text-base"
+            className="h-12 flex-1 text-base"
             disabled={!canSubmit}
             loading={submitting}
             onClick={submit}

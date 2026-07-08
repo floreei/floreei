@@ -2,15 +2,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
-// Carrega o apps/web/.env (dev) no process.env — os testes e o comando dos
-// webServers usam a config do Firebase de lá, sem valores no repositório.
-try {
-  for (const line of readFileSync(join(__dirname, ".env"), "utf8").split("\n")) {
-    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2];
+// Carrega o env local do web (.env.local ou .env) no process.env — os testes e
+// o comando dos webServers usam a config do Firebase de lá, sem valores no repo.
+for (const file of [".env.local", ".env"]) {
+  try {
+    for (const line of readFileSync(join(__dirname, file), "utf8").split("\n")) {
+      const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+      if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2];
+    }
+  } catch {
+    // Arquivo ausente (ex.: CI) — as variáveis já vêm do ambiente.
   }
-} catch {
-  // Sem .env local (ex.: CI) — as variáveis já vêm do ambiente.
 }
 
 /**

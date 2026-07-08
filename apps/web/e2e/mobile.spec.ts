@@ -111,16 +111,15 @@ test.describe("responsividade mobile", () => {
     await expect(criar).toBeInViewport({ ratio: 1 });
     await page.keyboard.press("Escape");
 
-    // Venda rápida: o rodapé NÃO é fixo (conteúdo é rei) — então o guard é que
-    // o controle de Pagamento ("Já pago") apareça ao abrir (antes ficava
-    // escondido sob o rodapé sticky) e que a ação seja alcançável rolando.
+    // Venda rápida: rodapé sticky COMPACTO (Total + ação numa linha) — o CTA
+    // fica visível já na abertura E o controle de Pagamento ("Já pago") não
+    // pode ficar escondido sob ele.
     await page.goto("/inicio");
     await page.getByRole("button", { name: "Nova venda" }).click();
     const jaPago = page.getByRole("button", { name: "Já pago", exact: true });
     await expect(jaPago).toBeVisible();
     await expect(jaPago).toBeInViewport({ ratio: 1 });
     const registrar = page.getByRole("button", { name: /Registrar venda/ });
-    await registrar.scrollIntoViewIfNeeded();
-    await expect(registrar).toBeInViewport();
+    await expect(registrar).toBeInViewport({ ratio: 1 });
   });
 });
