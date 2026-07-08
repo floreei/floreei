@@ -31,16 +31,26 @@ function inlineServiceAccount(): ServiceAccountJson | null {
 }
 
 /**
- * Há credenciais de admin (service account)? Operações privilegiadas
- * (criar/apagar usuário) usam o Admin SDK quando sim; sem elas, caímos no
- * Identity Toolkit REST com a apiKey pública. Aceita tanto o arquivo
- * (`GOOGLE_APPLICATION_CREDENTIALS`) quanto o JSON inline por env.
+ * Rodando dentro do Google Cloud (Cloud Run seta K_SERVICE)? Lá o Application
+ * Default Credentials vem do metadata server (service account de runtime) —
+ * Admin SDK funciona sem arquivo/JSON de service account.
+ */
+function isRunningOnGcp(): boolean {
+  return Boolean(process.env.K_SERVICE);
+}
+
+/**
+ * Há credenciais de admin? Operações privilegiadas (criar/apagar usuário) usam
+ * o Admin SDK quando sim; sem elas, caímos no Identity Toolkit REST com a
+ * apiKey pública. Aceita o arquivo (`GOOGLE_APPLICATION_CREDENTIALS`), o JSON
+ * inline por env, ou o ADC nativo do Google Cloud (Cloud Run).
  */
 export function hasFirebaseAdminCredentials(): boolean {
   return Boolean(
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
       process.env.FIREBASE_SERVICE_ACCOUNT ||
-      process.env.FIREBASE_SERVICE_ACCOUNT_B64,
+      process.env.FIREBASE_SERVICE_ACCOUNT_B64 ||
+      isRunningOnGcp(),
   );
 }
 
@@ -74,7 +84,7 @@ export function firebaseAppOptions(): AppOptions {
       projectId,
     };
   }
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS || isRunningOnGcp()) {
     return { credential: applicationDefault(), projectId };
   }
   return { projectId };

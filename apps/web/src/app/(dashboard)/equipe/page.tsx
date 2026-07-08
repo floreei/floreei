@@ -1,11 +1,17 @@
 "use client";
 
-import { createUserSchema, type InviteResult, type Role } from "@sistema-flores/types";
+import {
+  createUserSchema,
+  type InviteResult,
+  type PublicUser,
+  type Role,
+} from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy, Plus, UsersRound } from "lucide-react";
+import { Check, Copy, Plus, Trash2, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Field } from "@/components/shared/field";
 import { PageHeader } from "@/components/shared/page-header";
@@ -38,11 +44,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api/client";
-import { useCreateMember, useTeam } from "@/lib/api/users";
+import { useCreateMember, useRemoveMember, useTeam } from "@/lib/api/users";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export default function TeamPage() {
+  const { user } = useAuth();
   const { data: team, isLoading } = useTeam();
   const [open, setOpen] = useState(false);
+  const [removing, setRemoving] = useState<PublicUser | null>(null);
+  const remove = useRemoveMember();
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <div className="space-y-6">
@@ -71,6 +82,7 @@ export default function TeamPage() {
                 <TableHead>E-mail</TableHead>
                 <TableHead>Papel</TableHead>
                 <TableHead>Status</TableHead>
+                {isAdmin ? <TableHead className="w-12" /> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -94,6 +106,20 @@ export default function TeamPage() {
                       <span className="text-sm text-muted-foreground">Ativo</span>
                     )}
                   </TableCell>
+                  {isAdmin ? (
+                    <TableCell>
+                      {member.id !== user?.id ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Remover ${member.name}`}
+                          onClick={() => setRemoving(member)}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      ) : null}
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
             </TableBody>
@@ -104,6 +130,25 @@ export default function TeamPage() {
       </Card>
 
       <InviteDialog open={open} onOpenChange={setOpen} />
+
+      <ConfirmDialog
+        open={Boolean(removing)}
+        onOpenChange={(o) => !o && setRemoving(null)}
+        title={removing?.pending ? "Cancelar convite" : "Remover membro"}
+        description={
+          removing?.pending
+            ? `Cancelar o convite de "${removing?.name}"? O link enviado deixa de funcionar.`
+            : `Remover "${removing?.name}" da equipe? A pessoa perde o acesso na hora e esta ação não pode ser desfeita.`
+        }
+        confirmLabel={removing?.pending ? "Cancelar convite" : "Remover"}
+        onConfirm={async () => {
+          await remove.mutateAsync(removing!.id);
+          toast.success(
+            removing?.pending ? "Convite cancelado." : "Membro removido.",
+          );
+          setRemoving(null);
+        }}
+      />
     </div>
   );
 }
