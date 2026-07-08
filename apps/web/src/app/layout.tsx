@@ -35,6 +35,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#2F6050",
+  // Ocupa a área do notch/home-indicator; a bottom nav respeita a safe area.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

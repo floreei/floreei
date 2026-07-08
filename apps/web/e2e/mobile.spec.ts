@@ -111,15 +111,20 @@ test.describe("responsividade mobile", () => {
     await expect(criar).toBeInViewport({ ratio: 1 });
     await page.keyboard.press("Escape");
 
-    // Venda rápida: rodapé sticky COMPACTO (Total + ação numa linha) — o CTA
-    // fica visível já na abertura E o controle de Pagamento ("Já pago") não
-    // pode ficar escondido sob ele.
+    // Venda rápida: TELA CHEIA no celular com CTA fixo embaixo (visível já na
+    // abertura); o controle de Pagamento é alcançável rolando o conteúdo.
     await page.goto("/inicio");
-    await page.getByRole("button", { name: "Nova venda" }).click();
-    const jaPago = page.getByRole("button", { name: "Já pago", exact: true });
-    await expect(jaPago).toBeVisible();
-    await expect(jaPago).toBeInViewport({ ratio: 1 });
+    await page.getByRole("button", { name: "Nova venda" }).first().click();
     const registrar = page.getByRole("button", { name: /Registrar venda/ });
+    await expect(registrar).toBeVisible();
     await expect(registrar).toBeInViewport({ ratio: 1 });
+    const jaPago = page.getByRole("button", { name: "Já pago", exact: true });
+    await jaPago.scrollIntoViewIfNeeded();
+    await expect(jaPago).toBeInViewport();
+    // Bottom nav presente nas páginas (navegação de polegar)
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("navigation", { name: "Navegação principal" }),
+    ).toBeVisible();
   });
 });

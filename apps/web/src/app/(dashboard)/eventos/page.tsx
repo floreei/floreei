@@ -4,8 +4,9 @@ import type { EventType } from "@sistema-flores/types";
 import { CalendarHeart, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { QuickSaleDialog } from "@/components/events/quick-sale-dialog";
+import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   EventStatusBadge,
@@ -34,7 +35,7 @@ const filters: Array<{ label: string; value?: EventType }> = [
 export default function EventsPage() {
   const [type, setType] = useState<EventType | undefined>();
   const { data, isLoading } = useEvents({ type });
-  const [quickOpen, setQuickOpen] = useState(false);
+  const { openSale } = useQuickSale();
 
   return (
     <div className="space-y-6">
@@ -42,19 +43,19 @@ export default function EventsPage() {
         title="Vendas"
         description="Pedidos de balcão/entrega e eventos de decoração — valores e entregas."
       >
-        <Button onClick={() => setQuickOpen(true)}>
+        <Button onClick={openSale}>
           <Plus className="h-4 w-4" />
           Nova venda
         </Button>
       </PageHeader>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
         {filters.map((f) => (
           <button
             key={f.label}
             onClick={() => setType(f.value)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-sm transition-colors",
+              "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
               type === f.value
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:bg-muted",
@@ -65,85 +66,112 @@ export default function EventsPage() {
         ))}
       </div>
 
-      <Card>
-        {isLoading ? (
+      {isLoading ? (
+        <Card>
           <div className="space-y-2 p-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : data && data.data.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Venda</TableHead>
-                <TableHead className="hidden lg:table-cell">Tipo</TableHead>
-                <TableHead className="hidden md:table-cell">Data</TableHead>
-                <TableHead className="hidden sm:table-cell">Status</TableHead>
-                <TableHead className="text-right">Vendido</TableHead>
-                <TableHead className="hidden text-right md:table-cell">Recebido</TableHead>
-                <TableHead className="w-32 text-right" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.data.map((event) => (
-                <TableRow
-                  key={event.id}
-                  className="cursor-pointer"
-                  onClick={() => {
-                    window.location.href = `/eventos/${event.id}`;
-                  }}
-                >
-                  <TableCell>
-                    <p className="font-medium">{event.title}</p>
-                    <p className="text-xs text-muted-foreground">
+        </Card>
+      ) : data && data.data.length > 0 ? (
+        <>
+          {/* Celular: cartões tocáveis (linha inteira leva ao detalhe) */}
+          <div className="space-y-2 sm:hidden">
+            {data.data.map((event) => (
+              <ListCard
+                key={event.id}
+                href={`/eventos/${event.id}`}
+                title={event.title}
+                subtitle={
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate">
                       {event.customer?.name ?? "Consumidor"}
-                    </p>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <EventTypeBadge type={event.type} />
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">
-                    {formatDate(event.date)}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <EventStatusBadge status={event.status} />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">
-                    {formatCurrency(event.soldValue)}
-                  </TableCell>
-                  <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
-                    {formatCurrency(event.receivedValue)}
-                  </TableCell>
-                  <TableCell
-                    className="text-right"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button asChild variant="outline" size="sm" className="h-8">
-                      <Link href={`/eventos/${event.id}`}>Ver detalhes</Link>
-                    </Button>
-                  </TableCell>
+                    </span>
+                    <span aria-hidden>·</span>
+                    <span className="shrink-0">{formatDate(event.date)}</span>
+                  </span>
+                }
+                meta={formatCurrency(event.soldValue)}
+                metaSub={<EventStatusBadge status={event.status} />}
+              />
+            ))}
+          </div>
+
+          {/* Desktop: tabela completa */}
+          <Card className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Venda</TableHead>
+                  <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+                  <TableHead className="hidden md:table-cell">Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Vendido</TableHead>
+                  <TableHead className="hidden text-right md:table-cell">Recebido</TableHead>
+                  <TableHead className="w-32 text-right" />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
+              </TableHeader>
+              <TableBody>
+                {data.data.map((event) => (
+                  <TableRow
+                    key={event.id}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      window.location.href = `/eventos/${event.id}`;
+                    }}
+                  >
+                    <TableCell>
+                      <p className="font-medium">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {event.customer?.name ?? "Consumidor"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <EventTypeBadge type={event.type} />
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                      {formatDate(event.date)}
+                    </TableCell>
+                    <TableCell>
+                      <EventStatusBadge status={event.status} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {formatCurrency(event.soldValue)}
+                    </TableCell>
+                    <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
+                      {formatCurrency(event.receivedValue)}
+                    </TableCell>
+                    <TableCell
+                      className="text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button asChild variant="outline" size="sm" className="h-8">
+                        <Link href={`/eventos/${event.id}`}>Ver detalhes</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      ) : (
+        <Card>
           <EmptyState
             className="border-0"
             icon={<CalendarHeart />}
             title="Nenhuma venda"
             description="Registre um pedido de balcão/entrega ou converta um orçamento em evento."
             action={
-              <Button onClick={() => setQuickOpen(true)}>
+              <Button onClick={openSale}>
                 <Plus className="h-4 w-4" />
                 Nova venda
               </Button>
             }
           />
-        )}
-      </Card>
-
-      <QuickSaleDialog open={quickOpen} onOpenChange={setQuickOpen} />
+        </Card>
+      )}
     </div>
   );
 }

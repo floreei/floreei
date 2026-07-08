@@ -20,14 +20,15 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
   await expect(page).toHaveURL(/\/inicio/);
-  await expect(page.getByText("Nova venda")).toBeVisible();
+  await expect(page.getByText("Nova venda").first()).toBeVisible();
 
   // 2) Criar cliente
   await page.goto("/clientes");
   await page.getByRole("button", { name: "Novo cliente" }).first().click();
   await page.getByLabel("Nome").fill(customerName);
   await page.getByRole("button", { name: "Criar cliente" }).click();
-  await expect(page.getByText(customerName)).toBeVisible();
+  // A lista tem versão mobile (cards) + desktop (tabela) no DOM — mira a tabela.
+  await expect(page.locator("table").getByText(customerName)).toBeVisible();
 
   // 3) Criar categoria + produto (compra 4, venda 10)
   await page.goto("/insumos");
@@ -103,14 +104,14 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
 
   // 9) Perfil do cliente com histórico e saldo
   await page.goto("/clientes");
-  await page.getByRole("link", { name: customerName }).click();
+  await page.locator("table").getByRole("link", { name: customerName }).click();
   await expect(page).toHaveURL(/\/clientes\/[0-9a-f-]+$/);
   await expect(page.getByText("Total vendido")).toBeVisible();
   await expect(page.getByText("Saldo a receber")).toBeVisible();
 
   // 10) Venda rápida (balcão) pelo Início → Caixa reflete a entrada
   await page.goto("/inicio");
-  await page.getByRole("button", { name: "Nova venda" }).click();
+  await page.getByRole("button", { name: "Nova venda" }).first().click();
   await page.getByRole("button", { name: "Valor livre" }).click();
   // Campo de moeda: "5000" = R$ 50,00
   await page.getByLabel("Valor da venda").fill("5000");

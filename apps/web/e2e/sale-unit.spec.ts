@@ -46,7 +46,7 @@ test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
 
   // Nova venda → aba Revenda (a Hortênsia é revenda avulsa, não buquê)
   await page.goto("/inicio");
-  await page.getByRole("button", { name: "Nova venda" }).click();
+  await page.getByRole("button", { name: "Nova venda" }).first().click();
   await page.getByRole("button", { name: "Revenda", exact: true }).click();
   await page.getByRole("button", { name: /Hortênsia Azul/ }).click();
 

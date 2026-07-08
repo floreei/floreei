@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FirstSteps } from "@/components/dashboard/first-steps";
-import { QuickSaleDialog } from "@/components/events/quick-sale-dialog";
+import { useQuickSale } from "@/components/events/quick-sale-provider";
 import {
   CashflowChart,
   type CashflowPoint,
@@ -128,11 +128,11 @@ interface CashMovementLike {
 
 export default function InicioPage() {
   const { user } = useAuth();
+  const { openSale } = useQuickSale();
   const { data: finance, isLoading: loadingFin } = useFinanceSummary();
 
   const [period, setPeriod] = useState<Period>("month");
   const [custom, setCustom] = useState({ from: "", to: "" });
-  const [saleOpen, setSaleOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
 
   const { from, to } = useMemo(() => {
@@ -174,12 +174,12 @@ export default function InicioPage() {
       <FirstSteps />
 
       {/* Ações grandes do dia a dia */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <ActionButton
           icon={ShoppingCart}
           label="Nova venda"
           hint="Balcão / entrega"
-          onClick={() => setSaleOpen(true)}
+          onClick={openSale}
           primary
         />
         <ActionButton
@@ -224,13 +224,13 @@ export default function InicioPage() {
               Resumo e gráfico {periodLabel[period]}.
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
             {periodOptions.map(([value, label]) => (
               <button
                 key={value}
                 onClick={() => setPeriod(value)}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  "shrink-0 rounded-full border px-3.5 py-2 text-xs font-medium transition-colors sm:px-3 sm:py-1.5",
                   period === value
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:bg-muted",
@@ -308,7 +308,6 @@ export default function InicioPage() {
         </Card>
       </section>
 
-      <QuickSaleDialog open={saleOpen} onOpenChange={setSaleOpen} />
       <PurchaseDialog open={buyOpen} onOpenChange={setBuyOpen} />
     </div>
   );
@@ -331,7 +330,7 @@ function ActionButton({
     <button
       onClick={onClick}
       className={cn(
-        "flex flex-col items-start gap-3 rounded-2xl border p-5 text-left transition-all active:scale-[0.98]",
+        "flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-all active:scale-[0.98] sm:gap-3 sm:p-5",
         primary
           ? "border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
           : "border-border bg-card hover:border-primary hover:bg-primary/5",
@@ -362,7 +361,7 @@ function ActionLink({
   return (
     <Link
       href={href}
-      className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
+      className="flex flex-col items-start gap-2.5 rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.98] sm:gap-3 sm:p-5"
     >
       <Icon className="h-7 w-7 text-primary" />
       <div>

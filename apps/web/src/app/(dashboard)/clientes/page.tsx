@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { CustomerDialog } from "@/components/customers/customer-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -75,14 +76,31 @@ export default function CustomersPage() {
         />
       </div>
 
-      <Card>
-        {isLoading ? (
+      {isLoading ? (
+        <Card>
           <div className="space-y-2 p-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : data && data.data.length > 0 ? (
+        </Card>
+      ) : data && data.data.length > 0 ? (
+        <>
+          {/* Celular: cartões tocáveis — ações ficam no detalhe */}
+          <div className="space-y-2 sm:hidden">
+            {data.data.map((customer) => (
+              <ListCard
+                key={customer.id}
+                href={`/clientes/${customer.id}`}
+                title={customer.name}
+                subtitle={
+                  customer.whatsapp || customer.phone || customer.email || "Sem contato"
+                }
+              />
+            ))}
+          </div>
+
+          <Card className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -149,7 +167,10 @@ export default function CustomersPage() {
               ))}
             </TableBody>
           </Table>
-        ) : (
+          </Card>
+        </>
+      ) : (
+        <Card>
           <EmptyState
             className="border-0"
             icon={<Users />}
@@ -162,8 +183,8 @@ export default function CustomersPage() {
               </Button>
             }
           />
-        )}
-      </Card>
+        </Card>
+      )}
 
       <CustomerDialog
         open={dialogOpen}

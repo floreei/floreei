@@ -70,7 +70,7 @@ export function CashInDialog({
               render={({ field }) => (
                 <CurrencyInput
                   id="ci-amount"
-                  className="h-12 text-lg"
+                  className="h-12 lg:h-12 text-lg"
                   value={field.value ?? 0}
                   onChange={field.onChange}
                 />

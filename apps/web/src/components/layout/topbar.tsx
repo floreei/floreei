@@ -1,7 +1,6 @@
 "use client";
 
-import { HelpCircle, LogOut, Menu, Search } from "lucide-react";
-import { useState } from "react";
+import { HelpCircle, LogOut, Search } from "lucide-react";
 import { useGuide } from "@/components/onboarding/guide";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCommandPalette } from "./command-palette";
-import { SidebarNav } from "./sidebar";
 
 function initials(name: string): string {
   return name
@@ -31,21 +28,10 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const { open } = useCommandPalette();
   const guide = useGuide();
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menu">
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="p-2">
-          <SidebarNav onNavigate={() => setSheetOpen(false)} />
-        </SheetContent>
-      </Sheet>
-
+      {/* No mobile a navegação vive na bottom bar ("Mais" abre o menu completo). */}
       <button
         type="button"
         onClick={open}

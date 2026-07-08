@@ -51,7 +51,7 @@ test("nova venda: filtra Buquês x Revenda mostrando só o conteúdo de cada", a
 
   // Nova venda → aba padrão Buquês: só buquê
   await page.goto("/inicio");
-  await page.getByRole("button", { name: "Nova venda" }).click();
+  await page.getByRole("button", { name: "Nova venda" }).first().click();
   await expect(page.getByRole("button", { name: /Buquê Teste/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Rosa Avulsa/ })).toHaveCount(0);
 

@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { AccessBlocked } from "@/components/auth/access-blocked";
 import { VerifyEmailScreen } from "@/components/auth/verify-email-screen";
 import { FeatureUpsell } from "@/components/billing/feature-upsell";
+import { QuickSaleProvider } from "@/components/events/quick-sale-provider";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { navItems, navItemUnlocked } from "@/components/layout/nav";
 import { PaymentBanner } from "@/components/layout/payment-banner";
@@ -60,24 +62,28 @@ export default function DashboardLayout({
   return (
     <CommandPaletteProvider>
       <GuideProvider>
-        <WelcomeDialog />
-        <div className="flex min-h-screen bg-muted/20">
-          <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-border bg-card lg:block">
-            <SidebarNav />
-          </aside>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <TrialBanner />
-            <PaymentBanner />
-            <Topbar />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-              {lockedFeature ? (
-                <FeatureUpsell feature={lockedFeature} />
-              ) : (
-                children
-              )}
-            </main>
+        <QuickSaleProvider>
+          <WelcomeDialog />
+          <div className="flex min-h-screen bg-muted/20">
+            <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-border bg-card lg:block">
+              <SidebarNav />
+            </aside>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <TrialBanner />
+              <PaymentBanner />
+              <Topbar />
+              {/* pb extra no mobile: respiro pro bottom nav fixo */}
+              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+                {lockedFeature ? (
+                  <FeatureUpsell feature={lockedFeature} />
+                ) : (
+                  children
+                )}
+              </main>
+            </div>
           </div>
-        </div>
+          <BottomNav />
+        </QuickSaleProvider>
       </GuideProvider>
     </CommandPaletteProvider>
   );

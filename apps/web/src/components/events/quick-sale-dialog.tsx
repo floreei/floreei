@@ -255,7 +255,7 @@ export function QuickSaleDialog({
         if (!o) reset();
       }}
     >
-      <DialogContent className="max-w-2xl">
+      <DialogContent fullOnMobile className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl">Venda rápida</DialogTitle>
           <DialogDescription>
@@ -277,18 +277,18 @@ export function QuickSaleDialog({
         </div>
 
         {mode !== "amount" ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder={mode === "buque" ? "Buscar buquê…" : "Buscar insumo…"}
-                  className="h-11 pl-9"
+                  className="h-11 lg:h-11 pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
+              <div className="max-h-[38dvh] space-y-1 overflow-y-auto pr-1 sm:max-h-52">
                 {filtered.map((s) => (
                   <button
                     key={key(s)}
@@ -331,7 +331,7 @@ export function QuickSaleDialog({
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                 <ShoppingCart className="h-4 w-4" /> Carrinho
               </div>
-              <div className="max-h-52 flex-1 space-y-2 overflow-y-auto">
+              <div className="max-h-[34dvh] flex-1 space-y-2 overflow-y-auto sm:max-h-52">
                 {cartItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     Toque num item para adicionar.
@@ -342,13 +342,13 @@ export function QuickSaleDialog({
                     return (
                       <div key={k} className="space-y-2 rounded-md bg-background p-2">
                         <div className="flex items-center gap-2">
-                          <span className="flex-1 truncate text-sm font-medium">
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium">
                             {item.sellable.name}
                           </span>
                           <button
                             type="button"
                             aria-label="Menos"
-                            className="flex h-7 w-7 items-center justify-center rounded-md border border-border"
+                            className="flex h-9 w-9 items-center justify-center rounded-md border border-border sm:h-7 sm:w-7"
                             onClick={() => changeQty(k, -1)}
                           >
                             <Minus className="h-3.5 w-3.5" />
@@ -359,7 +359,7 @@ export function QuickSaleDialog({
                           <button
                             type="button"
                             aria-label="Mais"
-                            className="flex h-7 w-7 items-center justify-center rounded-md border border-border"
+                            className="flex h-9 w-9 items-center justify-center rounded-md border border-border sm:h-7 sm:w-7"
                             onClick={() => changeQty(k, 1)}
                           >
                             <Plus className="h-3.5 w-3.5" />
@@ -367,7 +367,7 @@ export function QuickSaleDialog({
                           <button
                             type="button"
                             aria-label="Remover"
-                            className="text-muted-foreground hover:text-destructive"
+                            className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-destructive sm:h-7 sm:w-7"
                             onClick={() => changeQty(k, -item.quantity)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -387,7 +387,7 @@ export function QuickSaleDialog({
                           </Label>
                           <CurrencyInput
                             id={`price-${k}`}
-                            className="h-8"
+                            className="h-10 min-w-0 sm:h-8"
                             value={item.price}
                             onChange={(v) => setPrice(k, v)}
                           />
@@ -403,7 +403,7 @@ export function QuickSaleDialog({
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="qs-amount" className="flex items-center gap-1">
                 Valor da venda
@@ -411,7 +411,7 @@ export function QuickSaleDialog({
               </Label>
               <CurrencyInput
                 id="qs-amount"
-                className="h-12 text-lg"
+                className="h-12 lg:h-12 text-lg"
                 value={amount}
                 onChange={setAmount}
               />
@@ -429,7 +429,7 @@ export function QuickSaleDialog({
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label>Cliente (opcional)</Label>
@@ -487,7 +487,7 @@ export function QuickSaleDialog({
             </p>
           </div>
           <Button
-            className="h-12 flex-1 text-base"
+            className="h-12 lg:h-12 flex-1 text-base"
             disabled={!canSubmit}
             loading={submitting}
             onClick={submit}
