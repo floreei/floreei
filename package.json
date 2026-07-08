@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "test:e2e": "turbo run test:e2e",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",

@@ -10,7 +10,9 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
-  collectCoverageFrom: ["**/*.(t|j)s"],
+  // Cobertura dos testes UNITÁRIOS foca na lógica de domínio (funções puras);
+  // o grosso da API é validado pela suíte e2e (test/*.e2e-spec.ts).
+  collectCoverageFrom: ["**/domain/**/*.ts", "**/*.calculator.ts"],
   coverageDirectory: "../coverage",
   testEnvironment: "node",
 };
