@@ -5,8 +5,62 @@ on:
     branches: [main]
   pull_request:
 
+# Cancela runs antigos do mesmo branch/PR quando chega um novo push.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
+  # Qualidade estática + testes unitários com cobertura + build de tudo.
+  # Não precisa de banco, então roda em paralelo com o e2e.
+  checks:
+    name: Lint · Types · Unit · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @sistema-flores/types build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests + coverage
+        run: pnpm test:coverage
+
+      - name: Build all apps
+        run: pnpm build
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            packages/types/coverage
+            apps/web/coverage
+            apps/api/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Testes de integração/e2e da API — sobem Postgres e batem no Firebase real.
+  e2e:
+    name: API e2e
     runs-on: ubuntu-latest
 
     services:
@@ -55,14 +109,105 @@ jobs:
       - name: Build shared packages
         run: pnpm --filter @sistema-flores/types build
 
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Unit tests
-        run: pnpm test
-
       - name: E2E API tests
         run: pnpm --filter @sistema-flores/api test:e2e
+
+  # Vulnerabilidades em dependências. `high` é informativo; `critical` bloqueia.
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Audit (high, tudo — informativo)
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
+      # Bloqueia só o que vai para produção (dev-only, ex.: vitest UI, não sobe).
+      # O Dependabot cuida das demais atualizações.
+      - name: Audit (critical em produção — bloqueia)
+        run: pnpm audit --prod --audit-level=critical
+
+  # e2e do front (Playwright) — sobe API + web + Postgres e roda o Chromium.
+  # INFORMATIVO por ora (continue-on-error): a suíte ainda precisa acompanhar
+  # mudanças recentes do cadastro (CNPJ, verificação de e-mail). Não bloqueia.
+  web-e2e:
+    name: Web e2e (Playwright · informativo)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: flores
+          POSTGRES_PASSWORD: flores
+          POSTGRES_DB: sistema_flores
+        ports:
+          - 5440:5432
+        options: >-
+          --health-cmd "pg_isready -U flores -d sistema_flores"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Banco (prefixo DATABASE_*, usado pela migração e pelo start:e2e da API).
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5440
+      DATABASE_USER: flores
+      DATABASE_PASSWORD: flores
+      DATABASE_NAME: sistema_flores
+      # Firebase público (não é segredo) — front e API usam o projeto real.
+      FIREBASE_PROJECT_ID: ***REMOVED***
+      FIREBASE_API_KEY: ***REMOVED***
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_PUBLIC_FIREBASE_API_KEY: ***REMOVED***
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ***REMOVED***.firebaseapp.com
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ***REMOVED***
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ***REMOVED***.firebasestorage.app
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "***REMOVED***"
+      NEXT_PUBLIC_FIREBASE_APP_ID: "1:***REMOVED***:web:0c1fa8abb914c8d49cc5ce"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @sistema-flores/types build
+
+      - name: Run migrations
+        run: pnpm --filter @sistema-flores/api migration:run
+
+      - name: Install Playwright browser
+        run: pnpm --filter @sistema-flores/web exec playwright install --with-deps chromium
+
+      - name: Playwright e2e
+        run: pnpm --filter @sistema-flores/web e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 14

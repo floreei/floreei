@@ -41,12 +41,29 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push image
+      - name: Build image
+        id: image
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
           IMAGE="$REGISTRY/$ECR_REPOSITORY"
+          echo "ref=$IMAGE:${{ github.sha }}" >> "$GITHUB_OUTPUT"
           docker build -f apps/api/Dockerfile -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+
+      # Gate de segurança: barra CVEs HIGH/CRITICAL com correção antes do push.
+      - name: Scan image (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.image.outputs.ref }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY"
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
