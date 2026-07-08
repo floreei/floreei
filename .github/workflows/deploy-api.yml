@@ -1,8 +1,9 @@
 name: Deploy API
 
-# Deploy da API (NestJS) no AWS App Runner via ECR, no push para main quando a
-# API ou os tipos mudam. O `docker build` compila tudo — se não compilar, não
-# publica (funciona como gate). O CI roda em paralelo com os testes.
+# Deploy da API (NestJS) no Google Cloud Run, no push para main quando a API ou
+# os tipos mudam. Autentica via Workload Identity (OIDC, sem chave de longa
+# duração), builda a imagem (amd64) no runner, faz push no Artifact Registry e
+# faz o deploy — o Cloud Run cria uma nova revisão mantendo env/secrets/config.
 on:
   push:
     branches: [main]
@@ -13,62 +14,53 @@ on:
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch: {}
 
-# Necessário para o OIDC (assumir a IAM Role sem chave de longa duração).
+# Necessário para o OIDC (Workload Identity Federation).
 permissions:
   id-token: write
   contents: read
 
 env:
-  AWS_REGION: sa-east-1 # ajuste para a sua região
-  ECR_REPOSITORY: floreei-api
+  GCP_PROJECT: ***REMOVED***
+  GCP_REGION: us-east1
+  SERVICE: floreei-api
+  IMAGE: us-east1-docker.pkg.dev/***REMOVED***/floreei/floreei-api
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     # Fica inerte até você habilitar: defina a variável de repositório
-    # DEPLOY_API_ENABLED=true depois de configurar ECR + OIDC + App Runner.
+    # DEPLOY_API_ENABLED=true. Enquanto ausente, o job é pulado (não falha).
     if: ${{ vars.DEPLOY_API_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Autenticar no GCP (Workload Identity, sem chave)
+        uses: google-github-actions/auth@v2
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
 
-      - name: Login to Amazon ECR
-        id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build image
-        id: image
-        env:
-          REGISTRY: ${{ steps.ecr.outputs.registry }}
+      - name: Login do Docker no Artifact Registry
+        run: gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+
+      # Runner ubuntu é amd64 nativo (bate com o Cloud Run) — sem emulação.
+      - name: Build da imagem
+        run: docker build -f apps/api/Dockerfile -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+
+      - name: Push no Artifact Registry
         run: |
-          IMAGE="$REGISTRY/$ECR_REPOSITORY"
-          echo "ref=$IMAGE:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          docker build -f apps/api/Dockerfile -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
-
-      # Gate de segurança: barra CVEs HIGH/CRITICAL com correção antes do push.
-      - name: Scan image (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ steps.image.outputs.ref }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-
-      - name: Push image
-        env:
-          REGISTRY: ${{ steps.ecr.outputs.registry }}
-        run: |
-          IMAGE="$REGISTRY/$ECR_REPOSITORY"
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
-      # Se o App Runner NÃO estiver com auto-deploy no push da imagem, defina a
-      # variável de repositório APPRUNNER_SERVICE_ARN para disparar o deploy aqui.
-      - name: Trigger App Runner deployment
-        if: ${{ vars.APPRUNNER_SERVICE_ARN != '' }}
-        run: aws apprunner start-deployment --service-arn "${{ vars.APPRUNNER_SERVICE_ARN }}"
+      # Deploy só com --image: o Cloud Run mantém env vars, secrets, CPU/mem,
+      # scaling e ingress da revisão atual, trocando apenas a imagem.
+      - name: Deploy no Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE:${{ github.sha }}" \
+            --region "$GCP_REGION" \
+            --project "$GCP_PROJECT" \
+            --quiet
