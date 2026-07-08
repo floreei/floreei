@@ -262,7 +262,6 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
       .send({
         name: "Membro Extra",
         email: memberEmail,
-        password: "Segredo123!",
         role: "OPERATOR",
       })
       .expect(201);
@@ -277,7 +276,7 @@ describe("Billing / assinatura Mercado Pago (e2e)", () => {
     expect(sub.body.subscription.billedUsers).toBe(2);
 
     await http
-      .patch(`/api/users/${created.body.id}`)
+      .patch(`/api/users/${created.body.user.id}`)
       .set(auth())
       .send({ active: false })
       .expect(200);

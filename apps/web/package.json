@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "pnpm --filter @sistema-flores/types build && next build",
+    "build": "([ -f ../../packages/types/dist/index.d.ts ] || pnpm --filter @sistema-flores/types build) && next build",
     "start": "next start -p 3000",
     "lint": "next lint --max-warnings 0",
     "typecheck": "tsc --noEmit",

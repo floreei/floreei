@@ -194,6 +194,29 @@ export async function registerCompany(
   return { user: res.body as PublicUser, accessToken: idToken, email, password };
 }
 
+/**
+ * Convida um membro (novo fluxo: sem senha) e ACEITA o convite definindo a
+ * senha — deixa o membro pronto para `loginAs`. Retorna o usuário criado.
+ */
+export async function inviteMember(
+  http: Http,
+  adminToken: string,
+  input: { name: string; email: string; role?: string; password?: string },
+): Promise<{ user: PublicUser; password: string }> {
+  const password = input.password ?? "Segredo123!";
+  const res = await http
+    .post("/api/users")
+    .set("Authorization", `Bearer ${adminToken}`)
+    .send({ name: input.name, email: input.email, role: input.role ?? "OPERATOR" })
+    .expect(201);
+  const token = new URL(res.body.inviteUrl as string).searchParams.get("token");
+  await http
+    .post("/api/auth/accept-invite")
+    .send({ token, password })
+    .expect(201);
+  return { user: res.body.user as PublicUser, password };
+}
+
 /** Faz login (Firebase) e devolve o perfil + ID token. */
 export async function loginAs(
   http: Http,

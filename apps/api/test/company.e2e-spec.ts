@@ -4,6 +4,7 @@ import {
   loginAs,
   registerCompany,
   uniqueEmail,
+  inviteMember,
 } from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
@@ -60,11 +61,7 @@ describe("Dados da empresa (e2e)", () => {
 
   it("apenas ADMIN pode atualizar", async () => {
     const opEmail = uniqueEmail("op");
-    await http
-      .post("/api/users")
-      .set(auth())
-      .send({ name: "Op", email: opEmail, password: "Segredo123!" })
-      .expect(201);
+    await inviteMember(http, token, { name: "Op", email: opEmail });
     const operator = await loginAs(http, opEmail, "Segredo123!");
 
     await http

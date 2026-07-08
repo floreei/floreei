@@ -1,5 +1,7 @@
 import request from "supertest";
-import { loginAs, registerCompany, uniqueEmail } from "./utils/auth-helper";
+import { loginAs, registerCompany, uniqueEmail,
+  inviteMember,
+} from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
 describe("Usuários + RBAC (e2e)", () => {
@@ -23,16 +25,10 @@ describe("Usuários + RBAC (e2e)", () => {
     const admin = await registerCompany(http, {});
     const opEmail = uniqueEmail("op");
 
-    await http
-      .post("/api/users")
-      .set("Authorization", `Bearer ${admin.accessToken}`)
-      .send({
-        name: "Operador",
-        email: opEmail,
-        password: "Segredo123!",
-        role: "OPERATOR",
-      })
-      .expect(201);
+    await inviteMember(http, admin.accessToken, {
+      name: "Operador",
+      email: opEmail,
+    });
 
     const operator = await loginAs(http, opEmail, "Segredo123!");
 
@@ -49,7 +45,6 @@ describe("Usuários + RBAC (e2e)", () => {
       .send({
         name: "Outro",
         email: uniqueEmail("outro"),
-        password: "Segredo123!",
         role: "OPERATOR",
       })
       .expect(403);
@@ -61,7 +56,7 @@ describe("Usuários + RBAC (e2e)", () => {
     await http
       .post("/api/users")
       .set("Authorization", `Bearer ${a.accessToken}`)
-      .send({ name: "Op A", email: opaEmail, password: "Segredo123!" })
+      .send({ name: "Op A", email: opaEmail })
       .expect(201);
 
     const b = await registerCompany(http, {});
