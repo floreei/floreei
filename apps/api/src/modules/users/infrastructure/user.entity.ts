@@ -27,6 +27,10 @@ export class UserEntity extends TenantOwnedEntity {
   @Column({ type: "boolean", default: true })
   active!: boolean;
 
+  /** Token do convite pendente (link de aceite); null após o aceite. */
+  @Column({ name: "invite_token", type: "varchar", length: 64, nullable: true })
+  inviteToken!: string | null;
+
   @ManyToOne(() => CompanyEntity, (company) => company.users, {
     onDelete: "CASCADE",
   })

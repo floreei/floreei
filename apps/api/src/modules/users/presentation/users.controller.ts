@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
-import type { PublicUser } from "@sistema-flores/types";
+import type { InviteResult, PublicUser } from "@sistema-flores/types";
 import { Roles } from "../../../common/auth/roles.decorator";
 import { UsersService } from "../application/users.service";
 import { CreateUserDto, UpdateUserDto } from "./users.dto";
@@ -15,7 +15,7 @@ export class UsersController {
 
   @Roles("ADMIN")
   @Post()
-  create(@Body() dto: CreateUserDto): Promise<PublicUser> {
+  create(@Body() dto: CreateUserDto): Promise<InviteResult> {
     return this.users.create(dto);
   }
 

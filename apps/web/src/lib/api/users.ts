@@ -1,4 +1,8 @@
-import type { CreateUserInput, PublicUser } from "@sistema-flores/types";
+import type {
+  CreateUserInput,
+  InviteResult,
+  PublicUser,
+} from "@sistema-flores/types";
 import {
   useMutation,
   useQuery,
@@ -19,7 +23,7 @@ export function useCreateMember() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateUserInput) =>
-      api.post<PublicUser>("/users", input),
+      api.post<InviteResult>("/users", input),
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
 }

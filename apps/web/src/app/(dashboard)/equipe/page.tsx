@@ -1,8 +1,8 @@
 "use client";
 
-import { createUserSchema, type Role } from "@sistema-flores/types";
+import { createUserSchema, type InviteResult, type Role } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, UsersRound } from "lucide-react";
+import { Check, Copy, Plus, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -70,6 +70,7 @@ export default function TeamPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>E-mail</TableHead>
                 <TableHead>Papel</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -83,6 +84,15 @@ export default function TeamPage() {
                     <Badge variant={member.role === "ADMIN" ? "default" : "secondary"}>
                       {member.role === "ADMIN" ? "Administrador" : "Operador"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {member.pending ? (
+                      <Badge variant="outline" className="text-amber-600">
+                        Convite pendente
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Ativo</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -106,81 +116,122 @@ function InviteDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const create = useCreateMember();
+  const [result, setResult] = useState<InviteResult | null>(null);
   const form = useForm({
     resolver: zodResolver(createUserSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      role: "OPERATOR" as Role,
-    },
+    defaultValues: { name: "", email: "", role: "OPERATOR" as Role },
   });
 
   useEffect(() => {
-    if (open) form.reset({ name: "", email: "", password: "", role: "OPERATOR" });
+    if (open) {
+      setResult(null);
+      form.reset({ name: "", email: "", role: "OPERATOR" });
+    }
   }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Convidar membro</DialogTitle>
-          <DialogDescription>
-            Defina uma senha inicial — o membro poderá usá-la para entrar.
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          className="space-y-4"
-          onSubmit={form.handleSubmit(async (values) => {
-            try {
-              await create.mutateAsync(values);
-              toast.success("Membro adicionado.");
-              onOpenChange(false);
-            } catch (error) {
-              toast.error(
-                error instanceof ApiError ? error.message : "Erro ao convidar.",
-              );
-            }
-          })}
-        >
-          <Field label="Nome" htmlFor="m-name" required error={form.formState.errors.name?.message}>
-            <Input id="m-name" autoFocus {...form.register("name")} />
-          </Field>
-          <Field label="E-mail" htmlFor="m-email" required error={form.formState.errors.email?.message}>
-            <Input id="m-email" type="email" {...form.register("email")} />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Senha inicial" htmlFor="m-pass" required error={form.formState.errors.password?.message}>
-              <Input id="m-pass" type="text" {...form.register("password")} />
-            </Field>
-            <Field label="Papel">
-              <Controller
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OPERATOR">Operador</SelectItem>
-                      <SelectItem value="ADMIN">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" loading={form.formState.isSubmitting}>
-              Adicionar
-            </Button>
-          </DialogFooter>
-        </form>
+        {result ? (
+          <InviteCreated result={result} onClose={() => onOpenChange(false)} />
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Convidar membro</DialogTitle>
+              <DialogDescription>
+                A pessoa recebe um link por e-mail para definir a própria senha e
+                entrar na sua empresa.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-4"
+              onSubmit={form.handleSubmit(async (values) => {
+                try {
+                  setResult(await create.mutateAsync(values));
+                } catch (error) {
+                  toast.error(
+                    error instanceof ApiError
+                      ? error.message
+                      : "Erro ao convidar.",
+                  );
+                }
+              })}
+            >
+              <Field label="Nome" htmlFor="m-name" required error={form.formState.errors.name?.message}>
+                <Input id="m-name" autoFocus {...form.register("name")} />
+              </Field>
+              <Field label="E-mail" htmlFor="m-email" required error={form.formState.errors.email?.message}>
+                <Input id="m-email" type="email" {...form.register("email")} />
+              </Field>
+              <Field label="Papel">
+                <Controller
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OPERATOR">Operador</SelectItem>
+                        <SelectItem value="ADMIN">Administrador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" loading={form.formState.isSubmitting}>
+                  Enviar convite
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function InviteCreated({
+  result,
+  onClose,
+}: {
+  result: InviteResult;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard.writeText(result.inviteUrl);
+    setCopied(true);
+    toast.success("Link copiado.");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Convite criado</DialogTitle>
+        <DialogDescription>
+          Enviamos um e-mail para <strong>{result.user.email}</strong>. Se
+          preferir, copie o link abaixo e mande você mesmo — ele leva a pessoa
+          direto para definir a senha.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex items-center gap-2">
+        <Input readOnly value={result.inviteUrl} className="text-xs" />
+        <Button type="button" variant="outline" size="icon" onClick={copy}>
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+      <DialogFooter>
+        <Button type="button" onClick={onClose}>
+          Concluir
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

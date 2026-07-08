@@ -62,5 +62,7 @@ export const publicUserSchema = z.object({
   email: emailSchema,
   role: roleSchema,
   access: companyAccessInfoSchema.optional(),
+  /** Convite ainda não aceito (sem login definido). */
+  pending: z.boolean().optional(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;

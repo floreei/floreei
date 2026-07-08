@@ -54,7 +54,7 @@ aws ecr create-repository --repository-name floreei-api
    - Variable **`DEPLOY_API_ENABLED=true`** — **ligue só depois** de ter ECR + OIDC + App Runner
      prontos. Enquanto estiver ausente, o workflow `deploy-api.yml` fica **inerte** (job skipped),
      sem falhar.
-   - Ajuste `AWS_REGION` no `.github/workflows/deploy-api.yml` (default `sa-east-1`).
+   - Ajuste `AWS_REGION` no `.github/workflows/deploy-api.yml` (default `us-east-1`).
 
 ### 2.3 App Runner
 - Serviço **a partir do ECR** (`floreei-api:latest`); **auto-deploy** no push da imagem (recomendado).

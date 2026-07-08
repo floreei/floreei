@@ -2,11 +2,13 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   documentDigits,
+  type InviteInfo,
   type ProvisionInput,
   type PublicUser,
   resolveCompanyAccess,
@@ -16,6 +18,7 @@ import {
 import { DataSource, Repository } from "typeorm";
 import type { FirebaseIdentity } from "../../../common/auth/firebase-token.guard";
 import { EmailService } from "../../../common/email/email.service";
+import { FirebaseService } from "../../../common/firebase/firebase.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { PlanDefinitionsService } from "../../plans/plan-definitions.service";
 import { PlatformNotificationsService } from "../../platform/notifications/platform-notifications.service";
@@ -44,6 +47,7 @@ export class AuthService {
     private readonly planDefs: PlanDefinitionsService,
     private readonly email: EmailService,
     private readonly notifications: PlatformNotificationsService,
+    private readonly firebase: FirebaseService,
   ) {}
 
   /**
@@ -195,5 +199,44 @@ export class AuthService {
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
     return this.withCompanyInfo(toPublicUser(user));
+  }
+
+  /** Dados públicos de um convite pendente (para a tela de aceite). */
+  async inviteInfo(token: string): Promise<InviteInfo> {
+    const user = await this.users.findOne({ where: { inviteToken: token } });
+    if (!user || user.firebaseUid) {
+      throw new NotFoundException("Convite inválido ou já utilizado.");
+    }
+    const company = await this.companies.findOne({
+      where: { id: user.companyId },
+    });
+    return {
+      email: user.email,
+      name: user.name,
+      companyName: company?.name ?? "",
+    };
+  }
+
+  /**
+   * Aceite do convite: o convidado define a senha, criando a conta no Firebase e
+   * ativando o vínculo com a empresa. Em seguida ele loga com e-mail + senha.
+   */
+  async acceptInvite(
+    token: string,
+    password: string,
+  ): Promise<{ email: string }> {
+    const user = await this.users.findOne({ where: { inviteToken: token } });
+    if (!user || user.firebaseUid) {
+      throw new NotFoundException("Convite inválido ou já utilizado.");
+    }
+    const firebaseUser = await this.firebase.createAuthUser({
+      email: user.email,
+      password,
+      displayName: user.name,
+    });
+    user.firebaseUid = firebaseUser.uid;
+    user.inviteToken = null;
+    await this.users.save(user);
+    return { email: user.email };
   }
 }

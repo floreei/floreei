@@ -9,5 +9,6 @@ export function toPublicUser(user: UserEntity): PublicUser {
     name: user.name,
     email: user.email,
     role: user.role,
+    pending: !user.firebaseUid,
   };
 }
