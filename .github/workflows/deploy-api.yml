@@ -20,10 +20,10 @@ permissions:
   contents: read
 
 env:
-  GCP_PROJECT: ***REMOVED***
+  GCP_PROJECT: ${{ vars.GCP_PROJECT }}
   GCP_REGION: us-east1
   SERVICE: floreei-api
-  IMAGE: us-east1-docker.pkg.dev/***REMOVED***/floreei/floreei-api
+  IMAGE: us-east1-docker.pkg.dev/${{ vars.GCP_PROJECT }}/floreei/floreei-api
 
 jobs:
   deploy:

@@ -1,4 +1,17 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+
+// Carrega o apps/web/.env (dev) no process.env — os testes e o comando dos
+// webServers usam a config do Firebase de lá, sem valores no repositório.
+try {
+  for (const line of readFileSync(join(__dirname, ".env"), "utf8").split("\n")) {
+    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2];
+  }
+} catch {
+  // Sem .env local (ex.: CI) — as variáveis já vêm do ambiente.
+}
 
 /**
  * E2E do fluxo principal. Sobe a API (NestJS) e o web (Next.js) e roda o
@@ -24,8 +37,7 @@ export default defineConfig({
       // API em NODE_ENV=test: usa o banco de TESTE, pula a verificação de e-mail
       // e relaxa o rate limit — necessário para o cadastro via UI concluir no
       // Firebase real (que não permite confirmar e-mail num teste).
-      command:
-        "NODE_ENV=test FIREBASE_PROJECT_ID=***REMOVED*** pnpm --filter @sistema-flores/api start:e2e",
+      command: `NODE_ENV=test FIREBASE_PROJECT_ID=${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? ""} pnpm --filter @sistema-flores/api start:e2e`,
       url: "http://localhost:3001/api/health",
       timeout: 90_000,
       reuseExistingServer: !process.env.CI,

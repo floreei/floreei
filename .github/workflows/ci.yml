@@ -18,16 +18,17 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Config pública do Firebase (não é segredo): o Next inlina as NEXT_PUBLIC_*
-      # no build e admin/web pré-renderizam páginas que inicializam o Firebase —
+      # Config do Firebase vem das Variables do repositório (Settings → Secrets
+      # and variables → Actions → Variables): o Next inlina as NEXT_PUBLIC_* no
+      # build e admin/web pré-renderizam páginas que inicializam o Firebase —
       # sem elas o build quebra com auth/invalid-api-key (igual à Vercel/prod).
       NEXT_PUBLIC_API_URL: http://localhost:3001/api
-      NEXT_PUBLIC_FIREBASE_API_KEY: ***REMOVED***
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ***REMOVED***.firebaseapp.com
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ***REMOVED***
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ***REMOVED***.firebasestorage.app
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "***REMOVED***"
-      NEXT_PUBLIC_FIREBASE_APP_ID: "1:***REMOVED***:web:0c1fa8abb914c8d49cc5ce"
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -101,8 +102,8 @@ jobs:
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
       # Config pública do Firebase (não é segredo) — o e2e usa o Firebase real.
-      FIREBASE_PROJECT_ID: ***REMOVED***
-      FIREBASE_API_KEY: ***REMOVED***
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4

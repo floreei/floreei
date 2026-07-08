@@ -12,7 +12,7 @@
 > não bater com o código, o código vence; conserte esta linha.
 
 > **Firebase — sempre integração nativa/direta, NUNCA emulador (nem nos testes).**
-> Auth, Storage e tudo do Firebase batem no **projeto real** (`***REMOVED***`) em
+> Auth, Storage e tudo do Firebase batem no **projeto real** (o projectId configurado no `.env`) em
 > dev, prod **e na suíte e2e/Playwright**. Não há service account no ambiente: o
 > backend verifica o ID token só com o `projectId` e cria membros de equipe via
 > **Identity Toolkit REST** (apiKey pública) — ver `common/firebase/firebase.service.ts`

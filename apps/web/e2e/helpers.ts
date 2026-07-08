@@ -1,9 +1,8 @@
 import type { APIRequestContext } from "@playwright/test";
 
 const IDENTITY_URL = "https://identitytoolkit.googleapis.com/v1";
-const API_KEY =
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY ??
-  "***REMOVED***";
+// Carregada do apps/web/.env pelo playwright.config (dev) ou do env do CI.
+const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "";
 
 /**
  * Autentica no Firebase (real) e devolve um ID token — usado para semear dados via

@@ -17,10 +17,9 @@ coverage/
 playwright-report/
 test-results/
 
-# env
+# env — nenhum arquivo de ambiente no repo (nem os .example; ficam só locais).
 .env
 .env.*
-!.env.example
 
 # logs
 *.log

@@ -116,7 +116,7 @@ DATABASE_USER=<user>
 DATABASE_PASSWORD=<secret>
 DATABASE_NAME=<db>
 DATABASE_SSL=true                 # Neon exige TLS
-FIREBASE_PROJECT_ID=***REMOVED***
+FIREBASE_PROJECT_ID=<project-id>
 FIREBASE_API_KEY=<apiKey pública>
 # Admin SDK (apagar usuário ao excluir empresa). Sem isso, exclui só do banco.
 FIREBASE_SERVICE_ACCOUNT_B64=<base64 do service-account.json>   # ver 4.1
@@ -148,7 +148,7 @@ docker run --rm -p 8080:8080 \
   -e NODE_ENV=production -e PORT=8080 \
   -e DATABASE_HOST=host.docker.internal -e DATABASE_PORT=5440 \
   -e DATABASE_USER=flores -e DATABASE_PASSWORD=flores -e DATABASE_NAME=sistema_flores \
-  -e FIREBASE_PROJECT_ID=***REMOVED*** -e FIREBASE_API_KEY=<apiKey> \
+  -e FIREBASE_PROJECT_ID=<project-id> -e FIREBASE_API_KEY=<apiKey> \
   floreei-api:local
 curl http://localhost:8080/api/health     # -> {"status":"ok",...}
 
