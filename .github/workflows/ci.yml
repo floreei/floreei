@@ -16,6 +16,19 @@ jobs:
   checks:
     name: Lint · Types · Unit · Build
     runs-on: ubuntu-latest
+
+    env:
+      # Config pública do Firebase (não é segredo): o Next inlina as NEXT_PUBLIC_*
+      # no build e admin/web pré-renderizam páginas que inicializam o Firebase —
+      # sem elas o build quebra com auth/invalid-api-key (igual à Vercel/prod).
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_PUBLIC_FIREBASE_API_KEY: ***REMOVED***
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ***REMOVED***.firebaseapp.com
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ***REMOVED***
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ***REMOVED***.firebasestorage.app
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "***REMOVED***"
+      NEXT_PUBLIC_FIREBASE_APP_ID: "1:***REMOVED***:web:0c1fa8abb914c8d49cc5ce"
+
     steps:
       - uses: actions/checkout@v4
 
