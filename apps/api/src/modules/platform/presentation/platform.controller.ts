@@ -13,6 +13,7 @@ import {
 import {
   companiesQuerySchema,
   extendTrialSchema,
+  setCompanyUserActiveSchema,
   invitePlatformAdminSchema,
   setTrialEndSchema,
   type PlanTier,
@@ -42,6 +43,7 @@ class ExtendTrialDto extends createZodDto(extendTrialSchema) {}
 class SetTrialEndDto extends createZodDto(setTrialEndSchema) {}
 class InviteAdminDto extends createZodDto(invitePlatformAdminSchema) {}
 class UpdateEntitlementsDto extends createZodDto(updateEntitlementsSchema) {}
+class SetCompanyUserActiveDto extends createZodDto(setCompanyUserActiveSchema) {}
 class UpdatePlanDto extends createZodDto(updatePlanDefinitionSchema) {}
 
 /**
@@ -122,6 +124,26 @@ export class PlatformController {
     @Body() dto: UpdateEntitlementsDto,
   ) {
     return this.companies.updateEntitlements(id, dto);
+  }
+
+  /** Ativa/desativa o acesso de um membro da equipe da empresa. */
+  @Post("companies/:id/users/:userId/set-active")
+  setCompanyUserActive(
+    @Param("id") id: string,
+    @Param("userId") userId: string,
+    @Body() dto: SetCompanyUserActiveDto,
+  ) {
+    return this.companies.setUserActive(id, userId, dto.active);
+  }
+
+  /** Exclui um membro da equipe (banco + Firebase). Irreversível, só OWNER. */
+  @UseGuards(PlatformOwnerGuard)
+  @Delete("companies/:id/users/:userId")
+  deleteCompanyUser(
+    @Param("id") id: string,
+    @Param("userId") userId: string,
+  ) {
+    return this.companies.deleteUser(id, userId);
   }
 
   /** Exclui a empresa por completo (Firebase + banco). Irreversível, só OWNER. */

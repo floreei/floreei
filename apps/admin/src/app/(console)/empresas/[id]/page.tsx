@@ -72,6 +72,32 @@ export default function CompanyDetailPage() {
       toast.error(e instanceof Error ? e.message : "Não foi possível."),
   });
 
+  const memberActive = useMutation({
+    mutationFn: ({ userId, active }: { userId: string; active: boolean }) =>
+      api.post<unknown>(`/admin/companies/${id}/users/${userId}/set-active`, {
+        active,
+      }),
+    onSuccess: (_r, vars) => {
+      qc.invalidateQueries({ queryKey: ["company", id] });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success(vars.active ? "Acesso reativado." : "Acesso desativado.");
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível."),
+  });
+
+  const memberDelete = useMutation({
+    mutationFn: (userId: string) =>
+      api.delete<{ ok: boolean }>(`/admin/companies/${id}/users/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["company", id] });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Membro excluído.");
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível."),
+  });
+
   const remove = useMutation({
     mutationFn: () =>
       api.delete<{ ok: boolean; firebaseCleared: boolean }>(
@@ -370,10 +396,54 @@ export default function CompanyDetailPage() {
                       {u.email}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {u.role === "ADMIN" ? "Administrador" : "Operador"}
-                    {u.active ? "" : " · inativo"}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      {u.role === "ADMIN" ? "Administrador" : "Operador"}
+                      {u.active ? "" : " · inativo"}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={u.active ? "Desativar acesso" : "Reativar acesso"}
+                      disabled={memberActive.isPending}
+                      onClick={() => {
+                        if (
+                          u.active &&
+                          !window.confirm(
+                            `Desativar o acesso de "${u.name}"? A pessoa não consegue mais entrar (os dados ficam).`,
+                          )
+                        ) {
+                          return;
+                        }
+                        memberActive.mutate({ userId: u.id, active: !u.active });
+                      }}
+                    >
+                      {u.active ? (
+                        <Lock className="h-3.5 w-3.5" />
+                      ) : (
+                        <Unlock className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    {session?.role === "OWNER" ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Excluir membro (banco + Firebase)"
+                        disabled={memberDelete.isPending}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Excluir "${u.name}" (${u.email})? Apaga o acesso e o login — irreversível.`,
+                            )
+                          ) {
+                            memberDelete.mutate(u.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </CardContent>

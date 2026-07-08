@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -22,8 +23,9 @@ import {
   daysSince,
   resolveCompanyAccess,
 } from "@sistema-flores/types";
-import { Between, DataSource, In, Repository } from "typeorm";
+import { Between, DataSource, In, Not, Repository } from "typeorm";
 import { FirebaseService } from "../../../common/firebase/firebase.service";
+import { BillingService } from "../../billing/application/billing.service";
 import { SubscriptionEntity } from "../../billing/infrastructure/subscription.entity";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
@@ -65,6 +67,7 @@ export class PlatformCompaniesService {
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptions: Repository<SubscriptionEntity>,
     private readonly firebase: FirebaseService,
+    private readonly billing: BillingService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -449,6 +452,75 @@ export class PlatformCompaniesService {
       billedUsers: row.billedUsers,
       paymentFailedAt: iso(row.paymentFailedAt),
     };
+  }
+
+  /**
+   * Ativa/desativa o acesso de um membro da empresa. Inativo não passa no
+   * guard de autenticação — o acesso morre na hora, sem apagar dados.
+   */
+  async setUserActive(
+    companyId: string,
+    userId: string,
+    active: boolean,
+  ): Promise<PlatformCompanyUser> {
+    const user = await this.users.findOne({
+      where: { id: userId, companyId },
+    });
+    if (!user) throw new NotFoundException("Usuário não encontrado.");
+    if (!active) await this.ensureAnotherActiveAdmin(companyId, user);
+    user.active = active;
+    await this.users.save(user);
+    await this.billing.syncUserCount(companyId);
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      active: user.active,
+    };
+  }
+
+  /**
+   * Exclui um membro da equipe de uma empresa: apaga do banco e o login no
+   * Firebase (best-effort). Irreversível — protegido contra deixar a empresa
+   * sem administrador ativo.
+   */
+  async deleteUser(companyId: string, userId: string): Promise<{ ok: true }> {
+    const user = await this.users.findOne({
+      where: { id: userId, companyId },
+    });
+    if (!user) throw new NotFoundException("Usuário não encontrado.");
+    await this.ensureAnotherActiveAdmin(companyId, user);
+
+    const firebaseUid = user.firebaseUid;
+    await this.users.delete({ id: userId, companyId });
+    await this.billing.syncUserCount(companyId);
+
+    if (firebaseUid) {
+      await this.firebase.deleteAuthUser(firebaseUid).catch((error) => {
+        this.logger.error(
+          `Falha ao apagar o login ${user.email} no Firebase`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      });
+    }
+    return { ok: true };
+  }
+
+  /** Garante que a empresa não fica sem administrador ativo. */
+  private async ensureAnotherActiveAdmin(
+    companyId: string,
+    target: UserEntity,
+  ): Promise<void> {
+    if (target.role !== "ADMIN" || !target.active) return;
+    const others = await this.users.count({
+      where: { companyId, role: "ADMIN", active: true, id: Not(target.id) },
+    });
+    if (!others) {
+      throw new ConflictException(
+        "A empresa ficaria sem administrador ativo. Transfira o papel antes.",
+      );
+    }
   }
 
   private async team(id: string): Promise<PlatformCompanyUser[]> {

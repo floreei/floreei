@@ -136,6 +136,14 @@ export const extendTrialSchema = z.object({
 });
 export type ExtendTrialInput = z.infer<typeof extendTrialSchema>;
 
+/** Ativa/desativa o acesso de um membro da empresa (console do gestor). */
+export const setCompanyUserActiveSchema = z.object({
+  active: z.boolean(),
+});
+export type SetCompanyUserActiveInput = z.infer<
+  typeof setCompanyUserActiveSchema
+>;
+
 /** Define o fim do período gratuito por uma data exata (YYYY-MM-DD). */
 export const setTrialEndSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
