@@ -15,6 +15,7 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   await page.getByRole("tab", { name: "Criar conta" }).click();
   await page.getByLabel("Nome da empresa").fill(`Floricultura ${stamp}`);
   await page.getByLabel("Seu nome").fill("Ana E2E");
+  await page.getByLabel("CNPJ ou CPF").fill(String(Date.now()).padEnd(14, "0").slice(0, 14));
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
@@ -29,13 +30,13 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   await expect(page.getByText(customerName)).toBeVisible();
 
   // 3) Criar categoria + produto (compra 4, venda 10)
-  await page.goto("/catalogo");
+  await page.goto("/insumos");
   await page.getByRole("button", { name: "Nova categoria" }).click();
   await page.getByLabel("Nome").fill(categoryName);
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText(categoryName)).toBeVisible();
 
-  await page.getByRole("button", { name: "Novo produto" }).click();
+  await page.getByRole("button", { name: "Novo insumo" }).click();
   await page.getByLabel("Nome").fill(productName);
   await page.getByTestId("product-category-select").click();
   await page.getByRole("option", { name: categoryName }).click();

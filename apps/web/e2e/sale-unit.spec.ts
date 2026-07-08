@@ -15,6 +15,7 @@ test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
   await page.getByRole("tab", { name: "Criar conta" }).click();
   await page.getByLabel("Nome da empresa").fill("Floricultura Unidade");
   await page.getByLabel("Seu nome").fill("Ana");
+  await page.getByLabel("CNPJ ou CPF").fill(String(Date.now()).padEnd(14, "0").slice(0, 14));
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
@@ -43,9 +44,10 @@ test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
     })
   ).json();
 
-  // Nova venda → adiciona a hortênsia
+  // Nova venda → aba Revenda (a Hortênsia é revenda avulsa, não buquê)
   await page.goto("/inicio");
   await page.getByRole("button", { name: "Nova venda" }).click();
+  await page.getByRole("button", { name: "Revenda", exact: true }).click();
   await page.getByRole("button", { name: /Hortênsia Azul/ }).click();
 
   // Toggle aparece; padrão Maço → total da linha R$ 30,00

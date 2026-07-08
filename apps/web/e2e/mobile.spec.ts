@@ -21,7 +21,7 @@ const listPages = [
   "/eventos",
   "/caixa",
   "/orcamentos",
-  "/catalogo",
+  "/insumos",
 ];
 
 test.describe("responsividade mobile", () => {
@@ -38,6 +38,7 @@ test.describe("responsividade mobile", () => {
     await page.getByRole("tab", { name: "Criar conta" }).click();
     await page.getByLabel("Nome da empresa").fill("Floricultura Bela Flor");
     await page.getByLabel("Seu nome").fill("Ana Souza");
+    await page.getByLabel("CNPJ ou CPF").fill(String(Date.now()).padEnd(14, "0").slice(0, 14));
     await page.getByLabel("E-mail").fill(email);
     await page.getByLabel("Senha").fill(password);
     await page.getByRole("button", { name: "Criar conta gratuita" }).click();
@@ -86,7 +87,8 @@ test.describe("responsividade mobile", () => {
     // 1) Sem overflow horizontal de página nem de tabela
     for (const path of listPages) {
       await page.goto(path);
-      await page.waitForTimeout(500);
+      // Espera o gráfico do recharts assentar (evita overflow transiente na montagem).
+      await page.waitForTimeout(800);
       const info = await page.evaluate(() => {
         const pageDiff =
           document.documentElement.scrollWidth - window.innerWidth;

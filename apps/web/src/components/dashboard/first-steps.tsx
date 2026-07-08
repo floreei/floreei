@@ -71,7 +71,7 @@ export function FirstSteps() {
           {done} de {steps.length} concluídos
         </p>
       </div>
-      <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
         {steps.map((step) => {
           const complete = data[step.key];
           return (

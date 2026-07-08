@@ -46,12 +46,14 @@ export function WelcomeDialog() {
 
   const access = user?.access;
   const companyId = user?.companyId;
+  // Em testes (E2E) as boas-vindas não devem sobrepor o fluxo.
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
 
   useEffect(() => {
-    if (!companyId || access?.status !== "TRIAL") return;
+    if (isE2E || !companyId || access?.status !== "TRIAL") return;
     if (localStorage.getItem(seenKey(companyId))) return;
     setOpen(true);
-  }, [companyId, access?.status]);
+  }, [isE2E, companyId, access?.status]);
 
   const dismiss = () => {
     if (companyId) localStorage.setItem(seenKey(companyId), "1");
