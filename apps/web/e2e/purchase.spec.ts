@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { firebaseIdToken } from "./helpers";
 
-const dir = "/private/tmp/claude-501/-Users-hugouraga-Desktop-www-sistema-flores/9c397a10-8f13-40ea-9df3-3675fd649a6a/scratchpad";
 const API = "http://localhost:3001/api";
 
 test("fluxo de compra: pedido → receber → pagamento parcial → comprovante", async ({
@@ -48,12 +47,10 @@ test("fluxo de compra: pedido → receber → pagamento parcial → comprovante"
   await page.waitForURL(/\/compras\/[0-9a-f-]+/);
   await expect(page.getByText("Aguardando entrega")).toBeVisible();
   await expect(page.getByText("Rosa Colombiana")).toBeVisible();
-  await page.screenshot({ path: `${dir}/compra-detalhe.png`, fullPage: true });
 
   // Edição TRAZ os dados (não vem vazio)
   await page.getByRole("button", { name: "Editar" }).click();
   await expect(page.getByTestId("purchase-total")).toContainText("80,00"); // 20 × 4
-  await page.screenshot({ path: `${dir}/compra-edicao.png` });
   await page.keyboard.press("Escape");
 
   // Marca como recebida → entra no estoque
