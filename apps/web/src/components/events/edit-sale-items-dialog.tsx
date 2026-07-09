@@ -231,7 +231,7 @@ export function EditSaleItemsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent fullOnMobile className="max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar itens vendidos</DialogTitle>
           <DialogDescription>

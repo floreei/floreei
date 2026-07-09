@@ -27,19 +27,17 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
-    /** Formulários longos: tela cheia no celular (modal só no sm+). */
-    fullOnMobile?: boolean;
-  }
->(({ className, fullOnMobile, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
+    {/* Celular: TODO dialog ocupa a tela inteira (flex-col; o DialogFooter vai
+        pro rodapé com mt-auto). Desktop (sm+): modal centrado tradicional. */}
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid grid-cols-[minmax(0,1fr)] max-h-[min(90dvh,calc(var(--vvh)-1.5rem))] w-[calc(100%-1.5rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6",
-        fullOnMobile &&
-          "max-sm:inset-0 max-sm:left-0 max-sm:top-0 max-sm:h-[var(--vvh)] max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=open]:slide-in-from-bottom-4",
+        "max-sm:inset-0 max-sm:left-0 max-sm:top-0 max-sm:flex max-sm:flex-col max-sm:h-[var(--vvh)] max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=open]:slide-in-from-bottom-4",
         className,
       )}
       {...props}
@@ -70,7 +68,7 @@ const DialogFooter = ({
   <div
     data-kb-hide
     className={cn(
-      "sticky bottom-0 z-10 -mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 border-t border-border bg-card px-4 pb-4 pt-3 sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6 sm:pb-6",
+      "sticky bottom-0 z-10 -mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 border-t border-border bg-card px-4 pb-4 pt-3 max-sm:mt-auto max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6 sm:pb-6",
       className,
     )}
     {...props}
