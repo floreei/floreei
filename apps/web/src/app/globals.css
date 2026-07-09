@@ -71,9 +71,11 @@
     /* Foco (WCAG — sempre visível) */
     --focus-ring: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.7);
 
-    /* Altura realmente visível (visualViewport — desconta o teclado virtual).
-       O JS refina em ViewportHeightSync; sem JS cai no dvh. */
+    /* Altura realmente visível (visualViewport — desconta o teclado virtual)
+       e deslocamento do topo visível (iOS rola o viewport ao focar campos no
+       meio do form). O JS refina ambos em ViewportHeightSync; sem JS, fallback. */
     --vvh: 100dvh;
+    --vv-top: 0px;
 
     /* Motion */
     --ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);
