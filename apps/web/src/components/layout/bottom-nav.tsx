@@ -39,6 +39,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegação principal"
+      data-kb-hide
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
     >
       <div className="grid h-16 grid-cols-5">

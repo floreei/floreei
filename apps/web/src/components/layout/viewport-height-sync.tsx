@@ -13,6 +13,10 @@ export function ViewportHeightSync() {
     if (!vv) return;
     const update = () => {
       document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+      // Teclado aberto (viewport visível bem menor que a janela): elementos
+      // com data-kb-hide somem para o formulário ganhar a tela toda.
+      const keyboardOpen = vv.height < window.innerHeight - 140;
+      document.documentElement.classList.toggle("kb-open", keyboardOpen);
     };
     update();
     vv.addEventListener("resize", update);
@@ -21,6 +25,7 @@ export function ViewportHeightSync() {
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
       document.documentElement.style.removeProperty("--vvh");
+      document.documentElement.classList.remove("kb-open");
     };
   }, []);
   return null;

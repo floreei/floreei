@@ -479,7 +479,7 @@ export function QuickSaleDialog({
 
         {/* Rodapé sticky COMPACTO (Total + ação numa linha só): o CTA fica
             sempre visível no celular sem esconder o conteúdo acima. */}
-        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center gap-3 border-t border-border bg-card px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
+        <div data-kb-hide className="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center gap-3 border-t border-border bg-card px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Total</p>
             <p className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums">

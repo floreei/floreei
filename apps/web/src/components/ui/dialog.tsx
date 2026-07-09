@@ -68,6 +68,7 @@ const DialogFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
+    data-kb-hide
     className={cn(
       "sticky bottom-0 z-10 -mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 border-t border-border bg-card px-4 pb-4 pt-3 sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6 sm:pb-6",
       className,
