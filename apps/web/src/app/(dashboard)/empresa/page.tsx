@@ -1,6 +1,6 @@
 "use client";
 
-import { companySettingsSchema } from "@sistema-flores/types";
+import { companyFiscalSettingsSchema, companySettingsSchema } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -13,7 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
-import { useCompany, useUpdateCompany } from "@/lib/api/company";
+import {
+  useCompany,
+  useCompanyFiscal,
+  useUpdateCompany,
+  useUpdateCompanyFiscal,
+} from "@/lib/api/company";
 import { useAuth } from "@/lib/auth/auth-context";
 import { maskCpfCnpj, maskPhone, withMask } from "@/lib/masks";
 
@@ -22,9 +27,28 @@ const MAX_LOGO_BYTES = 1_500_000; // ~1,5 MB
 export default function CompanyPage() {
   const { data, isLoading } = useCompany();
   const update = useUpdateCompany();
+  const { data: fiscal, isLoading: loadingFiscal } = useCompanyFiscal();
+  const updateFiscal = useUpdateCompanyFiscal();
   const { patchUser } = useAuth();
   const [logo, setLogo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const fiscalForm = useForm({
+    resolver: zodResolver(companyFiscalSettingsSchema),
+    defaultValues: {
+      stateRegistration: "",
+      taxRegime: "",
+      addressStreet: "",
+      addressNumber: "",
+      addressComplement: "",
+      addressNeighborhood: "",
+      addressCity: "",
+      addressState: "",
+      addressZip: "",
+      cityCode: "",
+      invoiceAutoEmit: false,
+    },
+  });
 
   const form = useForm({
     resolver: zodResolver(companySettingsSchema),
@@ -51,6 +75,24 @@ export default function CompanyPage() {
       setLogo(data.logo ?? null);
     }
   }, [data, form]);
+
+  useEffect(() => {
+    if (fiscal) {
+      fiscalForm.reset({
+        stateRegistration: fiscal.stateRegistration ?? "",
+        taxRegime: fiscal.taxRegime ?? "",
+        addressStreet: fiscal.addressStreet ?? "",
+        addressNumber: fiscal.addressNumber ?? "",
+        addressComplement: fiscal.addressComplement ?? "",
+        addressNeighborhood: fiscal.addressNeighborhood ?? "",
+        addressCity: fiscal.addressCity ?? "",
+        addressState: fiscal.addressState ?? "",
+        addressZip: fiscal.addressZip ?? "",
+        cityCode: fiscal.cityCode ?? "",
+        invoiceAutoEmit: fiscal.invoiceAutoEmit,
+      });
+    }
+  }, [fiscal, fiscalForm]);
 
   const onPickLogo = (file: File) => {
     if (file.size > MAX_LOGO_BYTES) {
@@ -191,6 +233,101 @@ export default function CompanyPage() {
           </Button>
         </div>
       </form>
+
+      {loadingFiscal ? (
+        <Skeleton className="h-96 w-full" />
+      ) : (
+        <form
+          onSubmit={fiscalForm.handleSubmit(async (values) => {
+            try {
+              await updateFiscal.mutateAsync(values);
+              toast.success("Dados fiscais salvos.");
+            } catch (error) {
+              toast.error(
+                error instanceof ApiError ? error.message : "Erro ao salvar.",
+              );
+            }
+          })}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Dados fiscais</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Necessários pra emitir nota fiscal (NFC-e/NF-e) nas vendas.
+                Preencha quando for habilitar a emissão.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Inscrição Estadual" htmlFor="f-ie" optional hint='Deixe "ISENTO" se não tiver.'>
+                  <Input id="f-ie" {...fiscalForm.register("stateRegistration")} />
+                </Field>
+                <Field label="Regime tributário" htmlFor="f-regime" optional>
+                  <Input
+                    id="f-regime"
+                    placeholder="Ex.: Simples Nacional"
+                    {...fiscalForm.register("taxRegime")}
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                <Field label="Logradouro" htmlFor="f-street" optional>
+                  <Input id="f-street" {...fiscalForm.register("addressStreet")} />
+                </Field>
+                <Field label="Número" htmlFor="f-number" optional>
+                  <Input id="f-number" {...fiscalForm.register("addressNumber")} />
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Complemento" htmlFor="f-complement" optional>
+                  <Input id="f-complement" {...fiscalForm.register("addressComplement")} />
+                </Field>
+                <Field label="Bairro" htmlFor="f-neighborhood" optional>
+                  <Input id="f-neighborhood" {...fiscalForm.register("addressNeighborhood")} />
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-[2fr_0.7fr_1fr_1fr]">
+                <Field label="Cidade" htmlFor="f-city" optional>
+                  <Input id="f-city" {...fiscalForm.register("addressCity")} />
+                </Field>
+                <Field label="UF" htmlFor="f-state" optional>
+                  <Input id="f-state" maxLength={2} {...fiscalForm.register("addressState")} />
+                </Field>
+                <Field label="CEP" htmlFor="f-zip" optional>
+                  <Input id="f-zip" {...fiscalForm.register("addressZip")} />
+                </Field>
+                <Field
+                  label="Cód. IBGE"
+                  htmlFor="f-citycode"
+                  optional
+                  hint="Do município — exigido no XML."
+                >
+                  <Input id="f-citycode" {...fiscalForm.register("cityCode")} />
+                </Field>
+              </div>
+
+              <label className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-4">
+                <div>
+                  <p className="text-sm font-medium">Emitir nota automaticamente</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ligado: a nota é emitida sozinha ao fechar a venda. Desligado:
+                    você emite manualmente no detalhe de cada venda.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 shrink-0 accent-primary"
+                  {...fiscalForm.register("invoiceAutoEmit")}
+                />
+              </label>
+
+              <Button type="submit" loading={fiscalForm.formState.isSubmitting}>
+                Salvar dados fiscais
+              </Button>
+            </CardContent>
+          </Card>
+        </form>
+      )}
     </div>
   );
 }

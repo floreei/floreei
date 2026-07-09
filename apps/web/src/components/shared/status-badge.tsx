@@ -1,6 +1,8 @@
 import type {
   EventStatus,
   EventType,
+  InvoiceDocumentType,
+  InvoiceStatus,
   QuoteStatus,
   SalesChannel,
 } from "@sistema-flores/types";
@@ -67,5 +69,28 @@ const channelMap: Record<SalesChannel, { label: string; variant: Variant }> = {
 
 export function SalesChannelBadge({ channel }: { channel: SalesChannel }) {
   const { label, variant } = channelMap[channel];
+  return <Badge variant={variant}>{label}</Badge>;
+}
+
+const invoiceStatusMap: Record<InvoiceStatus, { label: string; variant: Variant }> = {
+  PENDING: { label: "Pendente", variant: "secondary" },
+  PROCESSING: { label: "Processando", variant: "warning" },
+  AUTHORIZED: { label: "Autorizada", variant: "success" },
+  REJECTED: { label: "Rejeitada", variant: "destructive" },
+  CANCELED: { label: "Cancelada", variant: "destructive" },
+};
+
+export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
+  const { label, variant } = invoiceStatusMap[status];
+  return <Badge variant={variant}>{label}</Badge>;
+}
+
+const invoiceDocMap: Record<InvoiceDocumentType, { label: string; variant: Variant }> = {
+  NFCE: { label: "NFC-e", variant: "default" },
+  NFE: { label: "NF-e", variant: "clay" },
+};
+
+export function InvoiceDocumentTypeBadge({ type }: { type: InvoiceDocumentType }) {
+  const { label, variant } = invoiceDocMap[type];
   return <Badge variant={variant}>{label}</Badge>;
 }

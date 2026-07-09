@@ -1,4 +1,6 @@
 import type {
+  CompanyFiscalSettings,
+  CompanyFiscalSettingsInput,
   CompanySettings,
   CompanySettingsInput,
   StoreSettings,
@@ -42,5 +44,22 @@ export function useUpdateStoreSettings() {
     mutationFn: (input: StoreSettingsInput) =>
       api.patch<StoreSettings>("/company/store", input),
     onSuccess: (data) => qc.setQueryData(["company", "store"], data),
+  });
+}
+
+export function useCompanyFiscal() {
+  return useQuery({
+    queryKey: ["company", "fiscal"],
+    queryFn: () => api.get<CompanyFiscalSettings>("/company/fiscal"),
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdateCompanyFiscal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CompanyFiscalSettingsInput) =>
+      api.patch<CompanyFiscalSettings>("/company/fiscal", input),
+    onSuccess: (data) => qc.setQueryData(["company", "fiscal"], data),
   });
 }

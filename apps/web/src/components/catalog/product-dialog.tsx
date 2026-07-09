@@ -65,6 +65,7 @@ export function ProductDialog({
       minStock: 0,
       active: true,
       imageUrl: null as string | null,
+      ncm: "",
     },
   });
 
@@ -82,6 +83,7 @@ export function ProductDialog({
         minStock: product?.minStock ?? 0,
         active: product?.active ?? true,
         imageUrl: product?.imageUrl ?? null,
+        ncm: product?.ncm ?? "",
       });
     }
   }, [open, product, defaultCategoryId, categories, form]);
@@ -306,6 +308,22 @@ export function ProductDialog({
               min="0"
               className="max-w-[160px]"
               {...form.register("minStock", { valueAsNumber: true })}
+            />
+          </Field>
+
+          <Field
+            label="NCM"
+            htmlFor="p-ncm"
+            optional
+            error={form.formState.errors.ncm?.message}
+            hint="Código fiscal (8 dígitos) — só necessário pra emitir nota fiscal."
+          >
+            <Input
+              id="p-ncm"
+              inputMode="numeric"
+              maxLength={8}
+              className="max-w-[160px]"
+              {...form.register("ncm")}
             />
           </Field>
 

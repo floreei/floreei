@@ -3,7 +3,9 @@
 import type { Payment } from "@sistema-flores/types";
 import {
   ArrowLeft,
+  FileText,
   HandCoins,
+  Lock,
   MapPin,
   MoreHorizontal,
   PackageCheck,
@@ -19,15 +21,26 @@ import { AttachmentsCard } from "@/components/events/attachments-card";
 import { EditSaleItemsDialog } from "@/components/events/edit-sale-items-dialog";
 import { EventDialog } from "@/components/events/event-dialog";
 import { PaymentDialog } from "@/components/finance/payment-dialog";
+import { Field } from "@/components/shared/field";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   EventStatusBadge,
   EventTypeBadge,
+  InvoiceDocumentTypeBadge,
+  InvoiceStatusBadge,
   PaymentStatusBadge,
 } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useCancelEvent,
   useDeleteEvent,
@@ -45,7 +59,13 @@ import {
   useDeleteEventPayment,
   useEventPayments,
 } from "@/lib/api/finance";
+import {
+  useCancelInvoice,
+  useEmitInvoice,
+  useInvoice,
+} from "@/lib/api/invoices";
 import { useAuth } from "@/lib/auth/auth-context";
+import { ApiError } from "@/lib/api/client";
 import { unitLabels } from "@/lib/labels";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -267,6 +287,8 @@ export default function EventDetailPage() {
         </CardContent>
       </Card>
 
+      <InvoiceCard eventId={event.id} channel={event.channel} />
+
       <AttachmentsCard eventId={event.id} />
 
       <PaymentDialog
@@ -421,5 +443,185 @@ function Recebimentos({
         payment={editing}
       />
     </div>
+  );
+}
+
+/** Emite/mostra a nota fiscal da venda — NFC-e (varejo) ou NF-e (atacado). */
+function InvoiceCard({
+  eventId,
+  channel,
+}: {
+  eventId: string;
+  channel: "RETAIL" | "WHOLESALE";
+}) {
+  const { user } = useAuth();
+  const hasFeature = Boolean(user?.access?.features?.includes("INVOICING"));
+  const { data: invoice, isLoading } = useInvoice(hasFeature ? eventId : undefined);
+  const emit = useEmitInvoice(eventId);
+  const cancel = useCancelInvoice(eventId);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  const docLabel = channel === "WHOLESALE" ? "NF-e" : "NFC-e";
+
+  if (!hasFeature) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-3 py-5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Lock className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Nota fiscal não está no seu plano</p>
+            <p className="text-xs text-muted-foreground">
+              Emissão de NFC-e (varejo) e NF-e (atacado) direto da venda.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/plano">Ver planos</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Nota fiscal</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {isLoading ? (
+          <Skeleton className="h-10 w-full" />
+        ) : !invoice ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Nenhuma nota emitida ({docLabel}).
+            </p>
+            <Button
+              size="sm"
+              loading={emit.isPending}
+              onClick={async () => {
+                try {
+                  await emit.mutateAsync();
+                  toast.success("Emissão de nota solicitada.");
+                } catch (error) {
+                  toast.error(
+                    error instanceof ApiError ? error.message : "Erro ao emitir.",
+                  );
+                }
+              }}
+            >
+              <FileText className="h-4 w-4" />
+              Emitir nota
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <InvoiceDocumentTypeBadge type={invoice.documentType} />
+              <InvoiceStatusBadge status={invoice.status} />
+              {invoice.number ? (
+                <span className="text-sm text-muted-foreground">
+                  Nº {invoice.number}
+                  {invoice.series ? `/${invoice.series}` : ""}
+                </span>
+              ) : null}
+            </div>
+
+            {invoice.rejectionReason ? (
+              <p className="text-sm text-destructive">{invoice.rejectionReason}</p>
+            ) : null}
+            {invoice.cancelReason ? (
+              <p className="text-sm text-muted-foreground">
+                Motivo do cancelamento: {invoice.cancelReason}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" disabled={!invoice.xmlUrl}>
+                Baixar XML
+              </Button>
+              <Button variant="outline" size="sm" disabled={!invoice.danfeUrl}>
+                Baixar DANFE
+              </Button>
+              {invoice.status === "REJECTED" || invoice.status === "CANCELED" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={emit.isPending}
+                  onClick={async () => {
+                    try {
+                      await emit.mutateAsync();
+                      toast.success("Emissão de nota solicitada.");
+                    } catch (error) {
+                      toast.error(
+                        error instanceof ApiError ? error.message : "Erro ao emitir.",
+                      );
+                    }
+                  }}
+                >
+                  Reemitir
+                </Button>
+              ) : null}
+              {invoice.status === "AUTHORIZED" && user?.role === "ADMIN" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  Cancelar nota
+                </Button>
+              ) : null}
+            </div>
+          </>
+        )}
+      </CardContent>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar nota fiscal</DialogTitle>
+            <DialogDescription>
+              Informe o motivo do cancelamento junto ao fisco.
+            </DialogDescription>
+          </DialogHeader>
+          <Field label="Motivo" htmlFor="inv-cancel-reason" required>
+            <Textarea
+              id="inv-cancel-reason"
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)}>
+              Voltar
+            </Button>
+            <Button
+              className="text-destructive"
+              variant="outline"
+              loading={cancel.isPending}
+              disabled={reason.trim().length < 3}
+              onClick={async () => {
+                try {
+                  await cancel.mutateAsync({ reason });
+                  toast.success("Cancelamento de nota solicitado.");
+                  setCancelOpen(false);
+                  setReason("");
+                } catch (error) {
+                  toast.error(
+                    error instanceof ApiError ? error.message : "Erro ao cancelar.",
+                  );
+                }
+              }}
+            >
+              Confirmar cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
