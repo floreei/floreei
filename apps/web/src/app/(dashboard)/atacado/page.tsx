@@ -52,7 +52,7 @@ export default function AtacadoPage() {
             {data.data.map((event) => (
               <ListCard
                 key={event.id}
-                href={`/eventos/${event.id}`}
+                href={`/vendas/${event.id}`}
                 title={event.title}
                 subtitle={
                   <span className="flex items-center gap-1.5">
@@ -88,7 +88,7 @@ export default function AtacadoPage() {
                     key={event.id}
                     className="cursor-pointer"
                     onClick={() => {
-                      window.location.href = `/eventos/${event.id}`;
+                      window.location.href = `/vendas/${event.id}`;
                     }}
                   >
                     <TableCell>
@@ -114,7 +114,7 @@ export default function AtacadoPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Button asChild variant="outline" size="sm" className="h-8">
-                        <Link href={`/eventos/${event.id}`}>Ver detalhes</Link>
+                        <Link href={`/vendas/${event.id}`}>Ver detalhes</Link>
                       </Button>
                     </TableCell>
                   </TableRow>

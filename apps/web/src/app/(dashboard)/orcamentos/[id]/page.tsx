@@ -120,12 +120,12 @@ export default function QuoteDetailPage() {
         {convertible ? (
           <Button onClick={() => setConvertOpen(true)}>
             <CalendarHeart className="h-4 w-4" />
-            Converter em evento
+            Converter em venda
           </Button>
         ) : null}
         {quote.eventId ? (
           <Button asChild variant="outline">
-            <Link href={`/eventos/${quote.eventId}`}>Ver evento</Link>
+            <Link href={`/vendas/${quote.eventId}`}>Ver venda</Link>
           </Button>
         ) : null}
         {cancellable || deletable ? (

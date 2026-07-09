@@ -63,7 +63,7 @@ export default function StoreOrdersPage() {
                 return (
                   <ListCard
                     key={`m-${order.id}`}
-                    href={order.eventId ? `/eventos/${order.eventId}` : undefined}
+                    href={order.eventId ? `/vendas/${order.eventId}` : undefined}
                     title={order.customerName}
                     subtitle={`${formatDate(order.createdAt)} · ${itemsSummary(order)}`}
                     meta={formatCurrency(order.total)}
@@ -110,7 +110,7 @@ export default function StoreOrdersPage() {
                     <TableCell className="text-right">
                       {order.eventId ? (
                         <Link
-                          href={`/eventos/${order.eventId}`}
+                          href={`/vendas/${order.eventId}`}
                           className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                         >
                           Abrir <ExternalLink className="h-3.5 w-3.5" />

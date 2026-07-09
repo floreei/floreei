@@ -112,7 +112,7 @@ export function CommandPaletteProvider({
       {children}
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
-          placeholder="Buscar clientes, eventos, orçamentos, produtos…"
+          placeholder="Buscar clientes, vendas, orçamentos, produtos…"
           value={query}
           onValueChange={setQuery}
         />

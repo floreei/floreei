@@ -51,11 +51,11 @@ export function ReportKpis({
         loading={loading}
         label="Ticket médio"
         value={formatCurrency(ticket)}
-        hint="por evento"
+        hint="por venda"
       />
       <Metric
         loading={loading}
-        label="Eventos"
+        label="Vendas"
         value={String(events)}
       />
       <Metric

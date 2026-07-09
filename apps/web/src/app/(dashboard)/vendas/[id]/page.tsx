@@ -86,7 +86,7 @@ export default function EventDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        href="/eventos"
+        href="/vendas"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Eventos
@@ -98,7 +98,7 @@ export default function EventDetailPage() {
       >
         {event.status !== "CANCELED" ? (
           <Button variant="outline" asChild>
-            <Link href={`/eventos/${event.id}/imprimir`}>
+            <Link href={`/vendas/${event.id}/imprimir`}>
               <Printer className="h-4 w-4" />
               Nota do pedido
             </Link>
@@ -285,23 +285,23 @@ export default function EventDetailPage() {
       <ConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title="Cancelar evento"
-        description="O evento será marcado como cancelado e os insumos usados voltam ao estoque. Esta ação não pode ser desfeita."
-        confirmLabel="Cancelar evento"
+        title="Cancelar venda"
+        description="A venda será marcada como cancelada e os insumos usados voltam ao estoque. Esta ação não pode ser desfeita."
+        confirmLabel="Cancelar venda"
         onConfirm={async () => {
           await cancel.mutateAsync(event.id);
-          toast.success("Evento cancelado. Estoque estornado.");
+          toast.success("Venda cancelada. Estoque estornado.");
         }}
       />
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Excluir evento"
+        title="Excluir venda"
         description={`Excluir "${event.title}"? Esta ação não pode ser desfeita.`}
         onConfirm={async () => {
           await remove.mutateAsync(event.id);
-          toast.success("Evento excluído.");
-          router.push("/eventos");
+          toast.success("Venda excluída.");
+          router.push("/vendas");
         }}
       />
     </div>

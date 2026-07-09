@@ -56,7 +56,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         title="Visão geral"
-        description="O pulso da sua floricultura — eventos, receita e pendências do mês."
+        description="O pulso da sua floricultura — vendas, receita e pendências do mês."
       />
 
       {hasAlerts ? (
@@ -148,11 +148,11 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div>
-              <CardTitle>Próximos eventos</CardTitle>
+              <CardTitle>Próximas vendas</CardTitle>
               <CardDescription>Agenda confirmada</CardDescription>
             </div>
             <Link
-              href="/eventos"
+              href="/vendas"
               className="text-sm font-medium text-primary hover:underline"
             >
               Ver todos
@@ -165,7 +165,7 @@ export default function DashboardPage() {
               data.upcomingEvents.map((event) => (
                 <Link
                   key={event.id}
-                  href={`/eventos/${event.id}`}
+                  href={`/vendas/${event.id}`}
                   className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2.5 transition-colors hover:bg-muted/50"
                 >
                   <div className="min-w-0">
@@ -179,8 +179,8 @@ export default function DashboardPage() {
               ))
             ) : (
               <EmptyState
-                title="Nenhum evento à vista"
-                description="Converta um orçamento aprovado em evento."
+                title="Nenhuma venda à vista"
+                description="Converta um orçamento aprovado em venda."
               />
             )}
           </CardContent>

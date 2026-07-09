@@ -39,7 +39,7 @@ export default function ReportsPage() {
     name: c.name,
     value: c.total,
     valueLabel: formatCurrency(c.total),
-    sub: plural(c.count, "evento", "eventos"),
+    sub: plural(c.count, "venda", "vendas"),
   }));
 
   const supplierRows: RankRow[] = (data?.suppliers ?? []).map((s) => ({

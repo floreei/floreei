@@ -54,7 +54,7 @@ export function AccountsPanel({
           actionLabel="Receber"
           mode="receive"
           emptyTitle="Nada a receber"
-          emptyDescription="Todos os eventos estão quitados."
+          emptyDescription="Todas as vendas estão quitadas."
           onAction={onAction}
         />
       </TabsContent>

@@ -71,11 +71,11 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
   await expect(page.getByText("R$ 100,00").first()).toBeVisible();
   await page.goBack();
 
-  // 5) Converter em evento
-  await page.getByRole("button", { name: "Converter em evento" }).click();
+  // 5) Converter em venda
+  await page.getByRole("button", { name: "Converter em venda" }).click();
   await page.getByLabel("Data").fill("2026-12-20");
-  await page.getByRole("button", { name: "Confirmar evento" }).click();
-  await expect(page).toHaveURL(/\/eventos\/[0-9a-f-]+$/);
+  await page.getByRole("button", { name: "Confirmar venda" }).click();
+  await expect(page).toHaveURL(/\/vendas\/[0-9a-f-]+$/);
   await expect(page.getByText("Valor vendido")).toBeVisible();
   await expect(page.getByText("R$ 100,00").first()).toBeVisible();
 

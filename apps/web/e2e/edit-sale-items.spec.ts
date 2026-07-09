@@ -45,7 +45,7 @@ test("detalhar uma venda avulsa: adiciona itens mantendo o valor fixo", async ({
   const saleId = (await sale.json()).id;
 
   // Detalhe: começa como valor livre, sem itens
-  await page.goto(`/eventos/${saleId}`);
+  await page.goto(`/vendas/${saleId}`);
   await expect(
     page.getByText("Venda de valor livre — sem itens detalhados."),
   ).toBeVisible();

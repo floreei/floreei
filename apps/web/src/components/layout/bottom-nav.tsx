@@ -12,7 +12,7 @@ import { SidebarNav } from "./sidebar";
 
 const TABS = [
   { label: "Início", href: "/inicio", icon: Home },
-  { label: "Vendas", href: "/eventos", icon: CalendarHeart },
+  { label: "Vendas", href: "/vendas", icon: CalendarHeart },
 ] as const;
 
 const TABS_AFTER = [{ label: "Clientes", href: "/clientes", icon: Users }] as const;

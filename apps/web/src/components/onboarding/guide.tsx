@@ -40,7 +40,7 @@ const STEPS: GuideStep[] = [
     title: "Vendas",
     text: "Registre cada venda de balcão ou entrega e acompanhe quanto já foi pago e quanto ainda falta receber.",
     example: "Ex.: “Buquê de rosas — R$ 120” vira venda e entra no caixa na hora.",
-    href: "/eventos",
+    href: "/vendas",
     cta: "Ir para Vendas",
   },
   {
@@ -55,7 +55,7 @@ const STEPS: GuideStep[] = [
     icon: FileText,
     title: "Orçamentos",
     text: "Monte orçamentos com a sua marca e, quando o cliente aprovar, transforme em venda com um clique.",
-    example: "Ex.: orçamento de um casamento aprovado → vira evento com um toque.",
+    example: "Ex.: orçamento de um casamento aprovado → vira venda com um toque.",
     href: "/orcamentos",
     cta: "Ir para Orçamentos",
   },

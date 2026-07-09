@@ -18,7 +18,7 @@ const listPages = [
   "/compras",
   "/estoque",
   "/despesas",
-  "/eventos",
+  "/vendas",
   "/caixa",
   "/orcamentos",
   "/insumos",

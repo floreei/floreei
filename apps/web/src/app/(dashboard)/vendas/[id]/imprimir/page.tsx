@@ -35,7 +35,7 @@ export default function OrderNotePage() {
 
   return (
     <PrintDocument
-      backHref={`/eventos/${event.id}`}
+      backHref={`/vendas/${event.id}`}
       backLabel="Voltar à venda"
       documentTitle={`${event.customer?.name ?? "Consumidor"} — Floreei — Pedido ${ref}`}
       footer={

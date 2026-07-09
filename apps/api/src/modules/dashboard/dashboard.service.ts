@@ -103,6 +103,8 @@ export class DashboardService {
       .leftJoinAndSelect("event.customer", "customer")
       .andWhere("event.date >= :today", { today })
       .andWhere("event.status <> 'CANCELED'")
+      // Widget linka pra /vendas (varejo) — atacado tem sua própria lista.
+      .andWhere("event.channel = 'RETAIL'")
       .orderBy("event.date", "ASC")
       .limit(5)
       .getMany();

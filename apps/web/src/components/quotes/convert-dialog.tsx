@@ -39,7 +39,7 @@ export function ConvertDialog({
   useEffect(() => {
     if (open) {
       form.reset({
-        title: quote.customer ? `Evento — ${quote.customer.name}` : "Novo evento",
+        title: quote.customer ? `Venda — ${quote.customer.name}` : "Nova venda",
         date: "",
         location: "",
       });
@@ -50,10 +50,10 @@ export function ConvertDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Converter em evento</DialogTitle>
+          <DialogTitle>Converter em venda</DialogTitle>
           <DialogDescription>
-            O orçamento será aprovado e um evento confirmado será criado com os
-            valores atuais.
+            O orçamento será aprovado e uma venda confirmada será criada com
+            os valores atuais.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -64,9 +64,9 @@ export function ConvertDialog({
                 quoteId: quote.id,
                 input: values,
               });
-              toast.success("Evento criado!");
+              toast.success("Venda criada!");
               onOpenChange(false);
-              router.push(`/eventos/${event.id}`);
+              router.push(`/vendas/${event.id}`);
             } catch (error) {
               toast.error(
                 error instanceof ApiError ? error.message : "Erro ao converter.",
@@ -74,7 +74,7 @@ export function ConvertDialog({
             }
           })}
         >
-          <Field label="Título do evento" htmlFor="ev-title" required error={form.formState.errors.title?.message}>
+          <Field label="Título da venda" htmlFor="ev-title" required error={form.formState.errors.title?.message}>
             <Input id="ev-title" autoFocus {...form.register("title")} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -90,7 +90,7 @@ export function ConvertDialog({
               Cancelar
             </Button>
             <Button type="submit" loading={form.formState.isSubmitting}>
-              Confirmar evento
+              Confirmar venda
             </Button>
           </DialogFooter>
         </form>

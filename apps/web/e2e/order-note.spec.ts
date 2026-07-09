@@ -46,9 +46,9 @@ test("nota do pedido: abre pelo detalhe da venda e imprime", async ({ page }) =>
   const eventId = (await sale.json()).id;
 
   // Abre o detalhe da venda → botão "Nota do pedido" → nota.
-  await page.goto(`/eventos/${eventId}`);
+  await page.goto(`/vendas/${eventId}`);
   await page.getByRole("link", { name: "Nota do pedido" }).click();
-  await page.waitForURL(new RegExp(`/eventos/${eventId}/imprimir`));
+  await page.waitForURL(new RegExp(`/vendas/${eventId}/imprimir`));
 
   const note = page.locator("#print-area");
   await expect(note.getByText("Nota do pedido")).toBeVisible();

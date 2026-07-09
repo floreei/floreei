@@ -165,7 +165,7 @@ export default function CaixaPage() {
               {data.movements.map((m) => {
                 const href =
                   m.sourceType === "event"
-                    ? `/eventos/${m.sourceId}`
+                    ? `/vendas/${m.sourceId}`
                     : m.sourceType === "purchase"
                       ? `/compras/${m.sourceId}`
                       : null;

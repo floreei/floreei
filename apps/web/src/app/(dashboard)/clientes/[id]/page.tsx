@@ -132,7 +132,7 @@ export default function CustomerDetailPage() {
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Eventos" value={String(stats.eventsCount)} />
+        <Stat label="Vendas" value={String(stats.eventsCount)} />
         <Stat label="Total vendido" value={formatCurrency(stats.totalSold)} />
         <Stat label="Recebido" value={formatCurrency(stats.totalReceived)} />
         <Stat
@@ -188,16 +188,16 @@ export default function CustomerDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Eventos</CardTitle>
+          <CardTitle>Vendas</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {events.length === 0 ? (
-            <EmptyState className="border-0" title="Nenhum evento ainda" />
+            <EmptyState className="border-0" title="Nenhuma venda ainda" />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Evento</TableHead>
+                  <TableHead>Venda</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Vendido</TableHead>
@@ -211,7 +211,7 @@ export default function CustomerDetailPage() {
                     key={event.id}
                     className="cursor-pointer"
                     onClick={() => {
-                      window.location.href = `/eventos/${event.id}`;
+                      window.location.href = `/vendas/${event.id}`;
                     }}
                   >
                     <TableCell className="font-medium">{event.title}</TableCell>
@@ -239,7 +239,7 @@ export default function CustomerDetailPage() {
                           aria-label="Imprimir nota"
                           title="Imprimir nota do pedido"
                         >
-                          <Link href={`/eventos/${event.id}/imprimir`}>
+                          <Link href={`/vendas/${event.id}/imprimir`}>
                             <Printer className="h-4 w-4" />
                           </Link>
                         </Button>

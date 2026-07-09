@@ -37,7 +37,7 @@ export default function QuotesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Orçamentos"
-        description="Monte propostas e acompanhe a conversão em eventos."
+        description="Monte propostas e acompanhe a conversão em vendas."
       >
         <Button asChild>
           <Link href="/orcamentos/novo">

@@ -99,11 +99,11 @@ test("atacado: vive separado do varejo — nav, dialog dedicado, canal e listas"
   const level = stock.levels.find((l: { productId: string }) => l.productId === pid.id);
   expect(level.onHand).toBe(-5);
 
-  // A venda aparece na lista /atacado, mas NÃO em /eventos — testado pela UI
+  // A venda aparece na lista /atacado, mas NÃO em /vendas — testado pela UI
   // (não só pela API), pois a página filtra pelo hook useEvents.
   await page.goto("/atacado");
   await expect(page.locator("table")).toContainText("R$ 30,00");
-  await page.goto("/eventos");
+  await page.goto("/vendas");
   await expect(page.getByText("Nenhuma venda")).toBeVisible();
 
   const retail = await page.request.get(`${API}/events?channel=RETAIL`, { headers: auth });

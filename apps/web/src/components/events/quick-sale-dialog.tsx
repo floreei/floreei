@@ -174,7 +174,7 @@ export function QuickSaleDialog({
         {
           action: {
             label: "Imprimir nota",
-            onClick: () => router.push(`/eventos/${sale.id}/imprimir`),
+            onClick: () => router.push(`/vendas/${sale.id}/imprimir`),
           },
         },
       );

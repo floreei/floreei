@@ -49,7 +49,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Varejo",
     items: [
-      { label: "Vendas", href: "/eventos", icon: CalendarHeart, feature: "SALES" },
+      { label: "Vendas", href: "/vendas", icon: CalendarHeart, feature: "SALES" },
       { label: "Buquês", href: "/buques", icon: Flower, feature: "ARRANGEMENTS" },
       {
         label: "Pedidos da loja",
