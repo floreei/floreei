@@ -31,17 +31,23 @@ const DialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    {/* Celular: TODO dialog ocupa a tela inteira (flex-col; o DialogFooter vai
-        pro rodapé com mt-auto). Desktop (sm+): modal centrado tradicional. */}
+    {/* flex-col (não grid) em QUALQUER tamanho: com display:grid, o Chrome
+        às vezes subdimensiona a altura de uma linha auto por alguns pixels
+        quando o container tem overflow-y:auto + max-height, deixando o
+        último parágrafo de uma linha "vazar" por baixo do rodapé sticky da
+        linha seguinte. flex-col mede cada filho pelo seu conteúdo real, sem
+        esse problema — e já era o que usávamos no mobile (por isso só o
+        desktop apresentava o bug). Celular: tela cheia. Desktop: modal
+        centrado tradicional. */}
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid grid-cols-[minmax(0,1fr)] max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6",
+        "fixed left-[50%] top-[50%] z-50 flex max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col gap-4 overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6",
         // Mobile: tela cheia com ALTURA FIXA (100dvh). Não seguimos o teclado
         // via viewport (isso quebra no iOS) — o teclado apenas sobrepõe a base;
         // o container rola nativamente e o MobileKeyboard centraliza o campo
         // focado. scroll-pb dá folga para o último campo subir acima do teclado.
-        "max-sm:inset-0 max-sm:flex max-sm:h-[100dvh] max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:flex-col max-sm:rounded-none max-sm:border-0 max-sm:scroll-pb-[6rem] max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=open]:slide-in-from-bottom-4",
+        "max-sm:inset-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:scroll-pb-[6rem] max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=open]:slide-in-from-bottom-4",
         className,
       )}
       {...props}
@@ -69,14 +75,19 @@ const DialogFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    data-kb-hide
-    className={cn(
-      "sticky bottom-0 z-10 -mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 border-t border-border bg-card px-4 pb-4 pt-3 max-sm:mt-auto max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6 sm:pb-6",
-      className,
-    )}
-    {...props}
-  />
+  // sticky fica sozinho no wrapper — sticky + margem negativa no MESMO
+  // elemento faz o navegador "prender" a posição alguns pixels acima do
+  // esperado, sobrepondo o conteúdo anterior (bug medido em telas ≥640px:
+  // a margem negativa de bleed vai no filho, que não é posicionado).
+  <div data-kb-hide className="sticky bottom-0 z-10 mt-1 max-sm:mt-auto">
+    <div
+      className={cn(
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 border-t border-border bg-card px-4 pb-4 pt-3 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6 sm:pb-6",
+        className,
+      )}
+      {...props}
+    />
+  </div>
 );
 DialogFooter.displayName = "DialogFooter";
 

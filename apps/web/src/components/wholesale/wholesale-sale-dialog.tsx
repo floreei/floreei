@@ -402,21 +402,24 @@ export function WholesaleSaleDialog({
           </div>
         </div>
 
-        <div data-kb-hide className="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center gap-3 border-t border-border bg-card px-4 py-3 max-sm:mt-auto max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:-mb-6 sm:px-6">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums">
-              {formatCurrency(total)}
-            </p>
+        {/* sticky sem margem negativa no mesmo elemento — ver quick-sale-dialog.tsx */}
+        <div data-kb-hide className="sticky bottom-0 z-10 max-sm:mt-auto">
+          <div className="-mx-4 -mb-4 flex items-center gap-3 border-t border-border bg-card px-4 py-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:-mb-6 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums">
+                {formatCurrency(total)}
+              </p>
+            </div>
+            <Button
+              className="h-12 lg:h-12 flex-1 text-base"
+              disabled={!canSubmit}
+              loading={submitting}
+              onClick={submit}
+            >
+              {paid ? "Registrar venda (paga)" : "Registrar venda (a prazo)"}
+            </Button>
           </div>
-          <Button
-            className="h-12 lg:h-12 flex-1 text-base"
-            disabled={!canSubmit}
-            loading={submitting}
-            onClick={submit}
-          >
-            {paid ? "Registrar venda (paga)" : "Registrar venda (a prazo)"}
-          </Button>
         </div>
 
         <CustomerDialog
