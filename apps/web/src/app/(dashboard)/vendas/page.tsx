@@ -8,6 +8,8 @@ import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import {
   EventStatusBadge,
   EventTypeBadge,
@@ -24,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useEvents } from "@/lib/api/events";
+import { useDebounce } from "@/lib/use-debounce";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 const filters: Array<{ label: string; value?: EventType }> = [
@@ -34,9 +37,37 @@ const filters: Array<{ label: string; value?: EventType }> = [
 
 export default function EventsPage() {
   const [type, setType] = useState<EventType | undefined>();
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(search);
+
   // channel: RETAIL — vendas no atacado têm lista própria em /atacado.
-  const { data, isLoading } = useEvents({ type, channel: "RETAIL" });
+  const { data, isLoading } = useEvents({
+    type,
+    channel: "RETAIL",
+    search: debouncedSearch || undefined,
+    from: from || undefined,
+    to: to || undefined,
+    page,
+    pageSize: 20,
+  });
   const { openSale } = useQuickSale();
+
+  const changeType = (value: EventType | undefined) => {
+    setType(value);
+    setPage(1);
+  };
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+  const changeDate = (nextFrom: string, nextTo: string) => {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -50,11 +81,19 @@ export default function EventsPage() {
         </Button>
       </PageHeader>
 
+      <SalesFilters
+        search={search}
+        onSearchChange={changeSearch}
+        from={from}
+        to={to}
+        onDateChange={changeDate}
+      />
+
       <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
         {filters.map((f) => (
           <button
             key={f.label}
-            onClick={() => setType(f.value)}
+            onClick={() => changeType(f.value)}
             className={cn(
               "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
               type === f.value
@@ -156,21 +195,32 @@ export default function EventsPage() {
               </TableBody>
             </Table>
           </Card>
+
+          <Pagination data={data} onPageChange={setPage} />
         </>
       ) : (
         <Card>
-          <EmptyState
-            className="border-0"
-            icon={<CalendarHeart />}
-            title="Nenhuma venda"
-            description="Registre um pedido de balcão/entrega ou converta um orçamento em venda."
-            action={
-              <Button onClick={openSale}>
-                <Plus className="h-4 w-4" />
-                Nova venda
-              </Button>
-            }
-          />
+          {debouncedSearch || from || to || type ? (
+            <EmptyState
+              className="border-0"
+              icon={<CalendarHeart />}
+              title="Nada encontrado"
+              description="Nenhuma venda bate com esses filtros. Tente outro período ou termo de busca."
+            />
+          ) : (
+            <EmptyState
+              className="border-0"
+              icon={<CalendarHeart />}
+              title="Nenhuma venda"
+              description="Registre um pedido de balcão/entrega ou converta um orçamento em venda."
+              action={
+                <Button onClick={openSale}>
+                  <Plus className="h-4 w-4" />
+                  Nova venda
+                </Button>
+              }
+            />
+          )}
         </Card>
       )}
     </div>

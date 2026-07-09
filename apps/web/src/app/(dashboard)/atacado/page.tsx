@@ -2,10 +2,13 @@
 
 import { Boxes, Plus } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import { EventStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,11 +22,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useEvents } from "@/lib/api/events";
+import { useDebounce } from "@/lib/use-debounce";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function AtacadoPage() {
-  const { data, isLoading } = useEvents({ channel: "WHOLESALE" });
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(search);
+
+  const { data, isLoading } = useEvents({
+    channel: "WHOLESALE",
+    search: debouncedSearch || undefined,
+    from: from || undefined,
+    to: to || undefined,
+    page,
+    pageSize: 20,
+  });
   const { openWholesaleSale } = useQuickSale();
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+  const changeDate = (nextFrom: string, nextTo: string) => {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -36,6 +63,15 @@ export default function AtacadoPage() {
           Nova venda no atacado
         </Button>
       </PageHeader>
+
+      <SalesFilters
+        search={search}
+        onSearchChange={changeSearch}
+        from={from}
+        to={to}
+        onDateChange={changeDate}
+        searchPlaceholder="Buscar por lojista ou título…"
+      />
 
       {isLoading ? (
         <Card>
@@ -122,21 +158,32 @@ export default function AtacadoPage() {
               </TableBody>
             </Table>
           </Card>
+
+          <Pagination data={data} onPageChange={setPage} />
         </>
       ) : (
         <Card>
-          <EmptyState
-            className="border-0"
-            icon={<Boxes />}
-            title="Nenhuma venda no atacado"
-            description="Revenda insumos em pacote fechado (maço) para outros lojistas."
-            action={
-              <Button onClick={openWholesaleSale}>
-                <Plus className="h-4 w-4" />
-                Nova venda no atacado
-              </Button>
-            }
-          />
+          {debouncedSearch || from || to ? (
+            <EmptyState
+              className="border-0"
+              icon={<Boxes />}
+              title="Nada encontrado"
+              description="Nenhuma venda bate com esses filtros. Tente outro período ou termo de busca."
+            />
+          ) : (
+            <EmptyState
+              className="border-0"
+              icon={<Boxes />}
+              title="Nenhuma venda no atacado"
+              description="Revenda insumos em pacote fechado (maço) para outros lojistas."
+              action={
+                <Button onClick={openWholesaleSale}>
+                  <Plus className="h-4 w-4" />
+                  Nova venda no atacado
+                </Button>
+              }
+            />
+          )}
         </Card>
       )}
     </div>
