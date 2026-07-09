@@ -22,6 +22,7 @@ export function useCustomers(query: Partial<CustomerQuery> = {}) {
         page: query.page ?? 1,
         pageSize: query.pageSize ?? 20,
         search: query.search,
+        channel: query.channel,
       }),
   });
 }

@@ -64,7 +64,7 @@ interface CartItem {
 
 /**
  * Venda no atacado: revenda de insumo em pacote fechado (maço) para outro
- * lojista/florista. Mesmo mecanismo de unidade Maço↔Haste da venda de balcão
+ * lojista/florista. Mesmo mecanismo de unidade Maço↔Haste da venda direta
  * (`sale-units.ts`), mas por padrão já sugere a unidade de compra inteira —
  * é o fluxo natural de quem compra o maço e revende o maço.
  */
@@ -79,7 +79,7 @@ export function WholesaleSaleDialog({
     pageSize: 200,
     onlyActive: true,
   });
-  const { data: customers } = useCustomers({ pageSize: 100 });
+  const { data: customers } = useCustomers({ pageSize: 100, channel: "WHOLESALE" });
   const quickSale = useQuickSale();
   const receive = useReceiveForEvent();
   const router = useRouter();
@@ -425,6 +425,7 @@ export function WholesaleSaleDialog({
         <CustomerDialog
           open={newCustomerOpen}
           onOpenChange={setNewCustomerOpen}
+          defaultChannel="WHOLESALE"
           onCreated={(customer: Customer) => setCustomerId(customer.id)}
         />
       </DialogContent>

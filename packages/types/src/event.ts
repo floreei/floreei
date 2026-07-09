@@ -5,11 +5,11 @@ import {
   paginationQuerySchema,
 } from "./common";
 import {
-  eventChannelSchema,
+  salesChannelSchema,
   eventStatusSchema,
   eventTypeSchema,
   productUnitSchema,
-  type EventChannel,
+  type SalesChannel,
   type EventStatus,
   type EventType,
   type ProductUnit,
@@ -71,7 +71,7 @@ export const quickSaleItemSchema = z
   });
 export type QuickSaleItem = z.infer<typeof quickSaleItemSchema>;
 
-/** Venda rápida de balcão: produtos do catálogo OU valor livre. */
+/** Venda rápida: produtos do catálogo OU valor livre. */
 export const quickSaleSchema = z
   .object({
     customerId: idSchema.nullable().optional(),
@@ -79,8 +79,8 @@ export const quickSaleSchema = z
     date: dateString.optional(),
     items: z.array(quickSaleItemSchema).optional(),
     amount: z.coerce.number().nonnegative().optional(),
-    /** Varejo (balcão) ou atacado (revenda em pacote fechado). */
-    channel: eventChannelSchema.default("RETAIL"),
+    /** Venda direta (varejo) ou atacado (revenda em pacote fechado). */
+    channel: salesChannelSchema.default("RETAIL"),
   })
   .refine((v) => (v.items && v.items.length > 0) || (v.amount ?? 0) > 0, {
     message: "Adicione produtos ou informe um valor",
@@ -122,7 +122,7 @@ export type ConvertQuoteInput = z.infer<typeof convertQuoteSchema>;
 /** Filtros de listagem de eventos. */
 export const eventQuerySchema = paginationQuerySchema.extend({
   type: eventTypeSchema.optional(),
-  channel: eventChannelSchema.optional(),
+  channel: salesChannelSchema.optional(),
   status: eventStatusSchema.optional(),
   customerId: idSchema.optional(),
   from: dateString.optional(),
@@ -146,7 +146,7 @@ export interface Event {
   id: string;
   companyId: string;
   type: EventType;
-  channel: EventChannel;
+  channel: SalesChannel;
   customerId: string | null;
   customer?: { id: string; name: string };
   quoteId: string | null;

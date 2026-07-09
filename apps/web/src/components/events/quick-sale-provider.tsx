@@ -5,7 +5,7 @@ import { QuickSaleDialog } from "@/components/events/quick-sale-dialog";
 import { WholesaleSaleDialog } from "@/components/wholesale/wholesale-sale-dialog";
 
 interface QuickSaleContextValue {
-  /** Abre a venda rápida (varejo/balcão) de qualquer lugar. */
+  /** Abre a venda direta (varejo) de qualquer lugar. */
   openSale: () => void;
   /** Abre a venda no atacado (revenda em pacote fechado). */
   openWholesaleSale: () => void;

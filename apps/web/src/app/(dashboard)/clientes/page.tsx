@@ -1,6 +1,6 @@
 "use client";
 
-import type { Customer } from "@sistema-flores/types";
+import type { Customer, SalesChannel } from "@sistema-flores/types";
 import { Eye, MoreHorizontal, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { SalesChannelBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -32,13 +33,21 @@ import {
 import { useCustomers, useDeleteCustomer } from "@/lib/api/customers";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useDebounce } from "@/lib/use-debounce";
+import { cn } from "@/lib/utils";
+
+const channelFilters: Array<{ label: string; value?: SalesChannel }> = [
+  { label: "Todos" },
+  { label: "Venda direta", value: "RETAIL" },
+  { label: "Atacado", value: "WHOLESALE" },
+];
 
 export default function CustomersPage() {
   const params = useSearchParams();
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [channel, setChannel] = useState<SalesChannel | undefined>();
   const debounced = useDebounce(search);
-  const { data, isLoading } = useCustomers({ search: debounced });
+  const { data, isLoading } = useCustomers({ search: debounced, channel });
   const remove = useDeleteCustomer();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,14 +75,32 @@ export default function CustomersPage() {
         </Button>
       </PageHeader>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, e-mail, telefone…"
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, e-mail, telefone…"
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:pb-0">
+          {channelFilters.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => setChannel(f.value)}
+              className={cn(
+                "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                channel === f.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (
@@ -96,6 +123,7 @@ export default function CustomersPage() {
                 subtitle={
                   customer.whatsapp || customer.phone || customer.email || "Sem contato"
                 }
+                metaSub={<SalesChannelBadge channel={customer.channel} />}
               />
             ))}
           </div>
@@ -105,6 +133,7 @@ export default function CustomersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead>Canal</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead className="hidden sm:table-cell">Documento</TableHead>
                 <TableHead className="hidden sm:table-cell" />
@@ -121,6 +150,9 @@ export default function CustomersPage() {
                     >
                       {customer.name}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    <SalesChannelBadge channel={customer.channel} />
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {customer.whatsapp || customer.phone || customer.email || "—"}

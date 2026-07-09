@@ -26,6 +26,9 @@ export class CustomerRepository extends TenantScopedRepository<CustomerEntity> {
         { s: `%${query.search}%` },
       );
     }
+    if (query.channel) {
+      qb.andWhere("customer.channel = :channel", { channel: query.channel });
+    }
 
     return paginate(qb, query.page, query.pageSize);
   }

@@ -26,6 +26,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import {
   EventStatusBadge,
   QuoteStatusBadge,
+  SalesChannelBadge,
 } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,6 +114,8 @@ export default function CustomerDetailPage() {
       >
         <ArrowLeft className="h-4 w-4" /> Clientes
       </Link>
+
+      <SalesChannelBadge channel={customer.channel} />
 
       <PageHeader title={customer.name} description={customer.document ?? undefined}>
         <Button variant="outline" onClick={() => setEditOpen(true)}>

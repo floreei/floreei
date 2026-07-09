@@ -137,16 +137,20 @@ export const EventType = {
 export const eventTypeSchema = z.enum([EventType.ORDER, EventType.EVENT]);
 export type EventType = z.infer<typeof eventTypeSchema>;
 
-/** Canal da venda: varejo (balcão/cliente final) ou atacado (revenda em pacote fechado). */
-export const EventChannel = {
+/**
+ * Canal de venda: direta (varejo/cliente final) ou atacado (revenda em pacote
+ * fechado). Compartilhado entre Venda e Cliente — um cliente de atacado só
+ * aparece nas vendas no atacado, e vice-versa.
+ */
+export const SalesChannel = {
   RETAIL: "RETAIL",
   WHOLESALE: "WHOLESALE",
 } as const;
-export const eventChannelSchema = z.enum([
-  EventChannel.RETAIL,
-  EventChannel.WHOLESALE,
+export const salesChannelSchema = z.enum([
+  SalesChannel.RETAIL,
+  SalesChannel.WHOLESALE,
 ]);
-export type EventChannel = z.infer<typeof eventChannelSchema>;
+export type SalesChannel = z.infer<typeof salesChannelSchema>;
 
 /** Ciclo de vida de um evento (venda confirmada). */
 export const EventStatus = {

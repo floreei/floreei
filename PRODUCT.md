@@ -18,8 +18,8 @@ Superfícies: `apps/web` (ERP do florista — a superfície principal), `apps/ad
 
 ## Product Purpose
 
-O Floreei é o ERP da floricultura inteira num lugar só: vendas de balcão e
-eventos, orçamentos, buquês com custo/preço calculados, insumos e estoque,
+O Floreei é o ERP da floricultura inteira num lugar só: venda direta, atacado
+e eventos, orçamentos, buquês com custo/preço calculados, insumos e estoque,
 compras, despesas, caixa e resultado do mês — mais uma loja online por empresa.
 Sucesso = o florista registra a venda em segundos, sabe quanto o buquê custa de
 verdade e fecha o mês sem papel espalhado.

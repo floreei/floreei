@@ -38,7 +38,7 @@ const STEPS: GuideStep[] = [
   {
     icon: CalendarHeart,
     title: "Vendas",
-    text: "Registre cada venda de balcão ou entrega e acompanhe quanto já foi pago e quanto ainda falta receber.",
+    text: "Registre cada venda direta ou entrega e acompanhe quanto já foi pago e quanto ainda falta receber.",
     example: "Ex.: “Buquê de rosas — R$ 120” vira venda e entra no caixa na hora.",
     href: "/vendas",
     cta: "Ir para Vendas",

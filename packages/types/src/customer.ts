@@ -5,6 +5,7 @@ import type {
   ProfileTopItem,
 } from "./common";
 import { idSchema, paginationQuerySchema } from "./common";
+import { salesChannelSchema, type SalesChannel } from "./enums";
 
 const optionalText = (max: number) =>
   z
@@ -29,11 +30,15 @@ export const customerInputSchema = z.object({
   document: optionalText(20),
   address: optionalText(255),
   notes: optionalText(2000),
+  /** Venda direta (varejo) ou atacado — só aparece no seletor do canal correspondente. */
+  channel: salesChannelSchema.default("RETAIL"),
 });
 export type CustomerInput = z.infer<typeof customerInputSchema>;
 
 /** Filtros de listagem de clientes. */
-export const customerQuerySchema = paginationQuerySchema;
+export const customerQuerySchema = paginationQuerySchema.extend({
+  channel: salesChannelSchema.optional(),
+});
 export type CustomerQuery = z.infer<typeof customerQuerySchema>;
 
 /** Representação de um cliente devolvida pela API. */
@@ -47,6 +52,7 @@ export interface Customer {
   document: string | null;
   address: string | null;
   notes: string | null;
+  channel: SalesChannel;
   createdAt: string;
   updatedAt: string;
 }

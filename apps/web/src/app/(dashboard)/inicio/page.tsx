@@ -181,7 +181,7 @@ export default function InicioPage() {
         <ActionButton
           icon={ShoppingCart}
           label="Nova venda"
-          hint="Balcão / entrega"
+          hint="Venda direta / entrega"
           onClick={openSale}
           primary
         />

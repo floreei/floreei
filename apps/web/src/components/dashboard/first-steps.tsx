@@ -31,7 +31,7 @@ const STEPS: Step[] = [
   {
     key: "hasSale",
     label: "Registre sua primeira venda",
-    hint: "Balcão, entrega ou evento",
+    hint: "Venda direta, entrega ou evento",
     href: "/vendas",
   },
   {

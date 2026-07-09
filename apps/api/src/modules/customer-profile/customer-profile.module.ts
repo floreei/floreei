@@ -36,6 +36,7 @@ function toCustomer(c: CustomerEntity): Customer {
     document: c.document,
     address: c.address,
     notes: c.notes,
+    channel: c.channel,
     createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : c.createdAt,
     updatedAt: c.updatedAt instanceof Date ? c.updatedAt.toISOString() : c.updatedAt,
   };

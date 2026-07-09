@@ -1,4 +1,9 @@
-import type { EventStatus, EventType, QuoteStatus } from "@sistema-flores/types";
+import type {
+  EventStatus,
+  EventType,
+  QuoteStatus,
+  SalesChannel,
+} from "@sistema-flores/types";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 
 type Variant = BadgeProps["variant"];
@@ -54,3 +59,13 @@ export function EventTypeBadge({ type }: { type: EventType }) {
 }
 
 export const eventTypeLabel = (type: EventType) => typeMap[type].label;
+
+const channelMap: Record<SalesChannel, { label: string; variant: Variant }> = {
+  RETAIL: { label: "Varejo", variant: "default" },
+  WHOLESALE: { label: "Atacado", variant: "clay" },
+};
+
+export function SalesChannelBadge({ channel }: { channel: SalesChannel }) {
+  const { label, variant } = channelMap[channel];
+  return <Badge variant={variant}>{label}</Badge>;
+}

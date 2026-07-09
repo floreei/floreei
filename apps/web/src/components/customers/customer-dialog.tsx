@@ -1,9 +1,13 @@
 "use client";
 
-import { customerInputSchema, type Customer } from "@sistema-flores/types";
+import {
+  customerInputSchema,
+  type Customer,
+  type SalesChannel,
+} from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
@@ -20,12 +24,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api/client";
 import { useSaveCustomer } from "@/lib/api/customers";
 import { maskCpfCnpj, maskPhone, withMask } from "@/lib/masks";
+import { cn } from "@/lib/utils";
 
 interface CustomerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customer?: Customer | null;
   onCreated?: (customer: Customer) => void;
+  /** Canal sugerido ao criar um cliente de dentro de uma venda (varejo/atacado). */
+  defaultChannel?: SalesChannel;
 }
 
 const empty = {
@@ -36,6 +43,7 @@ const empty = {
   document: "",
   address: "",
   notes: "",
+  channel: "RETAIL" as SalesChannel,
 };
 
 export function CustomerDialog({
@@ -43,6 +51,7 @@ export function CustomerDialog({
   onOpenChange,
   customer,
   onCreated,
+  defaultChannel,
 }: CustomerDialogProps) {
   const save = useSaveCustomer(customer?.id);
   const form = useForm({
@@ -60,9 +69,10 @@ export function CustomerDialog({
         document: customer?.document ?? "",
         address: customer?.address ?? "",
         notes: customer?.notes ?? "",
+        channel: customer?.channel ?? defaultChannel ?? "RETAIL",
       });
     }
-  }, [open, customer, form]);
+  }, [open, customer, defaultChannel, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,6 +103,40 @@ export function CustomerDialog({
         >
           <Field label="Nome" htmlFor="c-name" required error={form.formState.errors.name?.message}>
             <Input id="c-name" autoFocus {...form.register("name")} />
+          </Field>
+
+          <Field
+            label="Canal"
+            hint="Determina em qual venda (direta ou atacado) esse cliente aparece."
+          >
+            <Controller
+              control={form.control}
+              name="channel"
+              render={({ field }) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["RETAIL", "Venda direta"],
+                      ["WHOLESALE", "Atacado"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => field.onChange(value)}
+                      className={cn(
+                        "h-11 rounded-lg border text-sm font-medium transition-colors",
+                        field.value === value
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">

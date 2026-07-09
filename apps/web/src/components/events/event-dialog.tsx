@@ -41,7 +41,7 @@ const statusOptions: Array<[EventStatus, string]> = [
 ];
 
 const typeOptions: Array<[EventType, string]> = [
-  ["ORDER", "Pedido (balcão/entrega)"],
+  ["ORDER", "Venda direta/entrega"],
   ["EVENT", "Evento (decoração)"],
 ];
 
@@ -56,7 +56,7 @@ export function EventDialog({
   onOpenChange: (open: boolean) => void;
   event?: Event | null;
 }) {
-  const { data: customers } = useCustomers({ pageSize: 100 });
+  const { data: customers } = useCustomers({ pageSize: 100, channel: "RETAIL" });
   const save = useSaveEvent(event?.id);
   const receive = useReceiveForEvent();
   const [receivedNow, setReceivedNow] = useState(0);
@@ -102,7 +102,7 @@ export function EventDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar venda" : "Nova venda"}</DialogTitle>
           <DialogDescription>
-            Um pedido de balcão/entrega ou um evento de decoração.
+            Uma venda direta/entrega ou um evento de decoração.
           </DialogDescription>
         </DialogHeader>
         <form

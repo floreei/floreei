@@ -1,4 +1,4 @@
-import type { EventChannel, EventStatus, EventType } from "@sistema-flores/types";
+import type { EventStatus, EventType, SalesChannel } from "@sistema-flores/types";
 import {
   Column,
   Entity,
@@ -21,9 +21,9 @@ export class EventEntity extends TenantOwnedEntity {
   @Column({ type: "varchar", length: 8, default: "EVENT" })
   type!: EventType;
 
-  /** Varejo (balcão/cliente final) ou atacado (revenda em pacote fechado). */
+  /** Venda direta (varejo) ou atacado (revenda em pacote fechado). */
   @Column({ type: "varchar", length: 10, default: "RETAIL" })
-  channel!: EventChannel;
+  channel!: SalesChannel;
 
   @Column({ type: "varchar", length: 180 })
   title!: string;

@@ -73,7 +73,7 @@ export default function EventsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Vendas"
-        description="Pedidos de balcão/entrega e eventos de decoração — valores e entregas."
+        description="Venda direta, entrega e eventos de decoração — valores e entregas."
       >
         <Button onClick={openSale}>
           <Plus className="h-4 w-4" />
@@ -212,7 +212,7 @@ export default function EventsPage() {
               className="border-0"
               icon={<CalendarHeart />}
               title="Nenhuma venda"
-              description="Registre um pedido de balcão/entrega ou converta um orçamento em venda."
+              description="Registre uma venda direta/entrega ou converta um orçamento em venda."
               action={
                 <Button onClick={openSale}>
                   <Plus className="h-4 w-4" />

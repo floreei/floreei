@@ -63,7 +63,7 @@ export function QuickSaleDialog({
     pageSize: 200,
     onlyActive: true,
   });
-  const { data: customers } = useCustomers({ pageSize: 100 });
+  const { data: customers } = useCustomers({ pageSize: 100, channel: "RETAIL" });
   const quickSale = useQuickSale();
   const receive = useReceiveForEvent();
   const router = useRouter();
@@ -197,7 +197,7 @@ export function QuickSaleDialog({
     >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl">Venda rápida</DialogTitle>
+          <DialogTitle className="text-xl">Venda direta</DialogTitle>
           <DialogDescription>
             Toque nos buquês ou insumos, ou informe um valor. Depois escolha à
             vista ou fiado.
@@ -431,6 +431,7 @@ export function QuickSaleDialog({
         <CustomerDialog
           open={newCustomerOpen}
           onOpenChange={setNewCustomerOpen}
+          defaultChannel="RETAIL"
           onCreated={(customer: Customer) => setCustomerId(customer.id)}
         />
       </DialogContent>
