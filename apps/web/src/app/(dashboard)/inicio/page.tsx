@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FirstSteps } from "@/components/dashboard/first-steps";
+import { InstallPromptCard } from "@/components/pwa/install-prompt";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import {
   CashflowChart,
@@ -172,6 +173,8 @@ export default function InicioPage() {
       />
 
       <FirstSteps />
+
+      <InstallPromptCard />
 
       {/* Ações grandes do dia a dia */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

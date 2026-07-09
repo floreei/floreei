@@ -2,13 +2,27 @@
   "name": "Floreei — Gestão para floriculturas, floristas, atacado e eventos",
   "short_name": "Floreei",
   "description": "Do orçamento ao caixa: catálogo, estoque, buquês, vendas, despesas e financeiro num só lugar.",
-  "start_url": "/",
+  "start_url": "/inicio",
   "display": "standalone",
   "background_color": "#F4FAF6",
   "theme_color": "#2F6050",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/inicio"
 }

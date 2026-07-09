@@ -24,6 +24,12 @@ export const metadata: Metadata = {
   description:
     "ERP para floriculturas, floristas, atacado e decoração de eventos: insumos, estoque, buquês com custeio, compras, vendas, despesas e financeiro — tudo num só lugar.",
   manifest: "/manifest.webmanifest",
+  // Instalado na tela inicial (PWA): título curto e tela cheia no iOS.
+  appleWebApp: {
+    capable: true,
+    title: "Floreei",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

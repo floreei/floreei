@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
+import { InstallMenuItem } from "@/components/pwa/install-prompt";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "./sidebar";
@@ -77,8 +78,11 @@ export function BottomNav() {
       </div>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="left" className="p-2">
-          <SidebarNav onNavigate={() => setMoreOpen(false)} />
+        <SheetContent side="left" className="flex flex-col p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <SidebarNav onNavigate={() => setMoreOpen(false)} />
+          </div>
+          <InstallMenuItem onNavigate={() => setMoreOpen(false)} />
         </SheetContent>
       </Sheet>
     </nav>
