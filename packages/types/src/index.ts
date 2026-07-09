@@ -13,6 +13,7 @@ export * from "./enums";
 export * from "./event";
 export * from "./expense";
 export * from "./finance";
+export * from "./invoice";
 export * from "./platform";
 export * from "./purchase";
 export * from "./quote";

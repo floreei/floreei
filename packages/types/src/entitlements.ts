@@ -13,6 +13,7 @@ export const FEATURES = {
   REPORTS: "REPORTS", // relatórios
   STORE: "STORE", // loja online
   WHOLESALE: "WHOLESALE", // venda no atacado (revenda em pacote fechado)
+  INVOICING: "INVOICING", // emissão de nota fiscal (NFC-e/NF-e) por venda
 } as const;
 export type Feature = (typeof FEATURES)[keyof typeof FEATURES];
 export const ALL_FEATURES = Object.values(FEATURES) as Feature[];
@@ -50,6 +51,10 @@ export const FEATURE_INFO: Record<Feature, { label: string; description: string 
   WHOLESALE: {
     label: "Venda no atacado",
     description: "Revenda de insumos em pacote fechado para outros lojistas.",
+  },
+  INVOICING: {
+    label: "Nota fiscal",
+    description: "Emissão de NFC-e (varejo) e NF-e (atacado) direto da venda.",
   },
 };
 

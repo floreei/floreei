@@ -9,6 +9,7 @@ import type {
   EventInput,
   EventQuery,
   EventUpdate,
+  Invoice,
   Paginated,
   QuickSaleInput,
   QuickSaleItem,
@@ -18,7 +19,10 @@ import { todayISO } from "../../../common/date/today";
 import { roundMoney } from "../../../common/money/money";
 import { ArrangementsService } from "../../arrangements/application/arrangements.service";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
+import { CompanyService } from "../../companies/company.module";
 import { CustomerRepository } from "../../customers/infrastructure/customer.repository";
+import type { NfeItemData } from "../../invoices/application/ports/nfe-provider.port";
+import { InvoicesService } from "../../invoices/application/invoices.service";
 import { QuoteRepository } from "../../quotes/infrastructure/quote.repository";
 import { StockService } from "../../stock/application/stock.service";
 import { EventAttachmentEntity } from "../infrastructure/event-attachment.entity";
@@ -52,6 +56,8 @@ export class EventsService {
     private readonly attachments: EventAttachmentRepository,
     private readonly products: ProductRepository,
     private readonly arrangements: ArrangementsService,
+    private readonly invoices: InvoicesService,
+    private readonly companies: CompanyService,
     @InjectRepository(EventItemEntity)
     private readonly items: Repository<EventItemEntity>,
   ) {}
@@ -180,6 +186,15 @@ export class EventsService {
 
     if (consumption.length > 0) {
       await this.stock.registerFromEvent(saved.id, date, consumption);
+    }
+
+    // Emissão automática: aguardamos (não fire-and-forget) porque a API roda
+    // no Cloud Run — o container pode ser encerrado logo após a resposta,
+    // sem garantir que uma promise não aguardada termine. InvoicesService
+    // nunca propaga erro (vira REJECTED tratado), então isso nunca derruba
+    // a venda mesmo se o provedor real falhar.
+    if (await this.companies.isInvoiceAutoEmitEnabled()) {
+      await this.emitInvoice(saved.id).catch(() => undefined);
     }
 
     return this.findOne(saved.id);
@@ -353,10 +368,93 @@ export class EventsService {
 
   async remove(id: string): Promise<void> {
     const event = await this.events.findByIdOrFail(id);
+    if (await this.invoices.hasAny(id)) {
+      throw new BadRequestException(
+        "Não é possível excluir uma venda com nota fiscal emitida ou tentada. Cancele a nota antes.",
+      );
+    }
     // Desvincula orçamentos apontando para este evento antes de remover.
     if (event.quoteId) {
       await this.quotes.updateById(event.quoteId, { eventId: null });
     }
     await this.events.deleteById(id);
+  }
+
+  /** Monta a requisição de emissão a partir da venda e dispara. */
+  async emitInvoice(id: string): Promise<Invoice> {
+    const event = await this.events.findByIdOrFail(id, [
+      "customer",
+      "items",
+      "items.product",
+    ]);
+    const company = await this.companies.getCurrentEntity();
+
+    const items: NfeItemData[] =
+      event.items.length > 0
+        ? event.items.map((i) => ({
+            description: i.description,
+            quantity: i.quantity,
+            unitPrice: i.unitSalePrice,
+            ncm: i.product?.ncm ?? null,
+          }))
+        : [
+            {
+              description: event.title,
+              quantity: 1,
+              unitPrice: event.soldValue,
+              ncm: null,
+            },
+          ];
+
+    return this.invoices.emit({
+      eventId: event.id,
+      channel: event.channel,
+      issuer: {
+        companyId: company.id,
+        name: company.name,
+        document: company.document,
+        stateRegistration: company.stateRegistration,
+        taxRegime: company.taxRegime,
+        address: {
+          street: company.fiscalAddressStreet,
+          number: company.fiscalAddressNumber,
+          complement: company.fiscalAddressComplement,
+          neighborhood: company.fiscalAddressNeighborhood,
+          city: company.fiscalAddressCity,
+          state: company.fiscalAddressState,
+          zip: company.fiscalAddressZip,
+          cityCode: company.fiscalCityCode,
+        },
+      },
+      recipient: event.customer
+        ? {
+            name: event.customer.name,
+            document: event.customer.document,
+            email: event.customer.email,
+            address: event.customer.address,
+          }
+        : null,
+      items,
+      totalValue: event.soldValue,
+    });
+  }
+
+  async getInvoice(id: string): Promise<Invoice | null> {
+    await this.events.findByIdOrFail(id);
+    return this.invoices.latestForEvent(id);
+  }
+
+  async getInvoiceHistory(id: string): Promise<Invoice[]> {
+    await this.events.findByIdOrFail(id);
+    return this.invoices.historyForEvent(id);
+  }
+
+  async cancelInvoice(id: string, reason: string): Promise<Invoice> {
+    await this.events.findByIdOrFail(id);
+    const current = await this.invoices.latestForEvent(id);
+    if (!current) {
+      throw new BadRequestException("Esta venda não tem nota fiscal emitida.");
+    }
+    return this.invoices.cancel(current.id, reason);
   }
 }

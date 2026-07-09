@@ -75,6 +75,10 @@ export class ProductEntity extends TenantOwnedEntity {
   @Column({ type: "boolean", default: true })
   active!: boolean;
 
+  /** Código fiscal (8 dígitos) — só necessário pra emitir nota fiscal. */
+  @Column({ type: "varchar", length: 8, nullable: true })
+  ncm!: string | null;
+
   @ManyToOne(() => CategoryEntity, (category) => category.products, {
     onDelete: "RESTRICT",
   })

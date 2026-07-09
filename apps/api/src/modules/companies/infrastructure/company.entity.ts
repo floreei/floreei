@@ -81,6 +81,46 @@ export class CompanyEntity extends BaseEntity {
   @Column({ name: "mp_public_key", type: "varchar", length: 200, nullable: true })
   mpPublicKey!: string | null;
 
+  // ── Fiscal (emissão de nota) ─────────────────────────────────────────────
+  /** Inscrição Estadual (ou "ISENTO"). */
+  @Column({ name: "state_registration", type: "varchar", length: 20, nullable: true })
+  stateRegistration!: string | null;
+
+  /** Regime tributário — texto livre (o provedor de NFe é quem interpreta). */
+  @Column({ name: "tax_regime", type: "varchar", length: 20, nullable: true })
+  taxRegime!: string | null;
+
+  // Endereço fiscal ESTRUTURADO — diferente de `address` (texto livre, usado
+  // no timbrado dos documentos impressos). O XML da nota exige campos separados.
+  @Column({ name: "fiscal_address_street", type: "varchar", length: 160, nullable: true })
+  fiscalAddressStreet!: string | null;
+
+  @Column({ name: "fiscal_address_number", type: "varchar", length: 20, nullable: true })
+  fiscalAddressNumber!: string | null;
+
+  @Column({ name: "fiscal_address_complement", type: "varchar", length: 80, nullable: true })
+  fiscalAddressComplement!: string | null;
+
+  @Column({ name: "fiscal_address_neighborhood", type: "varchar", length: 80, nullable: true })
+  fiscalAddressNeighborhood!: string | null;
+
+  @Column({ name: "fiscal_address_city", type: "varchar", length: 80, nullable: true })
+  fiscalAddressCity!: string | null;
+
+  @Column({ name: "fiscal_address_state", type: "varchar", length: 2, nullable: true })
+  fiscalAddressState!: string | null;
+
+  @Column({ name: "fiscal_address_zip", type: "varchar", length: 9, nullable: true })
+  fiscalAddressZip!: string | null;
+
+  /** Código IBGE do município — exigido no XML da nota. */
+  @Column({ name: "fiscal_city_code", type: "varchar", length: 7, nullable: true })
+  fiscalCityCode!: string | null;
+
+  /** Emitir a nota automaticamente ao fechar a venda (senão, é manual). */
+  @Column({ name: "invoice_auto_emit", type: "boolean", default: false })
+  invoiceAutoEmit!: boolean;
+
   // ── Plano de preço e features (entitlements) ────────────────────────────────
   /** Plano contratado (null = trial / sem assinatura). */
   @Column({ name: "tier", type: "varchar", length: 16, nullable: true })

@@ -152,6 +152,34 @@ export const salesChannelSchema = z.enum([
 ]);
 export type SalesChannel = z.infer<typeof salesChannelSchema>;
 
+/** Tipo de documento fiscal: derivado do canal da venda (RETAIL → NFC-e, WHOLESALE → NF-e). */
+export const InvoiceDocumentType = {
+  NFCE: "NFCE",
+  NFE: "NFE",
+} as const;
+export const invoiceDocumentTypeSchema = z.enum([
+  InvoiceDocumentType.NFCE,
+  InvoiceDocumentType.NFE,
+]);
+export type InvoiceDocumentType = z.infer<typeof invoiceDocumentTypeSchema>;
+
+/** Ciclo de vida de uma nota fiscal emitida (ou tentada) para uma venda. */
+export const InvoiceStatus = {
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  AUTHORIZED: "AUTHORIZED",
+  REJECTED: "REJECTED",
+  CANCELED: "CANCELED",
+} as const;
+export const invoiceStatusSchema = z.enum([
+  InvoiceStatus.PENDING,
+  InvoiceStatus.PROCESSING,
+  InvoiceStatus.AUTHORIZED,
+  InvoiceStatus.REJECTED,
+  InvoiceStatus.CANCELED,
+]);
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
+
 /** Ciclo de vida de um evento (venda confirmada). */
 export const EventStatus = {
   CONFIRMED: "CONFIRMED",

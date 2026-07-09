@@ -44,6 +44,13 @@ export const productInputSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal("").transform(() => null)),
+  /** Código fiscal (8 dígitos) — só necessário pra emitir nota fiscal. */
+  ncm: z
+    .string()
+    .trim()
+    .regex(/^\d{8}$/, "NCM deve ter 8 dígitos")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
 
@@ -74,6 +81,8 @@ export interface Product {
   active: boolean;
   /** URL da imagem do item (Firebase Storage) ou null. */
   imageUrl: string | null;
+  /** Código fiscal (8 dígitos) — null até o lojista preencher. */
+  ncm: string | null;
   createdAt: string;
   updatedAt: string;
 }

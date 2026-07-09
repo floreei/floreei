@@ -43,6 +43,41 @@ export interface CompanySettings {
   logo: string | null;
 }
 
+/**
+ * Dados fiscais da empresa — necessários pra emitir nota fiscal (NFC-e/NF-e).
+ * Endereço aqui é ESTRUTURADO (o XML da nota exige campos separados),
+ * diferente do `address` de texto livre usado no timbrado dos documentos.
+ */
+export const companyFiscalSettingsSchema = z.object({
+  stateRegistration: optional(20), // Inscrição Estadual (ou "ISENTO")
+  taxRegime: optional(20), // ex.: "Simples Nacional", "Regime Normal" — texto livre
+  addressStreet: optional(160),
+  addressNumber: optional(20),
+  addressComplement: optional(80),
+  addressNeighborhood: optional(80),
+  addressCity: optional(80),
+  addressState: optional(2), // UF
+  addressZip: optional(9),
+  cityCode: optional(7), // código IBGE do município, exigido no XML
+  /** Emitir a nota automaticamente ao fechar a venda (senão, é manual). */
+  invoiceAutoEmit: z.boolean().default(false),
+});
+export type CompanyFiscalSettingsInput = z.infer<typeof companyFiscalSettingsSchema>;
+
+export interface CompanyFiscalSettings {
+  stateRegistration: string | null;
+  taxRegime: string | null;
+  addressStreet: string | null;
+  addressNumber: string | null;
+  addressComplement: string | null;
+  addressNeighborhood: string | null;
+  addressCity: string | null;
+  addressState: string | null;
+  addressZip: string | null;
+  cityCode: string | null;
+  invoiceAutoEmit: boolean;
+}
+
 /** Cor no formato hex #RRGGBB. */
 const hexColor = z
   .string()

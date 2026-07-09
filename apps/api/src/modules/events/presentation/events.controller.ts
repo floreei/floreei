@@ -16,6 +16,7 @@ import {
   quickSaleSchema,
 } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
+import { RequiresFeature } from "../../../common/auth/feature.guard";
 import { Roles } from "../../../common/auth/roles.decorator";
 import { EventsService } from "../application/events.service";
 import {
@@ -23,6 +24,7 @@ import {
   EventInputDto,
   EventQueryDto,
   EventUpdateDto,
+  InvoiceCancelDto,
 } from "./events.dto";
 
 class AttachmentInputDto extends createZodDto(attachmentInputSchema) {}
@@ -107,5 +109,34 @@ export class EventsController {
     @Param("attachmentId", ParseUUIDPipe) attachmentId: string,
   ) {
     return this.events.removeAttachment(attachmentId);
+  }
+
+  @RequiresFeature("INVOICING")
+  @Post(":id/invoice")
+  emitInvoice(@Param("id", ParseUUIDPipe) id: string) {
+    return this.events.emitInvoice(id);
+  }
+
+  @RequiresFeature("INVOICING")
+  @Get(":id/invoice")
+  getInvoice(@Param("id", ParseUUIDPipe) id: string) {
+    return this.events.getInvoice(id);
+  }
+
+  @RequiresFeature("INVOICING")
+  @Get(":id/invoices")
+  getInvoiceHistory(@Param("id", ParseUUIDPipe) id: string) {
+    return this.events.getInvoiceHistory(id);
+  }
+
+  @RequiresFeature("INVOICING")
+  @Roles("ADMIN")
+  @Post(":id/invoice/cancel")
+  @HttpCode(200)
+  cancelInvoice(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: InvoiceCancelDto,
+  ) {
+    return this.events.cancelInvoice(id, dto.reason);
   }
 }

@@ -11,8 +11,11 @@ import {
 } from "@nestjs/common";
 import { InjectRepository, TypeOrmModule } from "@nestjs/typeorm";
 import {
+  companyFiscalSettingsSchema,
   companySettingsSchema,
   storeSettingsSchema,
+  type CompanyFiscalSettings,
+  type CompanyFiscalSettingsInput,
   type CompanySettings,
   type CompanySettingsInput,
   type StoreSettings,
@@ -27,6 +30,7 @@ import { CompanyEntity } from "./infrastructure/company.entity";
 
 class CompanySettingsDto extends createZodDto(companySettingsSchema) {}
 class StoreSettingsDto extends createZodDto(storeSettingsSchema) {}
+class CompanyFiscalSettingsDto extends createZodDto(companyFiscalSettingsSchema) {}
 
 function toStore(c: CompanyEntity): StoreSettings {
   return {
@@ -38,6 +42,22 @@ function toStore(c: CompanyEntity): StoreSettings {
     description: c.storeDescription,
     mercadoPagoPublicKey: c.mpPublicKey,
     mercadoPagoConnected: Boolean(c.mpAccessToken),
+  };
+}
+
+function toFiscal(c: CompanyEntity): CompanyFiscalSettings {
+  return {
+    stateRegistration: c.stateRegistration,
+    taxRegime: c.taxRegime,
+    addressStreet: c.fiscalAddressStreet,
+    addressNumber: c.fiscalAddressNumber,
+    addressComplement: c.fiscalAddressComplement,
+    addressNeighborhood: c.fiscalAddressNeighborhood,
+    addressCity: c.fiscalAddressCity,
+    addressState: c.fiscalAddressState,
+    addressZip: c.fiscalAddressZip,
+    cityCode: c.fiscalCityCode,
+    invoiceAutoEmit: c.invoiceAutoEmit,
   };
 }
 
@@ -124,6 +144,38 @@ export class CompanyService {
     return toStore(await this.companies.save(company));
   }
 
+  async getFiscal(): Promise<CompanyFiscalSettings> {
+    return toFiscal(await this.current());
+  }
+
+  async updateFiscal(
+    input: CompanyFiscalSettingsInput,
+  ): Promise<CompanyFiscalSettings> {
+    const company = await this.current();
+    company.stateRegistration = input.stateRegistration ?? null;
+    company.taxRegime = input.taxRegime ?? null;
+    company.fiscalAddressStreet = input.addressStreet ?? null;
+    company.fiscalAddressNumber = input.addressNumber ?? null;
+    company.fiscalAddressComplement = input.addressComplement ?? null;
+    company.fiscalAddressNeighborhood = input.addressNeighborhood ?? null;
+    company.fiscalAddressCity = input.addressCity ?? null;
+    company.fiscalAddressState = input.addressState ?? null;
+    company.fiscalAddressZip = input.addressZip ?? null;
+    company.fiscalCityCode = input.cityCode ?? null;
+    company.invoiceAutoEmit = input.invoiceAutoEmit;
+    return toFiscal(await this.companies.save(company));
+  }
+
+  /** Usado só pelo EventsService no fluxo de venda (emissão automática). */
+  async isInvoiceAutoEmitEnabled(): Promise<boolean> {
+    return (await this.current()).invoiceAutoEmit;
+  }
+
+  /** Entidade completa da empresa atual — usado pra montar os dados do emissor da nota. */
+  getCurrentEntity(): Promise<CompanyEntity> {
+    return this.current();
+  }
+
   /** Lookup público por slug (sem filtro de tenant) — usado pela loja. */
   findBySlug(slug: string): Promise<CompanyEntity | null> {
     return this.companies.findOne({ where: { storeSlug: slug } });
@@ -159,6 +211,17 @@ class CompanyController {
   @Patch("store")
   updateStore(@Body() dto: StoreSettingsDto) {
     return this.company.updateStore(dto);
+  }
+
+  @Get("fiscal")
+  getFiscal() {
+    return this.company.getFiscal();
+  }
+
+  @Roles("ADMIN")
+  @Patch("fiscal")
+  updateFiscal(@Body() dto: CompanyFiscalSettingsDto) {
+    return this.company.updateFiscal(dto);
   }
 }
 

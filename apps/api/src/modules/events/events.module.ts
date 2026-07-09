@@ -2,7 +2,9 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ArrangementsModule } from "../arrangements/arrangements.module";
 import { CatalogModule } from "../catalog/catalog.module";
+import { CompanyModule } from "../companies/company.module";
 import { CustomersModule } from "../customers/customers.module";
+import { InvoicesModule } from "../invoices/invoices.module";
 import { QuotesModule } from "../quotes/quotes.module";
 import { StockModule } from "../stock/stock.module";
 import { EventsService } from "./application/events.service";
@@ -25,6 +27,8 @@ import { EventsController } from "./presentation/events.controller";
     StockModule,
     CatalogModule,
     ArrangementsModule,
+    InvoicesModule,
+    CompanyModule,
   ],
   controllers: [EventsController],
   providers: [EventsService, EventRepository, EventAttachmentRepository],
