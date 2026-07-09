@@ -71,6 +71,10 @@
     /* Foco (WCAG — sempre visível) */
     --focus-ring: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.7);
 
+    /* Altura realmente visível (visualViewport — desconta o teclado virtual).
+       O JS refina em ViewportHeightSync; sem JS cai no dvh. */
+    --vvh: 100dvh;
+
     /* Motion */
     --ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);
     --duration-fast: 120ms;

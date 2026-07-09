@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { ViewportHeightSync } from "@/components/layout/viewport-height-sync";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -43,6 +44,9 @@ export const viewport: Viewport = {
   themeColor: "#2F6050",
   // Ocupa a área do notch/home-indicator; a bottom nav respeita a safe area.
   viewportFit: "cover",
+  // Android: teclado virtual REDIMENSIONA o layout (o form não fica coberto).
+  // iOS ignora — lá o ViewportHeightSync (--vvh) resolve.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -51,6 +55,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} ${fraunces.variable} font-sans`}>
+        <ViewportHeightSync />
         <RouteProgress />
         <Providers>{children}</Providers>
       </body>
