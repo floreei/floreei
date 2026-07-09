@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
-import { ViewportHeightSync } from "@/components/layout/viewport-height-sync";
+import { MobileKeyboard } from "@/components/layout/mobile-keyboard";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -45,7 +45,7 @@ export const viewport: Viewport = {
   // Ocupa a área do notch/home-indicator; a bottom nav respeita a safe area.
   viewportFit: "cover",
   // Android: teclado virtual REDIMENSIONA o layout (o form não fica coberto).
-  // iOS ignora — lá o ViewportHeightSync (--vvh) resolve.
+  // iOS ignora (não suportado) — lá o MobileKeyboard cuida via scroll nativo.
   interactiveWidget: "resizes-content",
 };
 
@@ -55,7 +55,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} ${fraunces.variable} font-sans`}>
-        <ViewportHeightSync />
+        <MobileKeyboard />
         <RouteProgress />
         <Providers>{children}</Providers>
       </body>
