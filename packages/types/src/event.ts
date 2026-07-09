@@ -5,9 +5,11 @@ import {
   paginationQuerySchema,
 } from "./common";
 import {
+  eventChannelSchema,
   eventStatusSchema,
   eventTypeSchema,
   productUnitSchema,
+  type EventChannel,
   type EventStatus,
   type EventType,
   type ProductUnit,
@@ -77,6 +79,8 @@ export const quickSaleSchema = z
     date: dateString.optional(),
     items: z.array(quickSaleItemSchema).optional(),
     amount: z.coerce.number().nonnegative().optional(),
+    /** Varejo (balcão) ou atacado (revenda em pacote fechado). */
+    channel: eventChannelSchema.default("RETAIL"),
   })
   .refine((v) => (v.items && v.items.length > 0) || (v.amount ?? 0) > 0, {
     message: "Adicione produtos ou informe um valor",
@@ -118,6 +122,7 @@ export type ConvertQuoteInput = z.infer<typeof convertQuoteSchema>;
 /** Filtros de listagem de eventos. */
 export const eventQuerySchema = paginationQuerySchema.extend({
   type: eventTypeSchema.optional(),
+  channel: eventChannelSchema.optional(),
   status: eventStatusSchema.optional(),
   customerId: idSchema.optional(),
   from: dateString.optional(),
@@ -141,6 +146,7 @@ export interface Event {
   id: string;
   companyId: string;
   type: EventType;
+  channel: EventChannel;
   customerId: string | null;
   customer?: { id: string; name: string };
   quoteId: string | null;

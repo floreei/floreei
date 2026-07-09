@@ -1,13 +1,11 @@
 "use client";
 
-import type { Customer, ProductUnit } from "@sistema-flores/types";
+import type { Customer } from "@sistema-flores/types";
 import { Minus, Plus, Search, ShoppingCart, Trash2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CustomerDialog } from "@/components/customers/customer-dialog";
-import { UnitToggle } from "@/components/events/unit-toggle";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,31 +26,20 @@ import {
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
 import { useArrangements } from "@/lib/api/arrangements";
-import { useProducts } from "@/lib/api/catalog";
 import { useCustomers } from "@/lib/api/customers";
 import { useQuickSale } from "@/lib/api/events";
 import { useReceiveForEvent } from "@/lib/api/finance";
-import { unitLabels } from "@/lib/labels";
-import {
-  defaultSaleUnit,
-  hasUnitChoice,
-  suggestedUnitPrice,
-} from "@/lib/sale-units";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-/** Item vendável: um buquê (arranjo) ou um insumo (produto avulso). */
+/** Item vendável: um buquê (arranjo). Insumo avulso vive no Atacado. */
 interface Sellable {
-  kind: "arrangement" | "product";
+  kind: "arrangement";
   id: string;
   name: string;
-  /** Preço de venda sugerido (por unidade de compra, no caso de produto). */
   price: number;
-  packSize?: number;
-  purchaseUnit?: ProductUnit;
-  unit?: ProductUnit;
   imageUrl?: string | null;
 }
 
@@ -61,8 +48,6 @@ interface CartItem {
   quantity: number;
   /** Preço praticado nesta venda (editável). */
   price: number;
-  /** Unidade escolhida (maço/haste) — só para produto de pacote. */
-  saleUnit?: ProductUnit;
 }
 
 const key = (s: Sellable) => `${s.kind}:${s.id}`;
@@ -74,11 +59,7 @@ export function QuickSaleDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { data: products, isLoading: loadingProducts } = useProducts({
-    pageSize: 200,
-    onlyActive: true,
-  });
-  const { data: arrangements } = useArrangements({
+  const { data: arrangements, isLoading: loadingArrangements } = useArrangements({
     pageSize: 200,
     onlyActive: true,
   });
@@ -87,8 +68,8 @@ export function QuickSaleDialog({
   const receive = useReceiveForEvent();
   const router = useRouter();
 
-  // Filtro visual do catálogo: buquês, revenda (insumos avulsos) ou valor livre.
-  const [mode, setMode] = useState<"buque" | "revenda" | "amount">("buque");
+  // Filtro visual do catálogo: buquês ou valor livre.
+  const [mode, setMode] = useState<"buque" | "amount">("buque");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [amount, setAmount] = useState(0);
@@ -108,41 +89,23 @@ export function QuickSaleDialog({
     setPaid(true);
   };
 
-  // Buquês primeiro (venda principal da floricultura), depois insumos avulsos.
   const sellables = useMemo<Sellable[]>(
-    () => [
-      ...(arrangements?.data ?? []).map((a) => ({
+    () =>
+      (arrangements?.data ?? []).map((a) => ({
         kind: "arrangement" as const,
         id: a.id,
         name: a.name,
         price: a.salePrice,
       })),
-      // Só insumos com preço de venda entram no atacado; os "só buquê"
-      // (ex.: urso) ficam de fora — o custo deles vai no preço do buquê.
-      ...(products?.data ?? [])
-        .filter((p) => p.defaultSalePrice > 0)
-        .map((p) => ({
-          kind: "product" as const,
-          id: p.id,
-          name: p.name,
-          price: p.defaultSalePrice,
-          packSize: p.packSize,
-          purchaseUnit: p.purchaseUnit,
-          unit: p.unit,
-          imageUrl: p.imageUrl,
-        })),
-    ],
-    [arrangements, products],
+    [arrangements],
   );
 
   const filtered = useMemo(() => {
-    const kind = mode === "buque" ? "arrangement" : "product";
-    const base = sellables.filter((s) => s.kind === kind);
     const term = search.trim().toLowerCase();
     return term
-      ? base.filter((s) => s.name.toLowerCase().includes(term))
-      : base;
-  }, [sellables, search, mode]);
+      ? sellables.filter((s) => s.name.toLowerCase().includes(term))
+      : sellables;
+  }, [sellables, search]);
 
   const cartItems = Object.values(cart);
   const total =
@@ -156,34 +119,14 @@ export function QuickSaleDialog({
       if (c[k]) {
         return { ...c, [k]: { ...c[k], quantity: c[k].quantity + 1 } };
       }
-      const saleUnit = defaultSaleUnit(sellable);
       return {
         ...c,
-        [k]: {
-          sellable,
-          quantity: 1,
-          price: suggestedUnitPrice(sellable, saleUnit),
-          saleUnit,
-        },
+        [k]: { sellable, quantity: 1, price: sellable.price },
       };
     });
 
   const setPrice = (k: string, price: number) =>
     setCart((c) => (c[k] ? { ...c, [k]: { ...c[k], price } } : c));
-
-  const changeSaleUnit = (k: string, saleUnit: ProductUnit) =>
-    setCart((c) =>
-      c[k]
-        ? {
-            ...c,
-            [k]: {
-              ...c[k],
-              saleUnit,
-              price: suggestedUnitPrice(c[k].sellable, saleUnit),
-            },
-          }
-        : c,
-    );
 
   const changeQty = (k: string, delta: number) =>
     setCart((c) => {
@@ -204,23 +147,20 @@ export function QuickSaleDialog({
     try {
       const input =
         mode === "amount"
-          ? { customerId, amount: total, title: title || undefined }
+          ? {
+              customerId,
+              amount: total,
+              title: title || undefined,
+              channel: "RETAIL" as const,
+            }
           : {
               customerId,
-              items: cartItems.map((i) =>
-                i.sellable.kind === "arrangement"
-                  ? {
-                      arrangementId: i.sellable.id,
-                      quantity: i.quantity,
-                      unitSalePrice: i.price,
-                    }
-                  : {
-                      productId: i.sellable.id,
-                      quantity: i.quantity,
-                      saleUnit: i.saleUnit,
-                      unitSalePrice: i.price,
-                    },
-              ),
+              channel: "RETAIL" as const,
+              items: cartItems.map((i) => ({
+                arrangementId: i.sellable.id,
+                quantity: i.quantity,
+                unitSalePrice: i.price,
+              })),
             };
       const sale = await quickSale.mutateAsync(input);
       if (paid && total > 0) {
@@ -264,12 +204,9 @@ export function QuickSaleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <ModeButton active={mode === "buque"} onClick={() => setMode("buque")}>
             Buquês
-          </ModeButton>
-          <ModeButton active={mode === "revenda"} onClick={() => setMode("revenda")}>
-            Revenda
           </ModeButton>
           <ModeButton active={mode === "amount"} onClick={() => setMode("amount")}>
             Valor livre
@@ -282,7 +219,7 @@ export function QuickSaleDialog({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder={mode === "buque" ? "Buscar buquê…" : "Buscar insumo…"}
+                  placeholder="Buscar buquê…"
                   className="h-11 lg:h-11 pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -306,9 +243,6 @@ export function QuickSaleDialog({
                         />
                       ) : null}
                       {s.name}
-                      {s.kind === "arrangement" ? (
-                        <Badge variant="default">Buquê</Badge>
-                      ) : null}
                     </span>
                     <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
                       {formatCurrency(s.price)}
@@ -317,10 +251,10 @@ export function QuickSaleDialog({
                 ))}
                 {filtered.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    {loadingProducts
+                    {loadingArrangements
                       ? "Carregando…"
                       : sellables.length === 0
-                        ? "Nada cadastrado ainda. Cadastre buquês ou insumos."
+                        ? "Nada cadastrado ainda. Cadastre um buquê."
                         : "Nada encontrado."}
                   </p>
                 ) : null}
@@ -373,17 +307,9 @@ export function QuickSaleDialog({
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                        {hasUnitChoice(item.sellable) ? (
-                          <UnitToggle
-                            purchaseUnit={item.sellable.purchaseUnit as ProductUnit}
-                            unit={item.sellable.unit as ProductUnit}
-                            value={item.saleUnit}
-                            onChange={(u) => changeSaleUnit(k, u)}
-                          />
-                        ) : null}
                         <div className="flex items-center gap-2">
                           <Label htmlFor={`price-${k}`} className="text-xs text-muted-foreground">
-                            Preço{item.saleUnit ? `/${unitLabels[item.saleUnit]}` : ""}
+                            Preço
                           </Label>
                           <CurrencyInput
                             id={`price-${k}`}

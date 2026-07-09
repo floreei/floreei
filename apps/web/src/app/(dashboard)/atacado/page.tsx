@@ -1,17 +1,12 @@
 "use client";
 
-import type { EventType } from "@sistema-flores/types";
-import { CalendarHeart, Plus } from "lucide-react";
+import { Boxes, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
-import {
-  EventStatusBadge,
-  EventTypeBadge,
-} from "@/components/shared/status-badge";
+import { EventStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,48 +19,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useEvents } from "@/lib/api/events";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
-const filters: Array<{ label: string; value?: EventType }> = [
-  { label: "Todas" },
-  { label: "Pedidos", value: "ORDER" },
-  { label: "Eventos", value: "EVENT" },
-];
-
-export default function EventsPage() {
-  const [type, setType] = useState<EventType | undefined>();
-  // channel: RETAIL — vendas no atacado têm lista própria em /atacado.
-  const { data, isLoading } = useEvents({ type, channel: "RETAIL" });
-  const { openSale } = useQuickSale();
+export default function AtacadoPage() {
+  const { data, isLoading } = useEvents({ channel: "WHOLESALE" });
+  const { openWholesaleSale } = useQuickSale();
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Vendas"
-        description="Pedidos de balcão/entrega e eventos de decoração — valores e entregas."
+        title="Atacado"
+        description="Revenda de insumo em pacote fechado (maço) para outros lojistas."
       >
-        <Button onClick={openSale}>
+        <Button onClick={openWholesaleSale}>
           <Plus className="h-4 w-4" />
-          Nova venda
+          Nova venda no atacado
         </Button>
       </PageHeader>
-
-      <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
-        {filters.map((f) => (
-          <button
-            key={f.label}
-            onClick={() => setType(f.value)}
-            className={cn(
-              "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
-              type === f.value
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
 
       {isLoading ? (
         <Card>
@@ -87,7 +57,7 @@ export default function EventsPage() {
                 subtitle={
                   <span className="flex items-center gap-1.5">
                     <span className="truncate">
-                      {event.customer?.name ?? "Consumidor"}
+                      {event.customer?.name ?? "Sem cliente"}
                     </span>
                     <span aria-hidden>·</span>
                     <span className="shrink-0">{formatDate(event.date)}</span>
@@ -105,7 +75,6 @@ export default function EventsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Venda</TableHead>
-                  <TableHead className="hidden lg:table-cell">Tipo</TableHead>
                   <TableHead className="hidden md:table-cell">Data</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Vendido</TableHead>
@@ -125,11 +94,8 @@ export default function EventsPage() {
                     <TableCell>
                       <p className="font-medium">{event.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {event.customer?.name ?? "Consumidor"}
+                        {event.customer?.name ?? "Sem cliente"}
                       </p>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <EventTypeBadge type={event.type} />
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">
                       {formatDate(event.date)}
@@ -161,13 +127,13 @@ export default function EventsPage() {
         <Card>
           <EmptyState
             className="border-0"
-            icon={<CalendarHeart />}
-            title="Nenhuma venda"
-            description="Registre um pedido de balcão/entrega ou converta um orçamento em evento."
+            icon={<Boxes />}
+            title="Nenhuma venda no atacado"
+            description="Revenda insumos em pacote fechado (maço) para outros lojistas."
             action={
-              <Button onClick={openSale}>
+              <Button onClick={openWholesaleSale}>
                 <Plus className="h-4 w-4" />
-                Nova venda
+                Nova venda no atacado
               </Button>
             }
           />

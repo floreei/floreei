@@ -165,6 +165,7 @@ export class EventsService {
 
     const event = this.events.create({
       type: "ORDER",
+      channel: input.channel ?? "RETAIL",
       customerId: input.customerId ?? null,
       title: input.title?.trim() || "Venda de balcão",
       date,

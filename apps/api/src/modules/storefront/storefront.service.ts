@@ -207,6 +207,7 @@ export class StorefrontService {
       const event = await this.events.quickSale({
         customerId: order.customerId ?? undefined,
         title: `Loja: ${order.customerName}`,
+        channel: "RETAIL",
         items: order.items.map((i) => ({
           arrangementId: i.arrangementId,
           quantity: i.quantity,

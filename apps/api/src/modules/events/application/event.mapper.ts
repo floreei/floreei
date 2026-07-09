@@ -27,6 +27,7 @@ export function toEvent(event: EventEntity): Event {
     id: event.id,
     companyId: event.companyId,
     type: event.type,
+    channel: event.channel,
     customerId: event.customerId,
     customer: event.customer
       ? { id: event.customer.id, name: event.customer.name }

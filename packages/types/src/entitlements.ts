@@ -12,6 +12,7 @@ export const FEATURES = {
   FINANCE: "FINANCE", // financeiro completo (DRE, a receber/pagar, despesas)
   REPORTS: "REPORTS", // relatórios
   STORE: "STORE", // loja online
+  WHOLESALE: "WHOLESALE", // venda no atacado (revenda em pacote fechado)
 } as const;
 export type Feature = (typeof FEATURES)[keyof typeof FEATURES];
 export const ALL_FEATURES = Object.values(FEATURES) as Feature[];
@@ -45,6 +46,10 @@ export const FEATURE_INFO: Record<Feature, { label: string; description: string 
   STORE: {
     label: "Loja online",
     description: "Sua lojinha na internet com pagamento pelo Mercado Pago.",
+  },
+  WHOLESALE: {
+    label: "Venda no atacado",
+    description: "Revenda de insumos em pacote fechado para outros lojistas.",
   },
 };
 

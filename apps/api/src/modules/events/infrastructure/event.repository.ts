@@ -28,6 +28,9 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
     if (query.type) {
       qb.andWhere("event.type = :type", { type: query.type });
     }
+    if (query.channel) {
+      qb.andWhere("event.channel = :channel", { channel: query.channel });
+    }
     if (query.status) {
       qb.andWhere("event.status = :status", { status: query.status });
     }

@@ -3,17 +3,17 @@ import { firebaseIdToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
-test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
+test("atacado: vive separado do varejo — nav, dialog dedicado, canal e listas", async ({
   page,
 }) => {
   const stamp = Date.now();
-  const email = `saleunit_${stamp}@flores.com`;
+  const email = `atacado_${stamp}@flores.com`;
   const password = "Segredo123!";
   await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("/login");
   await page.getByRole("tab", { name: "Criar conta" }).click();
-  await page.getByLabel("Nome da empresa").fill("Floricultura Unidade");
+  await page.getByLabel("Nome da empresa").fill("Floricultura Atacado");
   await page.getByLabel("Seu nome").fill("Ana");
   await page.getByLabel("CNPJ ou CPF").fill(String(Date.now()).padEnd(14, "0").slice(0, 14));
   await page.getByLabel("E-mail").fill(email);
@@ -43,11 +43,28 @@ test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
       },
     })
   ).json();
+  await page.request.post(`${API}/arrangements`, {
+    headers: auth,
+    data: {
+      name: "Buquê Teste",
+      salePrice: 50,
+      items: [{ productId: pid.id, quantity: 3 }],
+    },
+  });
 
-  // Nova venda → aba Revenda (a Hortênsia é revenda avulsa, não buquê)
+  // Venda rápida (varejo) só tem Buquês + Valor livre — a revenda migrou pro
+  // Atacado, então o insumo avulso não aparece mais aqui.
   await page.goto("/inicio");
   await page.getByRole("button", { name: "Nova venda" }).first().click();
-  await page.getByRole("button", { name: "Revenda", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Buquê Teste/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Revenda", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // Nova seção "Atacado" no menu.
+  await page.getByRole("link", { name: "Vendas no atacado" }).click();
+  await page.waitForURL(/\/atacado/);
+  await page.getByRole("button", { name: "Nova venda no atacado" }).click();
+  await expect(page.getByRole("button", { name: /Hortênsia Azul/ })).toBeVisible();
   await page.getByRole("button", { name: /Hortênsia Azul/ }).click();
 
   // Toggle aparece; padrão Maço → total da linha R$ 30,00
@@ -63,12 +80,15 @@ test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
   await page.getByRole("button", { name: /Registrar venda/ }).click();
   await expect(page.getByText(/Venda registrada/)).toBeVisible();
 
-  // Backend: vendeu 1 maço → custo 15 (5×3), estoque −5, item em MACO
-  const list = await page.request.get(`${API}/events`, { headers: auth });
-  const saleId = (await list.json()).data[0].id;
+  // Backend: canal WHOLESALE, vendeu 1 maço → custo 15 (5×3), estoque −5, item em MACO
+  const list = await page.request.get(`${API}/events?channel=WHOLESALE`, { headers: auth });
+  const sales = (await list.json()).data;
+  expect(sales).toHaveLength(1);
+  const saleId = sales[0].id;
   const detail = await (
     await page.request.get(`${API}/events/${saleId}`, { headers: auth })
   ).json();
+  expect(detail.channel).toBe("WHOLESALE");
   expect(detail.soldValue).toBe(30);
   expect(detail.cost).toBe(15);
   expect(detail.items[0]).toMatchObject({ unit: "MACO", quantity: 1 });
@@ -78,4 +98,14 @@ test("venda por unidade: alterna maço/haste e registra pelo maço", async ({
   ).json();
   const level = stock.levels.find((l: { productId: string }) => l.productId === pid.id);
   expect(level.onHand).toBe(-5);
+
+  // A venda aparece na lista /atacado, mas NÃO em /eventos — testado pela UI
+  // (não só pela API), pois a página filtra pelo hook useEvents.
+  await page.goto("/atacado");
+  await expect(page.locator("table")).toContainText("R$ 30,00");
+  await page.goto("/eventos");
+  await expect(page.getByText("Nenhuma venda")).toBeVisible();
+
+  const retail = await page.request.get(`${API}/events?channel=RETAIL`, { headers: auth });
+  expect((await retail.json()).data).toHaveLength(0);
 });

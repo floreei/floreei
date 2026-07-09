@@ -1,6 +1,7 @@
 import type { Feature } from "@sistema-flores/types";
 import {
   BarChart3,
+  Boxes,
   Building2,
   CalendarHeart,
   Coins,
@@ -50,6 +51,17 @@ export const navGroups: NavGroup[] = [
       },
       { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
       { label: "Clientes", href: "/clientes", icon: Users },
+    ],
+  },
+  {
+    label: "Atacado",
+    items: [
+      {
+        label: "Vendas no atacado",
+        href: "/atacado",
+        icon: Boxes,
+        feature: "WHOLESALE",
+      },
     ],
   },
   {
