@@ -42,15 +42,21 @@ export const navGroups: NavGroup[] = [
     label: "Dia a dia",
     items: [
       { label: "Início", href: "/inicio", icon: Home },
+      { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
+      { label: "Clientes", href: "/clientes", icon: Users },
+    ],
+  },
+  {
+    label: "Varejo",
+    items: [
       { label: "Vendas", href: "/eventos", icon: CalendarHeart, feature: "SALES" },
+      { label: "Buquês", href: "/buques", icon: Flower, feature: "ARRANGEMENTS" },
       {
         label: "Pedidos da loja",
         href: "/pedidos-loja",
         icon: ShoppingBag,
         feature: "STORE",
       },
-      { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
-      { label: "Clientes", href: "/clientes", icon: Users },
     ],
   },
   {
@@ -96,7 +102,6 @@ export const navGroups: NavGroup[] = [
         icon: BarChart3,
         feature: "REPORTS",
       },
-      { label: "Buquês", href: "/buques", icon: Flower, feature: "ARRANGEMENTS" },
       {
         label: "Loja online",
         href: "/loja",
