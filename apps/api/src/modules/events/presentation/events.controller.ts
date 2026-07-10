@@ -15,10 +15,12 @@ import {
   editSaleItemsSchema,
   quickSaleSchema,
 } from "@sistema-flores/types";
+import { reportQuerySchema } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { RequiresFeature } from "../../../common/auth/feature.guard";
 import { Roles } from "../../../common/auth/roles.decorator";
 import { EventsService } from "../application/events.service";
+import { SalesInsightsService } from "../application/sales-insights.service";
 import {
   ConvertQuoteDto,
   EventInputDto,
@@ -30,14 +32,25 @@ import {
 class AttachmentInputDto extends createZodDto(attachmentInputSchema) {}
 class QuickSaleDto extends createZodDto(quickSaleSchema) {}
 class EditSaleItemsDto extends createZodDto(editSaleItemsSchema) {}
+class InsightsQueryDto extends createZodDto(reportQuerySchema) {}
 
 @Controller("events")
 export class EventsController {
-  constructor(private readonly events: EventsService) {}
+  constructor(
+    private readonly events: EventsService,
+    private readonly insights: SalesInsightsService,
+  ) {}
 
   @Get()
   list(@Query() query: EventQueryDto) {
     return this.events.list(query);
+  }
+
+  /** Insights práticos da tela de Vendas (mais/parados, top/em risco). */
+  @Get("insights")
+  @RequiresFeature("SALES")
+  getInsights(@Query() query: InsightsQueryDto) {
+    return this.insights.generate(query.from, query.to);
   }
 
   @Get(":id")

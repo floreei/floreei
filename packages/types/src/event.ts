@@ -119,12 +119,20 @@ export const convertQuoteSchema = z.object({
 });
 export type ConvertQuoteInput = z.infer<typeof convertQuoteSchema>;
 
+/** Situação de pagamento para filtrar vendas (server-side). */
+export const paymentStatusFilterSchema = z.enum(["paid", "pending", "overdue"]);
+export type PaymentStatusFilter = z.infer<typeof paymentStatusFilterSchema>;
+
+/** Situação de pagamento exibida na venda (selo). */
+export type PaymentStatus = "paid" | "partial" | "pending" | "overdue";
+
 /** Filtros de listagem de eventos. */
 export const eventQuerySchema = paginationQuerySchema.extend({
   type: eventTypeSchema.optional(),
   channel: salesChannelSchema.optional(),
   status: eventStatusSchema.optional(),
   customerId: idSchema.optional(),
+  paymentStatus: paymentStatusFilterSchema.optional(),
   from: dateString.optional(),
   to: dateString.optional(),
 });

@@ -9,6 +9,7 @@ import type {
   EventUpdate,
   Paginated,
   QuickSaleInput,
+  SalesInsights,
 } from "@sistema-flores/types";
 import {
   useMutation,
@@ -31,9 +32,23 @@ export function useEvents(query: Partial<EventQuery> = {}) {
         channel: query.channel,
         status: query.status,
         customerId: query.customerId,
+        paymentStatus: query.paymentStatus,
         from: query.from,
         to: query.to,
       }),
+  });
+}
+
+/** Insights práticos da tela de Vendas (mais/parados, top/em risco) no período. */
+export function useSalesInsights(from?: string, to?: string) {
+  return useQuery({
+    queryKey: [KEY, "insights", from ?? "", to ?? ""],
+    queryFn: () =>
+      api.get<SalesInsights>("/events/insights", {
+        from: from || undefined,
+        to: to || undefined,
+      }),
+    staleTime: 60_000,
   });
 }
 

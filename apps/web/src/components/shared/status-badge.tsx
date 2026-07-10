@@ -7,6 +7,7 @@ import type {
   SalesChannel,
 } from "@sistema-flores/types";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { isOverdue } from "@/lib/finance-period";
 
 type Variant = BadgeProps["variant"];
 
@@ -41,12 +42,19 @@ export function EventStatusBadge({ status }: { status: EventStatus }) {
 export function PaymentStatusBadge({
   sold,
   received,
+  date,
 }: {
   sold: number;
   received: number;
+  /** Data da venda — se informada, saldo em aberto vencido vira "Vencido". */
+  date?: string;
 }) {
+  const openBalance = received + 0.001 < sold;
+  if (openBalance && date && isOverdue(date)) {
+    return <Badge variant="destructive">Vencido</Badge>;
+  }
   if (received <= 0) return <Badge variant="warning">A receber</Badge>;
-  if (received + 0.001 < sold) return <Badge variant="clay">Parcial</Badge>;
+  if (openBalance) return <Badge variant="clay">Parcial</Badge>;
   return <Badge variant="success">Pago</Badge>;
 }
 

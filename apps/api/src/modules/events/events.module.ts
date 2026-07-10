@@ -1,13 +1,16 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { ArrangementEntity } from "../arrangements/infrastructure/arrangement.entity";
 import { ArrangementsModule } from "../arrangements/arrangements.module";
 import { CatalogModule } from "../catalog/catalog.module";
+import { ProductEntity } from "../catalog/infrastructure/product.entity";
 import { CompanyModule } from "../companies/company.module";
 import { CustomersModule } from "../customers/customers.module";
 import { InvoicesModule } from "../invoices/invoices.module";
 import { QuotesModule } from "../quotes/quotes.module";
 import { StockModule } from "../stock/stock.module";
 import { EventsService } from "./application/events.service";
+import { SalesInsightsService } from "./application/sales-insights.service";
 import { EventAttachmentEntity } from "./infrastructure/event-attachment.entity";
 import { EventAttachmentRepository } from "./infrastructure/event-attachment.repository";
 import { EventItemEntity } from "./infrastructure/event-item.entity";
@@ -21,6 +24,8 @@ import { EventsController } from "./presentation/events.controller";
       EventEntity,
       EventAttachmentEntity,
       EventItemEntity,
+      ProductEntity,
+      ArrangementEntity,
     ]),
     CustomersModule,
     QuotesModule,
@@ -31,7 +36,12 @@ import { EventsController } from "./presentation/events.controller";
     CompanyModule,
   ],
   controllers: [EventsController],
-  providers: [EventsService, EventRepository, EventAttachmentRepository],
+  providers: [
+    EventsService,
+    SalesInsightsService,
+    EventRepository,
+    EventAttachmentRepository,
+  ],
   exports: [EventRepository, EventsService],
 })
 export class EventsModule {}

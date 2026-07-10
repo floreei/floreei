@@ -1,9 +1,10 @@
 "use client";
 
-import type { EventType } from "@sistema-flores/types";
-import { CalendarHeart, Plus } from "lucide-react";
+import type { EventType, PaymentStatusFilter } from "@sistema-flores/types";
+import { BarChart3, CalendarHeart, ChevronDown, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
@@ -13,6 +14,7 @@ import { SalesFilters } from "@/components/shared/sales-filters";
 import {
   EventStatusBadge,
   EventTypeBadge,
+  PaymentStatusBadge,
 } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -35,18 +37,28 @@ const filters: Array<{ label: string; value?: EventType }> = [
   { label: "Eventos", value: "EVENT" },
 ];
 
+const paymentFilters: Array<{ label: string; value?: PaymentStatusFilter }> = [
+  { label: "Todos pagamentos" },
+  { label: "Pagas", value: "paid" },
+  { label: "Pendentes", value: "pending" },
+  { label: "Vencidas", value: "overdue" },
+];
+
 export default function EventsPage() {
   const [type, setType] = useState<EventType | undefined>();
+  const [payment, setPayment] = useState<PaymentStatusFilter | undefined>();
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
+  const [showInsights, setShowInsights] = useState(false);
   const debouncedSearch = useDebounce(search);
 
   // channel: RETAIL — vendas no atacado têm lista própria em /atacado.
   const { data, isLoading } = useEvents({
     type,
     channel: "RETAIL",
+    paymentStatus: payment,
     search: debouncedSearch || undefined,
     from: from || undefined,
     to: to || undefined,
@@ -57,6 +69,10 @@ export default function EventsPage() {
 
   const changeType = (value: EventType | undefined) => {
     setType(value);
+    setPage(1);
+  };
+  const changePayment = (value: PaymentStatusFilter | undefined) => {
+    setPayment(value);
     setPage(1);
   };
   const changeSearch = (value: string) => {
@@ -89,21 +105,61 @@ export default function EventsPage() {
         onDateChange={changeDate}
       />
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
-        {filters.map((f) => (
-          <button
-            key={f.label}
-            onClick={() => changeType(f.value)}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
+          {filters.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => changeType(f.value)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
+                type === f.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
+          {paymentFilters.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => changePayment(f.value)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
+                payment === f.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowInsights((v) => !v)}
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          Insights do período
+          <ChevronDown
             className={cn(
-              "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
-              type === f.value
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted",
+              "h-4 w-4 text-muted-foreground transition-transform",
+              showInsights && "rotate-180",
             )}
-          >
-            {f.label}
-          </button>
-        ))}
+          />
+        </button>
+        {showInsights ? (
+          <div className="mt-4">
+            <SalesInsightsPanel from={from} to={to} />
+          </div>
+        ) : null}
       </div>
 
       {isLoading ? (
@@ -133,7 +189,17 @@ export default function EventsPage() {
                   </span>
                 }
                 meta={formatCurrency(event.soldValue)}
-                metaSub={<EventStatusBadge status={event.status} />}
+                metaSub={
+                  event.status === "CANCELED" ? (
+                    <EventStatusBadge status={event.status} />
+                  ) : (
+                    <PaymentStatusBadge
+                      sold={event.soldValue}
+                      received={event.receivedValue}
+                      date={event.date}
+                    />
+                  )
+                }
               />
             ))}
           </div>
@@ -146,9 +212,9 @@ export default function EventsPage() {
                   <TableHead>Venda</TableHead>
                   <TableHead className="hidden lg:table-cell">Tipo</TableHead>
                   <TableHead className="hidden md:table-cell">Data</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead className="text-right">Vendido</TableHead>
-                  <TableHead className="hidden text-right md:table-cell">Recebido</TableHead>
+                  <TableHead className="hidden text-right lg:table-cell">Saldo</TableHead>
                   <TableHead className="w-32 text-right" />
                 </TableRow>
               </TableHeader>
@@ -174,13 +240,27 @@ export default function EventsPage() {
                       {formatDate(event.date)}
                     </TableCell>
                     <TableCell>
-                      <EventStatusBadge status={event.status} />
+                      {event.status === "CANCELED" ? (
+                        <EventStatusBadge status={event.status} />
+                      ) : (
+                        <PaymentStatusBadge
+                          sold={event.soldValue}
+                          received={event.receivedValue}
+                          date={event.date}
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
                       {formatCurrency(event.soldValue)}
                     </TableCell>
-                    <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
-                      {formatCurrency(event.receivedValue)}
+                    <TableCell className="hidden text-right tabular-nums lg:table-cell">
+                      {event.soldValue - event.receivedValue > 0.005 ? (
+                        <span className="font-medium text-clay">
+                          {formatCurrency(event.soldValue - event.receivedValue)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell
                       className="text-right"

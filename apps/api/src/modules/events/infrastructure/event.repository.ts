@@ -39,6 +39,14 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
         customerId: query.customerId,
       });
     }
+    if (query.paymentStatus === "paid") {
+      qb.andWhere("event.received_value >= event.sold_value");
+    } else if (query.paymentStatus === "pending") {
+      qb.andWhere("event.received_value < event.sold_value");
+    } else if (query.paymentStatus === "overdue") {
+      qb.andWhere("event.received_value < event.sold_value");
+      qb.andWhere("event.date < CURRENT_DATE");
+    }
     if (query.from) {
       qb.andWhere("event.date >= :from", { from: query.from });
     }
