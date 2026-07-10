@@ -4,6 +4,7 @@ import { BarChart3, Check, FileText, ShoppingCart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { brl, cn } from "@/lib/utils";
 import { prefersReduced, useCountUp } from "@/lib/use-count-up";
+import { Reveal } from "./reveal";
 import { SectionHeading } from "./section-heading";
 
 const TABS = [
@@ -65,7 +66,7 @@ export function Demo() {
           subtitle="Do orçamento aprovado à venda registrada e ao caixa atualizado — o mesmo fluxo do dia a dia, rodando na sua frente."
         />
 
-        <div className="mx-auto mt-10 max-w-[880px] overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+        <Reveal className="mx-auto mt-10 max-w-[880px] overflow-hidden rounded-xl border border-border bg-card shadow-lg">
           {/* Chrome */}
           <div className="flex items-center gap-3 border-b border-border px-5 py-3">
             <div className="flex gap-1.5">
@@ -114,7 +115,7 @@ export function Demo() {
               {tab === 2 ? <FinanceiroPanel /> : null}
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

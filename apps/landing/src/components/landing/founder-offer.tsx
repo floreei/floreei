@@ -5,6 +5,7 @@ import { useLandingData } from "@/lib/landing-data";
 import { whatsappWith } from "@/lib/site";
 import { Cta } from "./cta";
 import { WhatsappIcon } from "./icons";
+import { Reveal } from "./reveal";
 
 const PERKS = [
   "Preço de fundador travado — sem reajuste-surpresa depois",
@@ -32,7 +33,7 @@ export function FounderOffer() {
   return (
     <section className="section-y">
       <div className="sf-wrap">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-primary/20 bg-primary/[0.05] p-8 text-center shadow-card sm:p-12">
+        <Reveal className="mx-auto max-w-3xl rounded-2xl border border-primary/20 bg-primary/[0.05] p-8 text-center shadow-card sm:p-12">
           <p className="eyebrow">Oferta de fundador</p>
           <h2 className="sf-serif t-h3 mt-3 font-semibold leading-tight">
             {soldOut
@@ -83,7 +84,7 @@ export function FounderOffer() {
               )}
             </p>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

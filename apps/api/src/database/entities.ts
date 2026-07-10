@@ -12,6 +12,9 @@ import { EventEntity } from "../modules/events/infrastructure/event.entity";
 import { ExpenseAttachmentEntity } from "../modules/expenses/infrastructure/expense-attachment.entity";
 import { ExpenseEntity } from "../modules/expenses/infrastructure/expense.entity";
 import { PaymentEntity } from "../modules/finance/infrastructure/payment.entity";
+import { InvoiceEntity } from "../modules/invoices/infrastructure/invoice.entity";
+import { NcmSuggestionEntity } from "../modules/ncm/infrastructure/ncm-suggestion.entity";
+import { NcmEntity } from "../modules/ncm/infrastructure/ncm.entity";
 import { PlatformAdminEntity } from "../modules/platform/infrastructure/platform-admin.entity";
 import { PlatformNotificationEntity } from "../modules/platform/infrastructure/platform-notification.entity";
 import { PurchaseAttachmentEntity } from "../modules/purchases/infrastructure/purchase-attachment.entity";
@@ -51,4 +54,7 @@ export const entities = [
   StoreOrderEntity,
   SubscriptionEntity,
   PlanDefinitionEntity,
+  InvoiceEntity,
+  NcmEntity,
+  NcmSuggestionEntity,
 ];

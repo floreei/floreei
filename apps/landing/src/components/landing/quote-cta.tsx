@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import { WHATSAPP_LINK } from "@/lib/site";
 import { Cta } from "./cta";
 import { WhatsappIcon } from "./icons";
+import { Reveal } from "./reveal";
 import { SectionHeading } from "./section-heading";
 
 const POINTS = ["7 dias grátis", "Sem instalação", "Cancele quando quiser"];
@@ -24,7 +25,7 @@ export function QuoteCta() {
           subtitle="Cada negócio é diferente. Fale com a gente no WhatsApp e montamos um orçamento sem compromisso — no seu ritmo."
         />
 
-        <div className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-5">
+        <Reveal className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-5">
           <Cta
             href={WHATSAPP_LINK}
             variant="clay"
@@ -42,7 +43,7 @@ export function QuoteCta() {
               </span>
             ))}
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

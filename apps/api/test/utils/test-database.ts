@@ -41,8 +41,11 @@ export async function truncateBusiness(dataSource: DataSource): Promise<void> {
     "users",
     "migrations",
     "typeorm_metadata",
-    // Configuração global (semeada por migração), não é dado de negócio.
+    // Configuração/dado global (semeado por migração ou sincronizado do
+    // Siscomex), não é dado de negócio — não deve ser truncado por teste.
     "plan_definitions",
+    "ncm",
+    "ncm_suggestions",
   ]);
   const rows: { tablename: string }[] = await dataSource.query(
     `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,

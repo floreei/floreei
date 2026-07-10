@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { NcmCombobox } from "@/components/catalog/ncm-combobox";
 import { FileUpload } from "@/components/shared/file-upload";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
@@ -313,17 +314,21 @@ export function ProductDialog({
 
           <Field
             label="NCM"
-            htmlFor="p-ncm"
             optional
             error={form.formState.errors.ncm?.message}
-            hint="Código fiscal (8 dígitos) — só necessário pra emitir nota fiscal."
+            hint="Código fiscal — só necessário pra emitir nota fiscal."
           >
-            <Input
-              id="p-ncm"
-              inputMode="numeric"
-              maxLength={8}
-              className="max-w-[160px]"
-              {...form.register("ncm")}
+            <Controller
+              control={form.control}
+              name="ncm"
+              render={({ field }) => (
+                <NcmCombobox
+                  data-testid="product-ncm-combobox"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  className="max-w-[320px]"
+                />
+              )}
             />
           </Field>
 

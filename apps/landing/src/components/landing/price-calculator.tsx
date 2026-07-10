@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { custoRaw } from "@/data/landing";
 import { brl } from "@/lib/utils";
+import { Reveal } from "./reveal";
 import { SectionHeading } from "./section-heading";
 
 const CUSTO_TOTAL = custoRaw.reduce((sum, c) => sum + c.val, 0); // 83,50
@@ -28,7 +29,7 @@ export function PriceCalculator() {
           subtitle="O Floreei soma cada item de um arranjo e mostra quanto ele realmente custou. Você escolhe a margem — em percentual ou valor fixo — e o preço de venda sai na hora. Nunca mais venda no chute."
         />
 
-        <div className="mx-auto mt-10 grid max-w-[940px] grid-cols-2 overflow-hidden rounded-xl border border-border shadow-lg max-[900px]:grid-cols-1">
+        <Reveal className="mx-auto mt-10 grid max-w-[940px] grid-cols-2 overflow-hidden rounded-xl border border-border shadow-lg max-[900px]:grid-cols-1">
           {/* Composição do custo */}
           <div className="bg-card p-7 max-[900px]:p-6">
             <div className="flex items-center justify-between">
@@ -153,7 +154,7 @@ export function PriceCalculator() {
               </p>
             </div>
           </div>
-        </div>
+        </Reveal>
 
         <p className="mx-auto mt-5 max-w-[940px] text-center text-sm text-muted-foreground">
           Defina a margem uma vez por tipo de produto e o sistema já sugere o
