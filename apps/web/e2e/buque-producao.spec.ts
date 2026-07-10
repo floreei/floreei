@@ -42,7 +42,7 @@ test("buquê: produzir N ao cadastrar baixa N× a ficha técnica do estoque", as
 
   // Novo buquê com produção de 10
   await page.goto("/buques");
-  await page.getByRole("button", { name: "Novo buquê" }).click();
+  await page.getByRole("button", { name: "Novo buquê" }).first().click();
   await page.getByLabel("Nome").fill("Buquê Produção");
   await page.getByTestId("arrangement-item-product").first().click();
   await page.getByRole("option", { name: /Hortênsia Prod/ }).click();

@@ -8,11 +8,22 @@ export interface RevenuePoint {
   profit: number;
 }
 
-/** Primeiros passos do onboarding (checklist do trial no Início). */
+/** Primeiros passos do onboarding (checklist ordenado no Início). */
 export interface FirstSteps {
+  hasCategory: boolean;
   hasProduct: boolean;
   hasCustomer: boolean;
   hasSale: boolean;
+  /** Tem ao menos um buquê (arranjo) montado. */
+  hasArrangement: boolean;
+  /** Tem ao menos um fornecedor cadastrado. */
+  hasSupplier: boolean;
+  /** Registrou ao menos uma compra. */
+  hasPurchase: boolean;
+  /** Fez ao menos uma venda no varejo (venda direta). */
+  hasRetailSale: boolean;
+  /** Fez ao menos uma venda no atacado. */
+  hasWholesaleSale: boolean;
   storeEnabled: boolean;
   hasTeammate: boolean;
 }

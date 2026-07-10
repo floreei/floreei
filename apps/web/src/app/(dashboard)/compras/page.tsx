@@ -212,7 +212,7 @@ export default function PurchasesPage() {
             className="border-0"
             icon={<ShoppingBasket />}
             title="Nenhuma compra"
-            description="Registre sua primeira compra para acompanhar custos e contas a pagar."
+            description="Registre a compra do fornecedor: o estoque dos insumos sobe, o custo se atualiza e entra nas contas a pagar."
             action={
               <Button
                 onClick={() => {

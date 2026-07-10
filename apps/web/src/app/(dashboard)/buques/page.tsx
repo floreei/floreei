@@ -1,7 +1,8 @@
 "use client";
 
 import type { Arrangement } from "@sistema-flores/types";
-import { Flower, MoreHorizontal, Plus } from "lucide-react";
+import { Flower, MoreHorizontal, Plus, Sprout } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ArrangementDialog } from "@/components/arrangements/arrangement-dialog";
@@ -33,7 +34,7 @@ import {
   useArrangements,
   useDeleteArrangement,
 } from "@/lib/api/arrangements";
-import { useCategories } from "@/lib/api/catalog";
+import { useCategories, useProducts } from "@/lib/api/catalog";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useDebounce } from "@/lib/use-debounce";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -52,6 +53,8 @@ export default function ArrangementsPage() {
     page,
     pageSize: 20,
   });
+  const { data: products } = useProducts({ pageSize: 1 });
+  const hasProducts = (products?.total ?? 0) > 0;
   const remove = useDeleteArrangement();
 
   const changeSearch = (value: string) => {
@@ -231,12 +234,40 @@ export default function ArrangementsPage() {
             title="Nada encontrado"
             description="Nenhum buquê bate com esses filtros."
           />
+        ) : !hasProducts ? (
+          <EmptyState
+            className="border-0"
+            icon={<Sprout />}
+            title="Primeiro, cadastre insumos"
+            description="Um buquê é feito de insumos (flores, folhagens, laços…). Cadastre seus insumos e volte aqui para montar o buquê."
+            action={
+              <Button asChild>
+                <Link href="/insumos">
+                  <Plus className="h-4 w-4" />
+                  Cadastrar insumos
+                </Link>
+              </Button>
+            }
+          />
         ) : (
           <EmptyState
             className="border-0"
             icon={<Flower />}
             title="Nenhum buquê"
-            description="Crie um buquê montando a ficha técnica com os seus insumos."
+            description="Monte a ficha técnica com os seus insumos — o custo vem deles e o preço sai pela margem que você definir."
+            action={
+              isAdmin ? (
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setDialog(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo buquê
+                </Button>
+              ) : undefined
+            }
           />
         )}
       </Card>

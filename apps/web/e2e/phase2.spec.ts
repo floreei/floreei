@@ -39,7 +39,7 @@ test("fase 2: monta buquê pela UI e vê custo/lucro ao vivo", async ({ page }) 
 
   // Monta o buquê pela UI (ficha técnica).
   await page.goto("/buques");
-  await page.getByRole("button", { name: "Novo buquê" }).click();
+  await page.getByRole("button", { name: "Novo buquê" }).first().click();
   await page.getByLabel("Nome").fill("Buquê Encanto");
   // Preço fixo é o modo padrão; o campo é a CurrencyInput #a-sale.
   // CurrencyInput acumula centavos: "10000" = R$ 100,00.

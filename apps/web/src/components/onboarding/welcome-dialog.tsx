@@ -1,13 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
+import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { useGuide } from "@/components/onboarding/guide";
 import { WelcomeVideo } from "@/components/onboarding/welcome-video";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useBusinessFocus } from "@/lib/onboarding/focus";
 
 const PERKS = [
   "Vendas, orçamentos e caixa do dia a dia",
@@ -42,6 +44,7 @@ const fadeUp = {
 export function WelcomeDialog() {
   const { user } = useAuth();
   const guide = useGuide();
+  const { choose } = useBusinessFocus(user?.companyId);
   const [open, setOpen] = useState(false);
 
   const access = user?.access;
@@ -123,21 +126,21 @@ export function WelcomeDialog() {
             ))}
           </motion.ul>
 
-          <motion.div variants={fadeUp} className="space-y-2">
-            <Button
-              className="w-full"
-              onClick={() => {
+          <motion.div variants={fadeUp} className="space-y-3">
+            <p className="text-center text-sm font-medium">
+              Como você vende? Isso personaliza seus primeiros passos.
+            </p>
+            <FocusChooser
+              onChoose={(focus) => {
+                choose(focus);
                 dismiss();
                 guide.open();
               }}
-            >
-              Ver como funciona
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            />
             <Button variant="ghost" className="w-full" onClick={dismiss}>
-              Explorar sozinho
+              Escolher depois
             </Button>
-            <p className="pt-1 text-center text-xs text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               Sem cartão agora. Seus dados ficam guardados quando você assinar.
             </p>
           </motion.div>

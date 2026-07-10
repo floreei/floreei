@@ -47,7 +47,7 @@ test("buquê: seletor de insumo busca e agrupa por categoria (flor, laço, doce)
 
   // Novo buquê → abre o seletor de insumo
   await page.goto("/buques");
-  await page.getByRole("button", { name: "Novo buquê" }).click();
+  await page.getByRole("button", { name: "Novo buquê" }).first().click();
   await page.getByTestId("arrangement-item-product").first().click();
 
   // Busca + agrupamento por categoria (escopado ao popover do seletor —

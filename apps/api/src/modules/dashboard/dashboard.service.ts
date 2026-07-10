@@ -43,25 +43,43 @@ export class DashboardService {
     const companyId = this.tenant.getCompanyIdOrThrow();
     const [row] = (await this.dataSource.query(
       `SELECT
+         (SELECT COUNT(*)::int FROM categories WHERE company_id = $1) AS categories,
          (SELECT COUNT(*)::int FROM products WHERE company_id = $1) AS products,
          (SELECT COUNT(*)::int FROM customers WHERE company_id = $1) AS customers,
+         (SELECT COUNT(*)::int FROM arrangements WHERE company_id = $1) AS arrangements,
+         (SELECT COUNT(*)::int FROM suppliers WHERE company_id = $1) AS suppliers,
+         (SELECT COUNT(*)::int FROM purchases WHERE company_id = $1) AS purchases,
          (SELECT COUNT(*)::int FROM events WHERE company_id = $1) AS sales,
+         (SELECT COUNT(*)::int FROM events WHERE company_id = $1 AND channel = 'RETAIL') AS retail_sales,
+         (SELECT COUNT(*)::int FROM events WHERE company_id = $1 AND channel = 'WHOLESALE') AS wholesale_sales,
          (SELECT COUNT(*)::int FROM users WHERE company_id = $1 AND active = true) AS members,
          (SELECT store_enabled FROM companies WHERE id = $1) AS store_enabled`,
       [companyId],
     )) as [
       {
+        categories: number;
         products: number;
         customers: number;
+        arrangements: number;
+        suppliers: number;
+        purchases: number;
         sales: number;
+        retail_sales: number;
+        wholesale_sales: number;
         members: number;
         store_enabled: boolean;
       },
     ];
     return {
+      hasCategory: row.categories > 0,
       hasProduct: row.products > 0,
       hasCustomer: row.customers > 0,
       hasSale: row.sales > 0,
+      hasArrangement: row.arrangements > 0,
+      hasSupplier: row.suppliers > 0,
+      hasPurchase: row.purchases > 0,
+      hasRetailSale: row.retail_sales > 0,
+      hasWholesaleSale: row.wholesale_sales > 0,
       storeEnabled: row.store_enabled,
       hasTeammate: row.members > 1,
     };

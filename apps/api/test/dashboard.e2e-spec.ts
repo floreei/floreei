@@ -72,35 +72,77 @@ describe("Dashboard (e2e)", () => {
     await http.get("/api/dashboard/summary").expect(401);
   });
 
-  it("primeiros passos refletem o que a empresa já fez", async () => {
+  it("primeiros passos refletem a ordem do negócio (categoria→insumo→…)", async () => {
+    const steps = () =>
+      http.get("/api/dashboard/first-steps").set(bearer(token)).expect(200);
+
     // beforeEach limpou os dados de negócio e criou um cliente.
-    let res = await http
-      .get("/api/dashboard/first-steps")
-      .set(bearer(token))
-      .expect(200);
+    let res = await steps();
     expect(res.body).toMatchObject({
+      hasCategory: false,
       hasProduct: false,
       hasCustomer: true,
-      hasSale: false,
-      storeEnabled: false,
-      hasTeammate: false,
+      hasArrangement: false,
+      hasSupplier: false,
+      hasPurchase: false,
+      hasRetailSale: false,
+      hasWholesaleSale: false,
     });
 
+    // Categoria → insumo (a base).
+    const cat = await http
+      .post("/api/categories")
+      .set(bearer(token))
+      .send({ name: "Rosas" })
+      .expect(201);
+    const product = await http
+      .post("/api/products")
+      .set(bearer(token))
+      .send({ categoryId: cat.body.id, name: "Rosa", defaultSalePrice: 10 })
+      .expect(201);
+
+    // Varejo: buquê + venda direta (evento manual é RETAIL).
+    await http
+      .post("/api/arrangements")
+      .set(bearer(token))
+      .send({ name: "Buquê", salePrice: 50, items: [{ productId: product.body.id, quantity: 3 }] })
+      .expect(201);
     await http
       .post("/api/events")
       .set(bearer(token))
-      .send({
-        customerId,
-        title: "Primeira venda",
-        date: thisMonth(),
-        soldValue: 120,
-      })
+      .send({ customerId, title: "Venda direta", date: thisMonth(), soldValue: 120 })
       .expect(201);
 
-    res = await http
-      .get("/api/dashboard/first-steps")
+    // Atacado: fornecedor → compra → venda no atacado.
+    const supplier = await http
+      .post("/api/suppliers")
       .set(bearer(token))
-      .expect(200);
-    expect(res.body.hasSale).toBe(true);
+      .send({ name: "Ceasa" })
+      .expect(201);
+    await http
+      .post("/api/purchases")
+      .set(bearer(token))
+      .send({
+        supplierId: supplier.body.id,
+        date: thisMonth(),
+        items: [{ productId: product.body.id, description: "Rosa", quantity: 10, unit: "UNIDADE", unitPrice: 4 }],
+      })
+      .expect(201);
+    await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ channel: "WHOLESALE", items: [{ productId: product.body.id, quantity: 2, unitSalePrice: 8 }] })
+      .expect(201);
+
+    res = await steps();
+    expect(res.body).toMatchObject({
+      hasCategory: true,
+      hasProduct: true,
+      hasArrangement: true,
+      hasSupplier: true,
+      hasPurchase: true,
+      hasRetailSale: true,
+      hasWholesaleSale: true,
+    });
   });
 });

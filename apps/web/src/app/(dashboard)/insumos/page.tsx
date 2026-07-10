@@ -341,11 +341,11 @@ export default function CatalogPage() {
             <EmptyState
               className="border-0"
               icon={<Sprout />}
-              title="Nenhum insumo"
+              title="Comece pela base"
               description={
                 categories?.length
-                  ? "Cadastre insumos para vender e compor buquês."
-                  : "Crie uma categoria antes de adicionar insumos."
+                  ? "Cadastre seu primeiro insumo — a flor ou material que você compra e vende. É a base dos buquês e das vendas."
+                  : "Tudo começa aqui. Crie uma categoria (ex.: Flores, Laços) e depois cadastre os insumos dentro dela."
               }
               action={
                 categories?.length ? (

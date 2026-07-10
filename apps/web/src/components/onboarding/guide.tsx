@@ -4,12 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
+  Boxes,
   CalendarHeart,
-  CreditCard,
-  FileText,
-  Package,
-  Store,
-  Users,
+  Flower,
+  Sprout,
+  Truck,
   Wallet,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -20,8 +19,11 @@ import {
   useMemo,
   useState,
 } from "react";
+import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/lib/auth/auth-context";
+import { type BusinessFocus, getFocus, setFocus } from "@/lib/onboarding/focus";
 
 interface GuideStep {
   icon: LucideIcon;
@@ -33,65 +35,72 @@ interface GuideStep {
   cta: string;
 }
 
-/** Passo a passo do "como funciona" — cada área com um exemplo real. */
-const STEPS: GuideStep[] = [
+const BASE: GuideStep = {
+  icon: Sprout,
+  title: "A base: categorias e insumos",
+  text: "Tudo começa aqui. Crie categorias (Flores, Laços, Doces) e cadastre seus insumos — o que você compra e vende.",
+  example: 'Ex.: categoria "Rosas" → insumo "Rosa Vermelha", R$ 4 o maço.',
+  href: "/insumos",
+  cta: "Cadastrar insumos",
+};
+
+const RETAIL: GuideStep[] = [
+  {
+    icon: Flower,
+    title: "Monte seus buquês",
+    text: "Junte insumos numa ficha técnica. O custo vem dos insumos e o preço sai automático pela margem que você definir.",
+    example: 'Ex.: 12 rosas + papel + laço = "Buquê Encanto".',
+    href: "/buques",
+    cta: "Montar um buquê",
+  },
   {
     icon: CalendarHeart,
-    title: "Vendas",
-    text: "Registre cada venda direta ou entrega e acompanhe quanto já foi pago e quanto ainda falta receber.",
-    example: "Ex.: “Buquê de rosas — R$ 120” vira venda e entra no caixa na hora.",
+    title: "Faça a venda direta",
+    text: "Venda o buquê (ou um insumo avulso) ao cliente e receba na hora ou fiado.",
+    example: 'Ex.: "Buquê Encanto — R$ 120" vira venda e entra no caixa.',
     href: "/vendas",
     cta: "Ir para Vendas",
   },
+];
+
+const WHOLESALE: GuideStep[] = [
   {
-    icon: Users,
-    title: "Clientes",
-    text: "Cadastre seus clientes uma vez e tenha o histórico de pedidos e as datas importantes de cada um sempre à mão.",
-    example: "Ex.: veja que a Dona Marta compra todo mês e o aniversário dela é dia 12.",
-    href: "/clientes",
-    cta: "Ir para Clientes",
+    icon: Truck,
+    title: "Compre do fornecedor",
+    text: "Cadastre o fornecedor e registre a compra. O estoque sobe e o custo dos insumos se atualiza sozinho.",
+    example: "Ex.: comprou 50 maços de rosas da Ceasa → estoque e custo prontos.",
+    href: "/fornecedores",
+    cta: "Cadastrar fornecedor",
   },
   {
-    icon: FileText,
-    title: "Orçamentos",
-    text: "Monte orçamentos com a sua marca e, quando o cliente aprovar, transforme em venda com um clique.",
-    example: "Ex.: orçamento de um casamento aprovado → vira venda com um toque.",
-    href: "/orcamentos",
-    cta: "Ir para Orçamentos",
-  },
-  {
-    icon: Package,
-    title: "Estoque e compras",
-    text: "Controle o que tem em estoque e registre as compras dos fornecedores — as entradas e saídas se ajustam sozinhas.",
-    example: "Ex.: comprou 50 rosas → o estoque sobe; vendeu um buquê → desce.",
-    href: "/estoque",
-    cta: "Ir para Estoque",
-  },
-  {
-    icon: Wallet,
-    title: "Financeiro",
-    text: "Veja tudo que tem a receber e a pagar, o caixa do dia a dia e para onde o dinheiro está indo.",
-    example: "Ex.: “a receber esta semana: R$ 1.240” logo na tela inicial.",
-    href: "/financeiro",
-    cta: "Ir para Financeiro",
-  },
-  {
-    icon: Store,
-    title: "Loja online",
-    text: "Ative a sua lojinha na internet e receba pedidos já pagos pelo Mercado Pago, direto no sistema.",
-    example: "Ex.: o cliente compra pelo celular e o pedido cai aqui, pago.",
-    href: "/loja",
-    cta: "Ir para Loja online",
-  },
-  {
-    icon: CreditCard,
-    title: "Seu plano",
-    text: "Acompanhe o período gratuito e faça o upgrade quando precisar de mais — com calma, sem perder nada.",
-    example: "Ex.: veja quantos dias grátis faltam e o que cada plano inclui.",
-    href: "/plano",
-    cta: "Ir para Plano",
+    icon: Boxes,
+    title: "Venda no atacado",
+    text: "Revenda o maço fechado a outro lojista, com o preço de atacado.",
+    example: "Ex.: revende 20 maços de rosas para outra floricultura.",
+    href: "/atacado",
+    cta: "Ir para Atacado",
   },
 ];
+
+const FINANCE: GuideStep = {
+  icon: Wallet,
+  title: "Acompanhe o dinheiro",
+  text: "Veja o que tem a receber, a pagar e o caixa do dia a dia — tudo num lugar só.",
+  example: 'Ex.: "a receber esta semana: R$ 1.240" logo na tela inicial.',
+  href: "/financeiro",
+  cta: "Ir para Financeiro",
+};
+
+/** Passos na ordem certa, conforme o lojista vende. */
+function buildSteps(focus: BusinessFocus): GuideStep[] {
+  const middle =
+    focus === "RETAIL"
+      ? RETAIL
+      : focus === "WHOLESALE"
+        ? WHOLESALE
+        : [...RETAIL, ...WHOLESALE];
+  return [BASE, ...middle, FINANCE];
+}
 
 interface GuideContextValue {
   open: () => void;
@@ -99,7 +108,7 @@ interface GuideContextValue {
 
 const GuideContext = createContext<GuideContextValue | null>(null);
 
-/** Abre o guia "Como funciona" de qualquer tela (topbar, boas-vindas…). */
+/** Abre o guia "Como começar" de qualquer tela (topbar, boas-vindas…). */
 export function useGuide(): GuideContextValue {
   const ctx = useContext(GuideContext);
   if (!ctx) throw new Error("useGuide precisa do GuideProvider");
@@ -125,19 +134,55 @@ function GuideDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const companyId = user?.companyId;
+  // Relê o foco do localStorage a cada abertura (pode ter sido escolhido no
+  // checklist/boas-vindas — instâncias separadas não compartilham estado).
+  const [focus, setFocusState] = useState<BusinessFocus | null>(null);
   const [[index, dir], setStep] = useState<[number, number]>([0, 0]);
 
-  // Sempre recomeça do início ao reabrir.
   useEffect(() => {
-    if (open) setStep([0, 0]);
-  }, [open]);
+    if (!open) return;
+    setStep([0, 0]);
+    setFocusState(companyId ? getFocus(companyId) : null);
+  }, [open, companyId]);
 
-  const go = (next: number) =>
-    setStep(([cur]) => [next, next > cur ? 1 : -1]);
+  const choose = (f: BusinessFocus) => {
+    if (companyId) setFocus(companyId, f);
+    setFocusState(f);
+  };
 
-  const step = STEPS[index];
-  const isLast = index === STEPS.length - 1;
+  // Sem foco escolhido: pergunta primeiro (personaliza o passo a passo).
+  if (open && !focus) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="space-y-4 text-center">
+            <DialogTitle className="font-serif text-2xl">
+              Como você vende?
+            </DialogTitle>
+            <p className="text-[0.95rem] text-muted-foreground">
+              Escolha para receber um passo a passo sob medida.
+            </p>
+            <FocusChooser
+              className="sm:grid-cols-1"
+              onChoose={(f) => {
+                choose(f);
+                setStep([0, 0]);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const steps = buildSteps(focus ?? "BOTH");
+  const step = steps[Math.min(index, steps.length - 1)];
+  const isLast = index >= steps.length - 1;
   const Icon = step.icon;
+
+  const go = (next: number) => setStep(([cur]) => [next, next > cur ? 1 : -1]);
 
   const goToArea = () => {
     onOpenChange(false);
@@ -194,9 +239,9 @@ function GuideDialog({
         {/* Progresso */}
         <div
           className="flex items-center justify-center gap-1.5"
-          aria-label={`Passo ${index + 1} de ${STEPS.length}`}
+          aria-label={`Passo ${index + 1} de ${steps.length}`}
         >
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <button
               key={s.href}
               type="button"

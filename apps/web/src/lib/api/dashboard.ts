@@ -9,8 +9,8 @@ export function useDashboard() {
   });
 }
 
-/** Checklist de primeiros passos (onboarding do trial). */
-export function useFirstSteps(enabled: boolean) {
+/** Checklist de primeiros passos (onboarding). */
+export function useFirstSteps(enabled = true) {
   return useQuery({
     queryKey: ["dashboard", "first-steps"],
     queryFn: () => api.get<FirstSteps>("/dashboard/first-steps"),

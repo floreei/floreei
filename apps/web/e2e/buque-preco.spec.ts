@@ -3,7 +3,7 @@ import { firebaseIdToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
-test("buquê: precifica por margem % com preço derivado ao vivo", async ({
+test("buquê: precifica por markup % (sobre o custo) com preço derivado ao vivo", async ({
   page,
 }) => {
   const stamp = Date.now();
@@ -38,16 +38,16 @@ test("buquê: precifica por margem % com preço derivado ao vivo", async ({
     },
   });
 
-  // Novo buquê: margem 40% sobre o custo 60 → preço R$ 100,00 ao vivo
+  // Novo buquê: markup 40% sobre o custo 60 → preço R$ 84,00 ao vivo
   await page.goto("/buques");
-  await page.getByRole("button", { name: "Novo buquê" }).click();
+  await page.getByRole("button", { name: "Novo buquê" }).first().click();
   await page.getByLabel("Nome").fill("Buquê Margem");
   await page.getByTestId("arrangement-item-product").first().click();
   await page.getByRole("option", { name: /Rosa Especial/ }).click();
-  await page.getByRole("button", { name: "Margem (%)" }).click();
+  await page.getByRole("button", { name: "Lucro s/ custo (%)" }).click();
   await page.locator("#a-margin").fill("40");
 
-  await expect(page.getByTestId("arrangement-price")).toContainText("R$ 100,00");
+  await expect(page.getByTestId("arrangement-price")).toContainText("R$ 84,00");
   await expect(page.getByTestId("arrangement-cost")).toContainText("R$ 60,00");
 
   await page.getByRole("button", { name: "Criar buquê" }).click();
@@ -58,7 +58,7 @@ test("buquê: precifica por margem % com preço derivado ao vivo", async ({
     await page.request.get(`${API}/arrangements`, { headers: auth })
   ).json();
   const buque = list.data.find((a: { name: string }) => a.name === "Buquê Margem");
-  expect(buque.salePrice).toBe(100);
+  expect(buque.salePrice).toBe(84);
   expect(buque.pricingMode).toBe("MARGIN_PCT");
   expect(buque.profitPct).toBe(40);
 });

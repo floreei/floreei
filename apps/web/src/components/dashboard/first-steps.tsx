@@ -1,62 +1,137 @@
 "use client";
 
-import { Check, ChevronRight, Sparkles } from "lucide-react";
+import type { FirstSteps as FirstStepsData } from "@sistema-flores/types";
+import { Check, ChevronRight, Sparkles, X } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { Card } from "@/components/ui/card";
 import { useFirstSteps } from "@/lib/api/dashboard";
 import { useAuth } from "@/lib/auth/auth-context";
+import { type BusinessFocus, useBusinessFocus } from "@/lib/onboarding/focus";
 import { cn } from "@/lib/utils";
 
+type StepKey = keyof FirstStepsData;
+
 interface Step {
-  key: "hasProduct" | "hasCustomer" | "hasSale" | "storeEnabled" | "hasTeammate";
+  key: StepKey;
   label: string;
   hint: string;
   href: string;
-  adminOnly?: boolean;
 }
 
-const STEPS: Step[] = [
+const BASE: Step[] = [
   {
-    key: "hasProduct",
-    label: "Cadastre um insumo (flor, papel, cola…)",
-    hint: "É a base das vendas e dos buquês",
+    key: "hasCategory",
+    label: "Crie uma categoria",
+    hint: "Agrupa seus insumos (Flores, Laços…)",
     href: "/insumos",
   },
   {
-    key: "hasCustomer",
-    label: "Cadastre um cliente",
-    hint: "Para acompanhar pedidos e datas",
-    href: "/clientes",
+    key: "hasProduct",
+    label: "Cadastre um insumo",
+    hint: "A flor/material que você compra e vende",
+    href: "/insumos",
   },
-  {
-    key: "hasSale",
-    label: "Registre sua primeira venda",
-    hint: "Venda direta, entrega ou evento",
-    href: "/vendas",
-  },
-  {
-    key: "storeEnabled",
-    label: "Ative sua loja online",
-    hint: "Venda pela internet com Mercado Pago",
-    href: "/loja",
-    adminOnly: true,
-  },
-  // Convidar equipe é pago (entra na mensalidade) — fora do onboarding grátis.
 ];
 
+const RETAIL: Step[] = [
+  {
+    key: "hasArrangement",
+    label: "Monte um buquê",
+    hint: "Ficha técnica: o preço sai do custo",
+    href: "/buques",
+  },
+  {
+    key: "hasRetailSale",
+    label: "Faça uma venda direta",
+    hint: "Venda o buquê ao cliente e receba",
+    href: "/vendas",
+  },
+];
+
+const WHOLESALE: Step[] = [
+  {
+    key: "hasSupplier",
+    label: "Cadastre um fornecedor",
+    hint: "De quem você compra insumos",
+    href: "/fornecedores",
+  },
+  {
+    key: "hasPurchase",
+    label: "Registre uma compra",
+    hint: "Entra no estoque e atualiza o custo",
+    href: "/compras",
+  },
+  {
+    key: "hasWholesaleSale",
+    label: "Faça uma venda no atacado",
+    hint: "Revenda o maço a outro lojista",
+    href: "/atacado",
+  },
+];
+
+function buildSteps(focus: BusinessFocus): Step[] {
+  const middle =
+    focus === "RETAIL"
+      ? RETAIL
+      : focus === "WHOLESALE"
+        ? WHOLESALE
+        : [...RETAIL, ...WHOLESALE];
+  return [...BASE, ...middle];
+}
+
+function dismissedKey(companyId: string): string {
+  return `floreei:steps-dismissed:${companyId}`;
+}
+
 /**
- * Checklist de primeiros passos, exibido no Início durante o período gratuito.
- * Trial que ATIVA converte: cada passo leva direto para a tela certa. Some
- * quando tudo foi feito ou quando a empresa deixa o trial.
+ * Checklist de primeiros passos no Início, na ordem de dependência do negócio
+ * (categoria → insumo → [buquê/venda direta | fornecedor/compra/atacado]).
+ * Personalizado pelo foco do lojista; some quando tudo é feito ou é dispensado.
  */
 export function FirstSteps() {
   const { user } = useAuth();
-  const inTrial = user?.access?.status === "TRIAL";
-  const { data } = useFirstSteps(Boolean(inTrial));
+  const companyId = user?.companyId;
+  const { focus, choose, reset } = useBusinessFocus(companyId);
+  const { data } = useFirstSteps(Boolean(companyId));
+  const [dismissed, setDismissed] = useState<boolean | undefined>(undefined);
 
-  if (!inTrial || !data) return null;
+  useEffect(() => {
+    if (!companyId) return;
+    setDismissed(Boolean(localStorage.getItem(dismissedKey(companyId))));
+  }, [companyId]);
 
-  const steps = STEPS.filter((s) => !s.adminOnly || user?.role === "ADMIN");
+  const dismiss = () => {
+    if (companyId) localStorage.setItem(dismissedKey(companyId), "1");
+    setDismissed(true);
+  };
+
+  // Aguarda hidratar (focus/dismissed indefinidos) para não piscar.
+  if (!data || dismissed === undefined || dismissed || focus === undefined) {
+    return null;
+  }
+
+  // Ainda não escolheu como vende: pergunta primeiro (personaliza os passos).
+  if (focus === null) {
+    return (
+      <Card className="space-y-3 p-5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="inline-flex items-center gap-2 font-medium">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Como você vende?
+          </p>
+          <DismissButton onClick={dismiss} />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Escolha para receber um passo a passo sob medida.
+        </p>
+        <FocusChooser onChoose={choose} />
+      </Card>
+    );
+  }
+
+  const steps = buildSteps(focus);
   const done = steps.filter((s) => data[s.key]).length;
   if (done === steps.length) return null;
 
@@ -67,9 +142,19 @@ export function FirstSteps() {
           <Sparkles className="h-4 w-4 text-primary" />
           Primeiros passos
         </p>
-        <p className="text-sm text-muted-foreground tabular-nums">
-          {done} de {steps.length} concluídos
-        </p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={reset}
+            className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            trocar
+          </button>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {done} de {steps.length} concluídos
+          </p>
+          <DismissButton onClick={dismiss} />
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
         {steps.map((step) => {
@@ -116,5 +201,18 @@ export function FirstSteps() {
         })}
       </div>
     </Card>
+  );
+}
+
+function DismissButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Dispensar primeiros passos"
+      className="text-muted-foreground/60 transition-colors hover:text-foreground"
+    >
+      <X className="h-4 w-4" />
+    </button>
   );
 }

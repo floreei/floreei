@@ -175,7 +175,7 @@ export default function AtacadoPage() {
               className="border-0"
               icon={<Boxes />}
               title="Nenhuma venda no atacado"
-              description="Revenda insumos em pacote fechado (maço) para outros lojistas."
+              description="Para revender no atacado: cadastre o insumo marcando “Atacado”, registre a compra do fornecedor (pra ter estoque) e lance a venda em pacote fechado (maço) para outro lojista."
               action={
                 <Button onClick={openWholesaleSale}>
                   <Plus className="h-4 w-4" />
