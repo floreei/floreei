@@ -25,7 +25,9 @@ export function HeroPhoto() {
         label="Vendas do mês"
         value={`R$ ${vendas.toFixed(1).replace(".", ",")}k`}
         delay={260}
-        className="sf-cloud -left-4 top-8 sm:-left-6"
+        float
+        floatDelay={0}
+        className="-left-4 top-8 sm:-left-6"
       />
 
       <PhotoBadge
@@ -33,14 +35,18 @@ export function HeroPhoto() {
         title="Orçamento aprovado"
         subtitle="Casamento — Ana & Rui"
         delay={420}
-        className="sf-cloud-b -left-4 top-1/2 -translate-y-1/2 sm:-left-6"
+        float
+        floatDelay={0.6}
+        className="-left-4 top-1/2 -translate-y-1/2 sm:-left-6"
       />
 
       <MiniStat
         label="A receber"
         value={`R$ ${inteiro(receber)}`}
         delay={580}
-        className="sf-cloud-c -bottom-5 -right-4 sm:-right-6"
+        float
+        floatDelay={1.2}
+        className="-bottom-5 -right-4 sm:-right-6"
       />
     </div>
   );

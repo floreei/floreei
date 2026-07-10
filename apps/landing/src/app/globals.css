@@ -311,41 +311,6 @@
   animation: sfPulse 2.6s var(--ease-standard) infinite;
 }
 
-/* Selos flutuantes sobre foto — deriva suave, tipo nuvem, cada um com um
-   ritmo levemente diferente pra não parecer sincronizado. */
-@keyframes sfCloud {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(3px, -9px);
-  }
-}
-.sf-cloud {
-  animation: sfCloud 4.5s ease-in-out infinite;
-}
-/* Variante para selo centralizado com -translate-y-1/2 — a animação de
-   transform substitui (não soma) o transform estático, então o -50% de
-   centralização vai embutido nos keyframes. */
-@keyframes sfCloudCentered {
-  0%,
-  100% {
-    transform: translateY(-50%) translate(0, 0);
-  }
-  50% {
-    transform: translateY(-50%) translate(3px, -9px);
-  }
-}
-.sf-cloud-b {
-  animation: sfCloudCentered 5.5s ease-in-out infinite;
-  animation-delay: 0.6s;
-}
-.sf-cloud-c {
-  animation: sfCloud 5s ease-in-out infinite;
-  animation-delay: 1.2s;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -357,10 +322,7 @@
   }
   .sf-blob,
   .sf-blob2,
-  .sf-pulse,
-  .sf-cloud,
-  .sf-cloud-b,
-  .sf-cloud-c {
+  .sf-pulse {
     animation: none !important;
   }
   *,
