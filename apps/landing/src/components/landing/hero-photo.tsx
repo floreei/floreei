@@ -48,7 +48,7 @@ export function HeroPhoto() {
       <Reveal
         variant="pop"
         delay={580}
-        className="absolute -bottom-4 -right-4 sm:-right-6"
+        className="absolute bottom-6 -right-4 sm:-right-6"
       >
         <MiniStat label="A receber" value={`R$ ${inteiro(receber)}`} />
       </Reveal>
