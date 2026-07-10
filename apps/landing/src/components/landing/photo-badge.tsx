@@ -36,6 +36,31 @@ export function PhotoBadge({
   );
 }
 
+/** Selo flutuante compacto sobre foto: rótulo pequeno + valor em destaque. */
+export function MiniStat({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute z-10 whitespace-nowrap rounded-lg border border-border/70 bg-card px-3.5 py-2.5 text-card-foreground shadow-lg",
+        className,
+      )}
+    >
+      <p className="text-[11px] leading-tight text-muted-foreground">{label}</p>
+      <p className="sf-serif mt-0.5 text-lg font-semibold leading-none tabular-nums">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 /** Selo flutuante de estatística sobre foto: cartão colorido com número grande. */
 export function StatBadge({
   value,
