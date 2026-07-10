@@ -373,6 +373,12 @@ export function ProductDialog({
             optional
             error={form.formState.errors.ncm?.message}
             hint="Código fiscal — só necessário pra emitir nota fiscal."
+            // Último campo antes do rodapé sticky: o rodapé fica sempre
+            // colado no fim da área visível (é o objetivo dele — Cancelar/
+            // Salvar sem precisar rolar até o fundo), então precisa de uma
+            // folga própria pra não cobrir a última linha de texto quando o
+            // formulário é rolado até o fim.
+            className="pb-1"
           >
             <Controller
               control={form.control}
