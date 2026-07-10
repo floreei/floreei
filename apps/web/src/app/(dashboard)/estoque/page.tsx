@@ -9,10 +9,11 @@ import {
   Plus,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import { AdjustBalanceDialog } from "@/components/stock/adjust-balance-dialog";
 import { MovementDialog } from "@/components/stock/movement-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +30,32 @@ import {
 } from "@/components/ui/table";
 import { useStockOverview } from "@/lib/api/stock";
 import { unitLabels } from "@/lib/labels";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+
+type StockFilter = "all" | "low" | "ok";
 
 export default function StockPage() {
   const { data, isLoading } = useStockOverview();
   const [open, setOpen] = useState(false);
   const [adjustLevel, setAdjustLevel] = useState<StockLevel | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<StockFilter>("all");
+
+  const levels = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data?.levels ?? []).filter((l) => {
+      if (filter === "low" && !l.low) return false;
+      if (filter === "ok" && l.low) return false;
+      if (q) {
+        return (
+          l.productName.toLowerCase().includes(q) ||
+          (l.categoryName ?? "").toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [data, search, filter]);
+  const hasFilter = search.trim() !== "" || filter !== "all";
 
   return (
     <div className="space-y-6">
@@ -106,6 +127,38 @@ export default function StockPage() {
         </Card>
       </div>
 
+      {data && data.levels.length > 0 ? (
+        <SalesFilters
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Buscar insumo…"
+        >
+          <div className="flex gap-1.5">
+            {(
+              [
+                { label: "Todos", value: "all" },
+                { label: "Estoque baixo", value: "low" },
+                { label: "Ok", value: "ok" },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setFilter(f.value)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  filter === f.value
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </SalesFilters>
+      ) : null}
+
       <Card>
         {isLoading ? (
           <div className="space-y-2 p-4">
@@ -113,11 +166,11 @@ export default function StockPage() {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : data && data.levels.length > 0 ? (
+        ) : levels.length > 0 ? (
           <>
             {/* Celular: cartões — toque ajusta o saldo */}
             <div className="space-y-2 p-3 sm:hidden">
-              {data.levels.map((level) => (
+              {levels.map((level) => (
                 <ListCard
                   key={level.productId}
                   onClick={() => setAdjustLevel(level)}
@@ -150,7 +203,7 @@ export default function StockPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.levels.map((level) => (
+              {levels.map((level) => (
                 <TableRow key={level.productId}>
                   <TableCell className="font-medium">{level.productName}</TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">
@@ -188,6 +241,13 @@ export default function StockPage() {
           </Table>
             </div>
           </>
+        ) : hasFilter ? (
+          <EmptyState
+            className="border-0"
+            icon={<Package />}
+            title="Nada encontrado"
+            description="Nenhum insumo bate com esses filtros."
+          />
         ) : (
           <EmptyState
             className="border-0"

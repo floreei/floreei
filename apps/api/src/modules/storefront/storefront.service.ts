@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type {
+  Paginated,
   StoreBranding,
   StoreCatalog,
   StoreCatalogCategory,
@@ -11,6 +12,7 @@ import type {
   StoreCheckoutResult,
   StoreOrder,
   StoreOrderItem,
+  StoreOrderQuery,
 } from "@sistema-flores/types";
 import {
   FEATURES,
@@ -224,9 +226,9 @@ export class StorefrontService {
   }
 
   /** Lista os pedidos da empresa (backoffice/ERP). */
-  async listOrders(): Promise<StoreOrder[]> {
-    const rows = await this.orders.list();
-    return rows.map((o) => this.toOrder(o));
+  async listOrders(query: StoreOrderQuery): Promise<Paginated<StoreOrder>> {
+    const page = await this.orders.search(query);
+    return { ...page, data: page.data.map((o) => this.toOrder(o)) };
   }
 
   private toOrder(o: StoreOrderEntity): StoreOrder {

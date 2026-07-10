@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  dateStringSchema,
   idSchema,
   moneySchema,
   paginationQuerySchema,
@@ -53,6 +54,8 @@ export const purchaseQuerySchema = paginationQuerySchema.extend({
   supplierId: idSchema.optional(),
   status: purchaseStatusSchema.optional(),
   unpaidOnly: z.coerce.boolean().optional(),
+  from: dateStringSchema.optional(),
+  to: dateStringSchema.optional(),
 });
 export type PurchaseQuery = z.infer<typeof purchaseQuerySchema>;
 

@@ -3,9 +3,12 @@
 import type { StoreOrder, StoreOrderStatus } from "@sistema-flores/types";
 import { ExternalLink, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +21,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useStoreOrders } from "@/lib/api/store";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { useDebounce } from "@/lib/use-debounce";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+
+const statusFilters: Array<{ label: string; value?: StoreOrderStatus }> = [
+  { label: "Todos" },
+  { label: "Pagos", value: "PAID" },
+  { label: "Aguardando", value: "PENDING" },
+  { label: "Cancelados", value: "CANCELED" },
+];
 
 const statusInfo: Record<
   StoreOrderStatus,
@@ -38,7 +49,34 @@ function itemsSummary(order: StoreOrder): string {
 }
 
 export default function StoreOrdersPage() {
-  const { data, isLoading } = useStoreOrders();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<StoreOrderStatus | undefined>();
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const debounced = useDebounce(search);
+  const { data, isLoading } = useStoreOrders({
+    search: debounced || undefined,
+    status,
+    from: from || undefined,
+    to: to || undefined,
+    page,
+    pageSize: 20,
+  });
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+  const changeStatus = (value: StoreOrderStatus | undefined) => {
+    setStatus(value);
+    setPage(1);
+  };
+  const changeDate = (nextFrom: string, nextTo: string) => {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -47,6 +85,32 @@ export default function StoreOrdersPage() {
         description="Compras feitas na sua loja online. As pagas viram venda automaticamente."
       />
 
+      <SalesFilters
+        search={search}
+        onSearchChange={changeSearch}
+        from={from}
+        to={to}
+        onDateChange={changeDate}
+        searchPlaceholder="Buscar por cliente ou telefone…"
+      />
+
+      <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
+        {statusFilters.map((f) => (
+          <button
+            key={f.label}
+            onClick={() => changeStatus(f.value)}
+            className={cn(
+              "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
+              status === f.value
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <Card>
         {isLoading ? (
           <div className="space-y-2 p-4">
@@ -54,11 +118,11 @@ export default function StoreOrdersPage() {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : data && data.length > 0 ? (
+        ) : data && data.data.length > 0 ? (
           <>
             {/* Celular: cartões — toque abre a venda vinculada (quando há) */}
             <div className="space-y-2 p-3 sm:hidden">
-              {data.map((order) => {
+              {data.data.map((order) => {
                 const info = statusInfo[order.status];
                 return (
                   <ListCard
@@ -85,7 +149,7 @@ export default function StoreOrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((order) => {
+              {data.data.map((order) => {
                 const info = statusInfo[order.status];
                 return (
                   <TableRow key={order.id}>
@@ -126,6 +190,13 @@ export default function StoreOrdersPage() {
           </Table>
             </div>
           </>
+        ) : debounced || status || from || to ? (
+          <EmptyState
+            className="border-0"
+            icon={<ShoppingBag />}
+            title="Nada encontrado"
+            description="Nenhum pedido bate com esses filtros."
+          />
         ) : (
           <EmptyState
             className="border-0"
@@ -135,6 +206,8 @@ export default function StoreOrdersPage() {
           />
         )}
       </Card>
+
+      {data ? <Pagination data={data} onPageChange={setPage} /> : null}
     </div>
   );
 }

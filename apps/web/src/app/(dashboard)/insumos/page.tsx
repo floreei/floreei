@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,6 +37,7 @@ import {
 } from "@/lib/api/catalog";
 import { useAuth } from "@/lib/auth/auth-context";
 import { unitLabels } from "@/lib/labels";
+import { useDebounce } from "@/lib/use-debounce";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export default function CatalogPage() {
@@ -43,8 +45,12 @@ export default function CatalogPage() {
   const isAdmin = user?.role === "ADMIN";
   const { data: categories, isLoading: loadingCats } = useCategories();
   const [selected, setSelected] = useState<string | undefined>();
+  const [search, setSearch] = useState("");
+  const debounced = useDebounce(search);
   const { data: products, isLoading: loadingProducts } = useProducts({
     categoryId: selected,
+    search: debounced || undefined,
+    pageSize: 200,
   });
 
   const deleteCategory = useDeleteCategory();
@@ -84,6 +90,12 @@ export default function CatalogPage() {
           Novo insumo
         </Button>
       </PageHeader>
+
+      <SalesFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Buscar insumo…"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         <Card className="h-fit p-2">

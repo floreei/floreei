@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema } from "./common";
+import { dateStringSchema, idSchema, paginationQuerySchema } from "./common";
 
 /** Item da vitrine (público). */
 export interface StoreCatalogItem {
@@ -60,6 +60,21 @@ export const STORE_ORDER_STATUS = {
 } as const;
 export type StoreOrderStatus =
   (typeof STORE_ORDER_STATUS)[keyof typeof STORE_ORDER_STATUS];
+
+export const storeOrderStatusSchema = z.enum([
+  "PENDING",
+  "PAID",
+  "CANCELED",
+  "FAILED",
+]);
+
+/** Filtros da lista de pedidos da loja (backoffice). */
+export const storeOrderQuerySchema = paginationQuerySchema.extend({
+  status: storeOrderStatusSchema.optional(),
+  from: dateStringSchema.optional(),
+  to: dateStringSchema.optional(),
+});
+export type StoreOrderQuery = z.infer<typeof storeOrderQuerySchema>;
 
 /** Item do pedido (snapshot no momento da compra). */
 export interface StoreOrderItem {

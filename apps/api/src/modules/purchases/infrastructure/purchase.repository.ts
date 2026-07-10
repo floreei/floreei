@@ -38,6 +38,12 @@ export class PurchaseRepository extends TenantScopedRepository<PurchaseEntity> {
       qb.andWhere("purchase.total > purchase.paid_amount");
       qb.andWhere("purchase.status <> 'CANCELED'");
     }
+    if (query.from) {
+      qb.andWhere("purchase.date >= :from", { from: query.from });
+    }
+    if (query.to) {
+      qb.andWhere("purchase.date <= :to", { to: query.to });
+    }
     if (query.search) {
       qb.andWhere("supplier.name ILIKE :s", { s: `%${query.search}%` });
     }

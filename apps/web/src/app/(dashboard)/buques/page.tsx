@@ -9,6 +9,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,14 +33,35 @@ import {
   useArrangements,
   useDeleteArrangement,
 } from "@/lib/api/arrangements";
+import { useCategories } from "@/lib/api/catalog";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useDebounce } from "@/lib/use-debounce";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export default function ArrangementsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
-  const { data, isLoading } = useArrangements();
+  const { data: categories } = useCategories();
+  const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState<string | undefined>();
+  const [page, setPage] = useState(1);
+  const debounced = useDebounce(search);
+  const { data, isLoading } = useArrangements({
+    search: debounced || undefined,
+    categoryId,
+    page,
+    pageSize: 20,
+  });
   const remove = useDeleteArrangement();
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+  const changeCategory = (id: string | undefined) => {
+    setCategoryId(id);
+    setPage(1);
+  };
 
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState<Arrangement | null>(null);
@@ -60,6 +83,44 @@ export default function ArrangementsPage() {
           Novo buquê
         </Button>
       </PageHeader>
+
+      <SalesFilters
+        search={search}
+        onSearchChange={changeSearch}
+        searchPlaceholder="Buscar buquê…"
+      >
+        {categories && categories.length > 0 ? (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:pb-0">
+            <button
+              type="button"
+              onClick={() => changeCategory(undefined)}
+              className={cn(
+                "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                !categoryId
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              Todas
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => changeCategory(c.id)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  categoryId === c.id
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </SalesFilters>
 
       <Card>
         {isLoading ? (
@@ -163,6 +224,13 @@ export default function ArrangementsPage() {
           </Table>
             </div>
           </>
+        ) : debounced || categoryId ? (
+          <EmptyState
+            className="border-0"
+            icon={<Flower />}
+            title="Nada encontrado"
+            description="Nenhum buquê bate com esses filtros."
+          />
         ) : (
           <EmptyState
             className="border-0"
@@ -172,6 +240,8 @@ export default function ArrangementsPage() {
           />
         )}
       </Card>
+
+      {data ? <Pagination data={data} onPageChange={setPage} /> : null}
 
       <ArrangementDialog
         open={dialog}

@@ -113,8 +113,21 @@ describe("Loja online / storefront (e2e)", () => {
       .expect(400);
   });
 
-  it("lista os pedidos da loja no ERP (autenticado)", async () => {
+  it("lista os pedidos da loja no ERP (paginado, autenticado)", async () => {
     const res = await http.get("/api/store-orders").set(auth()).expect(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body).toMatchObject({ page: 1, totalPages: expect.any(Number) });
+  });
+
+  it("filtra pedidos da loja por status", async () => {
+    const res = await http
+      .get("/api/store-orders")
+      .query({ status: "PAID" })
+      .set(auth())
+      .expect(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    for (const order of res.body.data) {
+      expect(order.status).toBe("PAID");
+    }
   });
 });

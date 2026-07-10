@@ -50,6 +50,11 @@ export const paginationQuerySchema = z.object({
 });
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 
+/** Data no formato AAAA-MM-DD (usada em filtros de período). */
+export const dateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use AAAA-MM-DD)");
+
 /** Envelope padrão de resposta paginada. */
 export interface Paginated<T> {
   data: T[];

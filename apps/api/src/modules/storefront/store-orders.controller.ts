@@ -1,6 +1,10 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
+import { storeOrderQuerySchema } from "@sistema-flores/types";
+import { createZodDto } from "nestjs-zod";
 import { RequiresFeature } from "../../common/auth/feature.guard";
 import { StorefrontService } from "./storefront.service";
+
+class StoreOrderQueryDto extends createZodDto(storeOrderQuerySchema) {}
 
 /**
  * Pedidos da loja no ERP (backoffice) — autenticado e escopado por tenant pelo
@@ -12,7 +16,7 @@ export class StoreOrdersController {
   constructor(private readonly service: StorefrontService) {}
 
   @Get()
-  list() {
-    return this.service.listOrders();
+  list(@Query() query: StoreOrderQueryDto) {
+    return this.service.listOrders(query);
   }
 }

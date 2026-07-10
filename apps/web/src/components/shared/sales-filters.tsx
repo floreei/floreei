@@ -20,21 +20,28 @@ function presets() {
   ];
 }
 
-/** Busca por nome + filtro de período — reutilizado nas listas de venda (varejo/atacado). */
+/**
+ * Busca por nome + (opcional) filtro de período — reutilizado nas listas
+ * (vendas, compras, pedidos da loja etc.). Páginas sem data útil (fornecedores,
+ * buquês, insumos) passam só `search`/`onSearchChange` e o filtro de data some.
+ */
 export function SalesFilters({
   search,
   onSearchChange,
-  from,
-  to,
+  from = "",
+  to = "",
   onDateChange,
   searchPlaceholder = "Buscar por cliente ou título…",
+  children,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
-  from: string;
-  to: string;
-  onDateChange: (from: string, to: string) => void;
+  from?: string;
+  to?: string;
+  onDateChange?: (from: string, to: string) => void;
   searchPlaceholder?: string;
+  /** Controles extras à direita (ex.: chips de categoria/status). */
+  children?: React.ReactNode;
 }) {
   const options = presets();
   const activePreset = options.find((p) => p.from === from && p.to === to);
@@ -51,6 +58,9 @@ export function SalesFilters({
         />
       </div>
 
+      {children}
+
+      {onDateChange ? (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
         <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:pb-0">
           {options.map((p) => (
@@ -95,6 +105,7 @@ export function SalesFilters({
           />
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

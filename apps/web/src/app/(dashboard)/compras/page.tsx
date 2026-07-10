@@ -10,6 +10,8 @@ import { PurchaseDialog } from "@/components/purchases/purchase-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
+import { SalesFilters } from "@/components/shared/sales-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,14 +25,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePurchases, useReceivePurchase } from "@/lib/api/purchases";
+import { useDebounce } from "@/lib/use-debounce";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function PurchasesPage() {
-  const { data, isLoading } = usePurchases({ pageSize: 50 });
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const debounced = useDebounce(search);
+  const { data, isLoading } = usePurchases({
+    search: debounced || undefined,
+    from: from || undefined,
+    to: to || undefined,
+    page,
+    pageSize: 20,
+  });
   const receive = useReceivePurchase();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Purchase | null>(null);
   const [paying, setPaying] = useState<Purchase | null>(null);
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+  const changeDate = (nextFrom: string, nextTo: string) => {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -48,6 +72,15 @@ export default function PurchasesPage() {
           Nova compra
         </Button>
       </PageHeader>
+
+      <SalesFilters
+        search={search}
+        onSearchChange={changeSearch}
+        from={from}
+        to={to}
+        onDateChange={changeDate}
+        searchPlaceholder="Buscar por fornecedor…"
+      />
 
       <Card>
         {isLoading ? (
@@ -167,6 +200,13 @@ export default function PurchasesPage() {
           </Table>
             </div>
           </>
+        ) : debounced || from || to ? (
+          <EmptyState
+            className="border-0"
+            icon={<ShoppingBasket />}
+            title="Nada encontrado"
+            description="Nenhuma compra bate com esses filtros."
+          />
         ) : (
           <EmptyState
             className="border-0"
@@ -187,6 +227,8 @@ export default function PurchasesPage() {
           />
         )}
       </Card>
+
+      {data ? <Pagination data={data} onPageChange={setPage} /> : null}
 
       <PurchaseDialog open={dialogOpen} onOpenChange={setDialogOpen} purchase={editing} />
       {paying ? (

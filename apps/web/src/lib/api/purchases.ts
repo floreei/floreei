@@ -36,6 +36,9 @@ export function usePurchases(query: Partial<PurchaseQuery> = {}) {
         supplierId: query.supplierId,
         status: query.status,
         unpaidOnly: query.unpaidOnly,
+        search: query.search,
+        from: query.from,
+        to: query.to,
       }),
   });
 }

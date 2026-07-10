@@ -1,11 +1,19 @@
-import type { StoreOrder } from "@sistema-flores/types";
+import type { Paginated, StoreOrder, StoreOrderQuery } from "@sistema-flores/types";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./client";
 
-export function useStoreOrders() {
+export function useStoreOrders(query: Partial<StoreOrderQuery> = {}) {
   return useQuery({
-    queryKey: ["store-orders"],
-    queryFn: () => api.get<StoreOrder[]>("/store-orders"),
+    queryKey: ["store-orders", query],
+    queryFn: () =>
+      api.get<Paginated<StoreOrder>>("/store-orders", {
+        page: query.page ?? 1,
+        pageSize: query.pageSize ?? 20,
+        search: query.search,
+        status: query.status,
+        from: query.from,
+        to: query.to,
+      }),
     staleTime: 30_000,
   });
 }
