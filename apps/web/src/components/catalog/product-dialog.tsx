@@ -6,7 +6,7 @@ import {
   type ProductUnit,
 } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { HelpCircle, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -25,6 +25,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -75,6 +80,8 @@ export function ProductDialog({
       currentUnitCost: 0,
       minStock: 0,
       active: true,
+      showInRetail: false,
+      showInWholesale: true,
       imageUrl: null as string | null,
       ncm: "",
     },
@@ -93,6 +100,8 @@ export function ProductDialog({
         currentUnitCost: product?.currentUnitCost ?? 0,
         minStock: product?.minStock ?? 0,
         active: product?.active ?? true,
+        showInRetail: product?.showInRetail ?? false,
+        showInWholesale: product?.showInWholesale ?? true,
         imageUrl: product?.imageUrl ?? null,
         ncm: product?.ncm ?? "",
       });
@@ -333,6 +342,63 @@ export function ProductDialog({
             </Field>
           </div>
 
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Onde aparece à venda</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Por que essas opções existem"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="max-w-xs space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground">Venda direta</strong> —
+                    venda avulsa ao consumidor no balcão (ex.: uma rosa unitária).
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Atacado</strong> —
+                    revenda em pacote a outros lojistas/floristas.
+                  </p>
+                  <p>
+                    Se desmarcar as duas, o insumo fica só como componente de
+                    buquê. Precisa ter{" "}
+                    <strong className="text-foreground">preço de venda</strong>{" "}
+                    para aparecer.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Controller
+                control={form.control}
+                name="showInRetail"
+                render={({ field }) => (
+                  <ChannelToggle
+                    checked={Boolean(field.value)}
+                    onChange={field.onChange}
+                    label="Venda direta (avulso)"
+                  />
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="showInWholesale"
+                render={({ field }) => (
+                  <ChannelToggle
+                    checked={Boolean(field.value)}
+                    onChange={field.onChange}
+                    label="Atacado (revenda)"
+                  />
+                )}
+              />
+            </div>
+          </div>
+
           <Field
             label={`Custo por ${unitLabel}`}
             htmlFor="p-cost"
@@ -414,5 +480,34 @@ export function ProductDialog({
         />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Toggle de canal (checkbox estilizado) — não há primitivo Checkbox no projeto. */
+function ChannelToggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label
+      className={
+        checked
+          ? "flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary"
+          : "flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+      }
+    >
+      <input
+        type="checkbox"
+        className="h-4 w-4 accent-primary"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {label}
+    </label>
   );
 }

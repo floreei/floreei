@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ProductDialog } from "@/components/catalog/product-dialog";
 import { CustomerDialog } from "@/components/customers/customer-dialog";
 import { UnitToggle } from "@/components/events/unit-toggle";
+import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
@@ -37,7 +38,7 @@ import {
   hasUnitChoice,
   suggestedUnitPrice,
 } from "@/lib/sale-units";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, todayLocalISO } from "@/lib/utils";
 
 const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -89,6 +90,8 @@ export function WholesaleSaleDialog({
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [paid, setPaid] = useState(true);
+  const [saleDate, setSaleDate] = useState(todayLocalISO);
+  const [deliveryDate, setDeliveryDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const [newProductOpen, setNewProductOpen] = useState(false);
@@ -98,14 +101,15 @@ export function WholesaleSaleDialog({
     setCart({});
     setCustomerId(undefined);
     setPaid(true);
+    setSaleDate(todayLocalISO());
+    setDeliveryDate("");
   };
 
-  // Só insumos com preço de venda entram no atacado (os "só buquê", ex.: um
-  // urso decorativo, ficam de fora — o custo deles vai no preço do buquê).
+  // Só insumos marcados "aparece no atacado" e com preço de venda entram aqui.
   const sellables = useMemo<Sellable[]>(
     () =>
       (products?.data ?? [])
-        .filter((p) => p.defaultSalePrice > 0)
+        .filter((p) => p.showInWholesale && p.defaultSalePrice > 0)
         .map((p) => ({
           id: p.id,
           name: p.name,
@@ -197,6 +201,8 @@ export function WholesaleSaleDialog({
       const sale = await quickSale.mutateAsync({
         customerId,
         channel: "WHOLESALE",
+        date: saleDate || undefined,
+        deliveryDate: deliveryDate || undefined,
         items: cartItems.map((i) => ({
           productId: i.sellable.id,
           quantity: i.quantity,
@@ -205,9 +211,10 @@ export function WholesaleSaleDialog({
         })),
       });
       if (paid && total > 0) {
+        // Backdata o recebimento para a data da venda (fluxo de caixa correto).
         await receive.mutateAsync({
           eventId: sale.id,
-          input: { amount: total, method: "PIX" },
+          input: { amount: total, method: "PIX", date: saleDate || undefined },
         });
       }
       toast.success(
@@ -300,7 +307,7 @@ export function WholesaleSaleDialog({
                   <div className="flex flex-col items-center gap-3 py-6 text-center">
                     <p className="text-sm text-muted-foreground">
                       {(products?.data.length ?? 0) > 0
-                        ? "Seus insumos ainda não têm preço de venda definido."
+                        ? "Nenhum insumo marcado para o atacado com preço definido. Marque “Atacado” no cadastro do insumo."
                         : "Você ainda não cadastrou nenhum insumo."}
                     </p>
                     <Button
@@ -395,6 +402,25 @@ export function WholesaleSaleDialog({
               )}
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
+          <Field label="Data da venda" htmlFor="ws-date">
+            <Input
+              id="ws-date"
+              type="date"
+              value={saleDate}
+              onChange={(e) => setSaleDate(e.target.value)}
+            />
+          </Field>
+          <Field label="Data de entrega (opcional)" htmlFor="ws-delivery">
+            <Input
+              id="ws-delivery"
+              type="date"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+            />
+          </Field>
         </div>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">

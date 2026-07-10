@@ -75,6 +75,14 @@ export class ProductEntity extends TenantOwnedEntity {
   @Column({ type: "boolean", default: true })
   active!: boolean;
 
+  /** Aparece na venda direta (avulso ao consumidor no balcão). */
+  @Column({ name: "show_in_retail", type: "boolean", default: false })
+  showInRetail!: boolean;
+
+  /** Aparece no atacado (revenda em pacote a outros lojistas). */
+  @Column({ name: "show_in_wholesale", type: "boolean", default: true })
+  showInWholesale!: boolean;
+
   /** Código fiscal (8 dígitos) — só necessário pra emitir nota fiscal. */
   @Column({ type: "varchar", length: 8, nullable: true })
   ncm!: string | null;

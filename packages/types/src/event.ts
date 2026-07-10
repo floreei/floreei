@@ -77,6 +77,8 @@ export const quickSaleSchema = z
     customerId: idSchema.nullable().optional(),
     title: z.string().trim().max(180).optional(),
     date: dateString.optional(),
+    /** Data de entrega (opcional) — pode ser passada (pedido já entregue) ou futura. */
+    deliveryDate: dateString.optional(),
     items: z.array(quickSaleItemSchema).optional(),
     amount: z.coerce.number().nonnegative().optional(),
     /** Venda direta (varejo) ou atacado (revenda em pacote fechado). */
@@ -161,6 +163,8 @@ export interface Event {
   responsibleUserId: string | null;
   title: string;
   date: string;
+  /** Data de entrega (opcional) — null quando não informada. */
+  deliveryDate: string | null;
   location: string | null;
   status: EventStatus;
   soldValue: number;

@@ -98,24 +98,23 @@ describe("Buquês / ficha técnica (e2e)", () => {
     expect(onHand(fita)).toBe(-10); // 1 × 10
   });
 
-  it("precifica por margem % (sobre a venda) e o preço acompanha o custo", async () => {
+  it("precifica por markup % (sobre o custo) e o preço acompanha o custo", async () => {
     const especial = await insumo("Rosa Especial", "UNIDADE", 60);
     const created = await http
       .post("/api/arrangements")
       .set(auth())
       .send({
-        name: "Buquê Margem",
+        name: "Buquê Markup",
         pricingMode: "MARGIN_PCT",
         profitPct: 40,
         items: [{ productId: especial, quantity: 1 }],
       })
       .expect(201);
     expect(created.body.cost).toBe(60);
-    expect(created.body.salePrice).toBe(100); // 60 / (1 − 0,40)
-    expect(created.body.margin).toBe(40);
-    expect(created.body.marginPercent).toBe(40);
+    expect(created.body.salePrice).toBe(84); // 60 × (1 + 0,40)
+    expect(created.body.margin).toBe(24); // 84 − 60
 
-    // Insumo encarece (compra recebida a 70) → preço acompanha, mantendo a margem
+    // Insumo encarece (compra recebida a 70) → preço acompanha o markup.
     const supplier = (
       await http.post("/api/suppliers").set(auth()).send({ name: "Ceasa" }).expect(201)
     ).body.id;
@@ -136,8 +135,7 @@ describe("Buquês / ficha técnica (e2e)", () => {
       .set(auth())
       .expect(200);
     expect(after.body.cost).toBe(70);
-    expect(after.body.salePrice).toBe(116.67); // 70 / 0,6
-    expect(after.body.marginPercent).toBe(40);
+    expect(after.body.salePrice).toBe(98); // 70 × 1,40
   });
 
   it("precifica por lucro em R$", async () => {

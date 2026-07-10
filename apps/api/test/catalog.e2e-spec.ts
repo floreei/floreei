@@ -67,6 +67,33 @@ describe("Catálogo (e2e)", () => {
     expect(product.body.unit).toBe("MACO");
   });
 
+  it("guarda as flags de canal (padrão: atacado sim, venda direta não) e permite alterar", async () => {
+    const cat = await createCategory("Gérberas").expect(201);
+    const product = await http
+      .post("/api/products")
+      .set(bearer(token))
+      .send({ categoryId: cat.body.id, name: "Gérbera", defaultSalePrice: 8 })
+      .expect(201);
+    // Padrão preserva o comportamento antigo.
+    expect(product.body.showInWholesale).toBe(true);
+    expect(product.body.showInRetail).toBe(false);
+
+    // Liga a venda direta (avulso) e desliga o atacado.
+    const updated = await http
+      .patch(`/api/products/${product.body.id}`)
+      .set(bearer(token))
+      .send({
+        categoryId: cat.body.id,
+        name: "Gérbera",
+        defaultSalePrice: 8,
+        showInRetail: true,
+        showInWholesale: false,
+      })
+      .expect(200);
+    expect(updated.body.showInRetail).toBe(true);
+    expect(updated.body.showInWholesale).toBe(false);
+  });
+
   it("rejeita produto com categoria inexistente", async () => {
     await http
       .post("/api/products")

@@ -221,6 +221,35 @@ describe("Eventos + conversão (e2e)", () => {
     expect(orders.body.data[0].title).toBe("Buquê de aniversário");
   });
 
+  it("venda rápida grava data da venda e data de entrega (pedido antigo)", async () => {
+    const sale = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({
+        customerId,
+        amount: 150,
+        title: "Pedido antigo",
+        date: "2026-03-10",
+        deliveryDate: "2026-03-12",
+      })
+      .expect(201);
+    expect(sale.body.date).toBe("2026-03-10");
+    expect(sale.body.deliveryDate).toBe("2026-03-12");
+
+    // Backdata do recebimento: entra no fluxo de caixa da data da venda.
+    await http
+      .post(`/api/finance/events/${sale.body.id}/payments`)
+      .set(bearer(token))
+      .send({ amount: 150, method: "PIX", date: "2026-03-10" })
+      .expect(201);
+    const march = await http
+      .get("/api/events?from=2026-03-01&to=2026-03-31&paymentStatus=paid")
+      .set(bearer(token))
+      .expect(200);
+    expect(march.body.total).toBe(1);
+    expect(march.body.data[0].title).toBe("Pedido antigo");
+  });
+
   it("filtra por período e isola por empresa", async () => {
     await http
       .post("/api/events")

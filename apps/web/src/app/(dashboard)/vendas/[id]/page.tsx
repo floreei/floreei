@@ -194,7 +194,10 @@ export default function EventDetailPage() {
             <CardTitle>Detalhes</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Detail label="Data" value={formatDate(event.date)} />
+            <Detail label="Data da venda" value={formatDate(event.date)} />
+            {event.deliveryDate ? (
+              <Detail label="Entrega" value={formatDate(event.deliveryDate)} />
+            ) : null}
             <Detail
               label="Local"
               value={event.location ?? "—"}

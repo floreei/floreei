@@ -51,7 +51,7 @@ const emptyItem: ItemForm = { productId: "", quantity: 1 };
 const pricingModes: Array<[ArrangementPricingMode, string]> = [
   ["FIXED", "Preço fixo"],
   ["PROFIT_VALUE", "Lucro (R$)"],
-  ["MARGIN_PCT", "Margem (%)"],
+  ["MARGIN_PCT", "Lucro s/ custo (%)"],
 ];
 
 function initialValues(a?: Arrangement | null): FormValues {
@@ -199,8 +199,7 @@ export function ArrangementDialog({
                       id="a-margin"
                       type="number"
                       min="0"
-                      max="99.99"
-                      step="0.1"
+                      step="1"
                       className="pr-8 text-right"
                       {...form.register("profitPct")}
                     />
@@ -214,7 +213,9 @@ export function ArrangementDialog({
             <p className="text-xs text-muted-foreground">
               {pricingMode === "FIXED"
                 ? "Você define o preço de venda."
-                : "O preço acompanha o custo dos insumos para manter o lucro/margem."}
+                : pricingMode === "MARGIN_PCT"
+                  ? "Preço = custo + esse % sobre o custo. Ex.: 100% dobra o custo. Acompanha o custo dos insumos."
+                  : "O preço acompanha o custo dos insumos para manter o lucro."}
             </p>
           </div>
 

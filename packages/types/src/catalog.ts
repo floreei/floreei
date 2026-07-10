@@ -37,6 +37,10 @@ export const productInputSchema = z.object({
   currentUnitCost: moneySchema.default(0),
   minStock: z.coerce.number().int().min(0).default(0),
   active: z.boolean().default(true),
+  /** Aparece na venda direta (avulso ao consumidor no balcão). */
+  showInRetail: z.coerce.boolean().default(false),
+  /** Aparece no atacado (revenda em pacote a outros lojistas). */
+  showInWholesale: z.coerce.boolean().default(true),
   /** URL da imagem do item (Firebase Storage) — opcional. */
   imageUrl: z
     .string()
@@ -79,6 +83,10 @@ export interface Product {
   currentUnitCost: number;
   minStock: number;
   active: boolean;
+  /** Aparece na venda direta (avulso ao consumidor). */
+  showInRetail: boolean;
+  /** Aparece no atacado (revenda em pacote). */
+  showInWholesale: boolean;
   /** URL da imagem do item (Firebase Storage) ou null. */
   imageUrl: string | null;
   /** Código fiscal (8 dígitos) — null até o lojista preencher. */

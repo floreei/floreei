@@ -40,6 +40,9 @@ export class EventEntity extends TenantOwnedEntity {
   @Column({ type: "date" })
   date!: string;
 
+  @Column({ name: "delivery_date", type: "date", nullable: true })
+  deliveryDate!: string | null;
+
   @Column({ type: "varchar", length: 255, nullable: true })
   location!: string | null;
 

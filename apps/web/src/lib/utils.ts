@@ -24,6 +24,13 @@ export function formatPercent(value: number): string {
 }
 
 /** Formata uma data "AAAA-MM-DD" como "20 de set. de 2026". */
+/** Data de hoje no fuso local, no formato "AAAA-MM-DD" (para <input type="date">). */
+export function todayLocalISO(): string {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);

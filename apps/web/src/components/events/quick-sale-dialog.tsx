@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CustomerDialog } from "@/components/customers/customer-dialog";
+import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,17 +27,21 @@ import {
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
 import { useArrangements } from "@/lib/api/arrangements";
+import { useProducts } from "@/lib/api/catalog";
 import { useCustomers } from "@/lib/api/customers";
 import { useQuickSale } from "@/lib/api/events";
 import { useReceiveForEvent } from "@/lib/api/finance";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, todayLocalISO } from "@/lib/utils";
 
 const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-/** Item vendável: um buquê (arranjo). Insumo avulso vive no Atacado. */
+/**
+ * Item vendável na venda direta: um buquê (arranjo) ou um insumo avulso marcado
+ * "aparece na venda direta" (flag `showInRetail`).
+ */
 interface Sellable {
-  kind: "arrangement";
+  kind: "arrangement" | "product";
   id: string;
   name: string;
   price: number;
@@ -63,6 +68,10 @@ export function QuickSaleDialog({
     pageSize: 200,
     onlyActive: true,
   });
+  const { data: products, isLoading: loadingProducts } = useProducts({
+    pageSize: 200,
+    onlyActive: true,
+  });
   const { data: customers } = useCustomers({ pageSize: 100, channel: "RETAIL" });
   const quickSale = useQuickSale();
   const receive = useReceiveForEvent();
@@ -76,6 +85,8 @@ export function QuickSaleDialog({
   const [title, setTitle] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [paid, setPaid] = useState(true);
+  const [saleDate, setSaleDate] = useState(todayLocalISO);
+  const [deliveryDate, setDeliveryDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
 
@@ -87,17 +98,31 @@ export function QuickSaleDialog({
     setTitle("");
     setCustomerId(undefined);
     setPaid(true);
+    setSaleDate(todayLocalISO());
+    setDeliveryDate("");
   };
 
   const sellables = useMemo<Sellable[]>(
-    () =>
-      (arrangements?.data ?? []).map((a) => ({
+    () => [
+      ...(arrangements?.data ?? []).map((a) => ({
         kind: "arrangement" as const,
         id: a.id,
         name: a.name,
         price: a.salePrice,
+        imageUrl: a.imageUrl,
       })),
-    [arrangements],
+      // Insumos avulsos habilitados para a venda direta (precisam de preço).
+      ...(products?.data ?? [])
+        .filter((p) => p.showInRetail && p.defaultSalePrice > 0)
+        .map((p) => ({
+          kind: "product" as const,
+          id: p.id,
+          name: p.name,
+          price: p.defaultSalePrice,
+          imageUrl: p.imageUrl,
+        })),
+    ],
+    [arrangements, products],
   );
 
   const filtered = useMemo(() => {
@@ -145,6 +170,10 @@ export function QuickSaleDialog({
   const submit = async () => {
     setSubmitting(true);
     try {
+      const dates = {
+        date: saleDate || undefined,
+        deliveryDate: deliveryDate || undefined,
+      };
       const input =
         mode === "amount"
           ? {
@@ -152,21 +181,33 @@ export function QuickSaleDialog({
               amount: total,
               title: title || undefined,
               channel: "RETAIL" as const,
+              ...dates,
             }
           : {
               customerId,
               channel: "RETAIL" as const,
-              items: cartItems.map((i) => ({
-                arrangementId: i.sellable.id,
-                quantity: i.quantity,
-                unitSalePrice: i.price,
-              })),
+              items: cartItems.map((i) =>
+                i.sellable.kind === "product"
+                  ? {
+                      productId: i.sellable.id,
+                      quantity: i.quantity,
+                      unitSalePrice: i.price,
+                    }
+                  : {
+                      arrangementId: i.sellable.id,
+                      quantity: i.quantity,
+                      unitSalePrice: i.price,
+                    },
+              ),
+              ...dates,
             };
       const sale = await quickSale.mutateAsync(input);
       if (paid && total > 0) {
+        // Backdata o recebimento para a data da venda: pedidos antigos entram
+        // no fluxo de caixa do período correto, não no de hoje.
         await receive.mutateAsync({
           eventId: sale.id,
-          input: { amount: total, method: "PIX" },
+          input: { amount: total, method: "PIX", date: saleDate || undefined },
         });
       }
       toast.success(
@@ -250,7 +291,7 @@ export function QuickSaleDialog({
                   </button>
                 ))}
                 {filtered.length === 0 ? (
-                  loadingArrangements ? (
+                  loadingArrangements || loadingProducts ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                       Carregando…
                     </p>
@@ -373,6 +414,25 @@ export function QuickSaleDialog({
             </div>
           </div>
         )}
+
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
+          <Field label="Data da venda" htmlFor="qs-date">
+            <Input
+              id="qs-date"
+              type="date"
+              value={saleDate}
+              onChange={(e) => setSaleDate(e.target.value)}
+            />
+          </Field>
+          <Field label="Data de entrega (opcional)" htmlFor="qs-delivery">
+            <Input
+              id="qs-delivery"
+              type="date"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+            />
+          </Field>
+        </div>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           <div className="space-y-1">

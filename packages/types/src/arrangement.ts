@@ -14,7 +14,7 @@ export type ArrangementItemInput = z.infer<typeof arrangementItemInputSchema>;
  * Como o preço do buquê é definido:
  * - `FIXED`: preço digitado.
  * - `PROFIT_VALUE`: lucro em R$ → preço = custo + lucro.
- * - `MARGIN_PCT`: margem % sobre a venda → preço = custo / (1 − %/100).
+ * - `MARGIN_PCT`: lucro % sobre o **custo** (markup) → preço = custo × (1 + %/100).
  * Nos dois últimos o preço **acompanha o custo** (recalculado no mapper).
  */
 export const arrangementPricingModeSchema = z.enum([
@@ -39,8 +39,9 @@ export function arrangementSalePrice(
     return roundMoney(cost + (opts.profitValue ?? 0));
   }
   if (mode === "MARGIN_PCT") {
-    const pct = Math.min(Math.max(opts.profitPct ?? 0, 0), 99.99);
-    return roundMoney(cost / (1 - pct / 100));
+    // Markup sobre o custo: 100% ⇒ dobra o custo (preço = custo × 2).
+    const pct = Math.max(opts.profitPct ?? 0, 0);
+    return roundMoney(cost * (1 + pct / 100));
   }
   return roundMoney(opts.salePrice ?? 0);
 }
@@ -52,11 +53,7 @@ export const arrangementInputSchema = z.object({
   pricingMode: arrangementPricingModeSchema.default("FIXED"),
   salePrice: moneySchema.default(0),
   profitValue: z.coerce.number().min(0).default(0),
-  profitPct: z.coerce
-    .number()
-    .min(0)
-    .max(99.99, "Margem deve ser menor que 100%")
-    .default(0),
+  profitPct: z.coerce.number().min(0).max(100000).default(0),
   active: z.boolean().default(true),
   /** Foto do buquê (URL do Firebase Storage) — usada na loja online. */
   imageUrl: z
@@ -109,7 +106,7 @@ export interface Arrangement {
   pricingMode: ArrangementPricingMode;
   /** Lucro em R$ (modo PROFIT_VALUE). */
   profitValue: number;
-  /** Margem % sobre a venda alvo (modo MARGIN_PCT). */
+  /** Lucro % sobre o custo — markup (modo MARGIN_PCT). */
   profitPct: number;
   /** Preço de venda efetivo (derivado do custo + política). */
   salePrice: number;

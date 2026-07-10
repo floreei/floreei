@@ -40,7 +40,7 @@ export class ArrangementEntity extends TenantOwnedEntity {
   @Column({
     name: "profit_pct",
     type: "decimal",
-    precision: 5,
+    precision: 12,
     scale: 2,
     default: 0,
     transformer: decimalTransformer,

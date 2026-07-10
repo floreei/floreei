@@ -175,6 +175,7 @@ export class EventsService {
       customerId: input.customerId ?? null,
       title: input.title?.trim() || "Venda de balcão",
       date,
+      deliveryDate: input.deliveryDate ?? null,
       status: "CONFIRMED",
       soldValue,
       cost,
