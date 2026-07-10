@@ -50,9 +50,12 @@ test("buquê: seletor de insumo busca e agrupa por categoria (flor, laço, doce)
   await page.getByRole("button", { name: "Novo buquê" }).click();
   await page.getByTestId("arrangement-item-product").first().click();
 
-  // Busca + agrupamento por categoria
+  // Busca + agrupamento por categoria (escopado ao popover do seletor —
+  // a página de Buquês também tem chips de categoria com o mesmo texto)
   await expect(page.getByPlaceholder("Buscar insumo…")).toBeVisible();
-  await expect(page.getByText("Laços", { exact: true })).toBeVisible(); // heading do grupo
+  await expect(
+    page.getByLabel("Suggestions").getByText("Laços", { exact: true }),
+  ).toBeVisible(); // heading do grupo
   await expect(page.getByRole("option", { name: /Laço Cetim/ })).toBeVisible();
   await expect(page.getByRole("option", { name: /Bombom Trufado/ })).toBeVisible();
 
