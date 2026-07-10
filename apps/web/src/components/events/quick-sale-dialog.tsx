@@ -250,13 +250,32 @@ export function QuickSaleDialog({
                   </button>
                 ))}
                 {filtered.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    {loadingArrangements
-                      ? "Carregando…"
-                      : sellables.length === 0
-                        ? "Nada cadastrado ainda. Cadastre um buquê."
-                        : "Nada encontrado."}
-                  </p>
+                  loadingArrangements ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Carregando…
+                    </p>
+                  ) : sellables.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3 py-6 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Você ainda não cadastrou nenhum buquê.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          onOpenChange(false);
+                          router.push("/buques");
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Cadastrar buquê
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Nada encontrado.
+                    </p>
+                  )
                 ) : null}
               </div>
             </div>

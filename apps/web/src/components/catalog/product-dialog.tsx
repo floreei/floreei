@@ -2,14 +2,15 @@
 
 import {
   productInputSchema,
-  type Category,
   type Product,
   type ProductUnit,
 } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { CategoryDialog } from "@/components/catalog/category-dialog";
 import { NcmCombobox } from "@/components/catalog/ncm-combobox";
 import { FileUpload } from "@/components/shared/file-upload";
 import { Field } from "@/components/shared/field";
@@ -32,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
-import { useSaveProduct } from "@/lib/api/catalog";
+import { useCategories, useSaveProduct } from "@/lib/api/catalog";
 import { unitLabels, unitOptions } from "@/lib/labels";
 import { formatCurrency } from "@/lib/utils";
 
@@ -40,17 +41,26 @@ interface ProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product?: Product | null;
-  categories: Category[];
   defaultCategoryId?: string;
+  onCreated?: (product: Product) => void;
+  /** Torna o preço de venda obrigatório (ex.: cadastro aberto de dentro da venda no atacado, que só lista insumos com preço definido). */
+  requireSalePrice?: boolean;
 }
 
 export function ProductDialog({
   open,
   onOpenChange,
   product,
-  categories,
   defaultCategoryId,
+  onCreated,
+  requireSalePrice,
 }: ProductDialogProps) {
+  const { data: categories } = useCategories();
+  const [newCategoryOpen, setNewCategoryOpen] = useState(false);
+  // Remonta o Select ao definir a categoria programaticamente (criação
+  // inline) — o Radix não atualiza o item "marcado" de forma confiável
+  // quando o valor muda fora de uma interação do próprio usuário.
+  const [categorySelectKey, setCategorySelectKey] = useState(0);
   const save = useSaveProduct(product?.id);
   const form = useForm({
     resolver: zodResolver(productInputSchema),
@@ -73,7 +83,7 @@ export function ProductDialog({
   useEffect(() => {
     if (open) {
       form.reset({
-        categoryId: product?.categoryId ?? defaultCategoryId ?? categories[0]?.id ?? "",
+        categoryId: product?.categoryId ?? defaultCategoryId ?? categories?.[0]?.id ?? "",
         name: product?.name ?? "",
         unit: product?.unit ?? "UNIDADE",
         purchaseUnit: product?.purchaseUnit ?? product?.unit ?? "UNIDADE",
@@ -87,7 +97,11 @@ export function ProductDialog({
         ncm: product?.ncm ?? "",
       });
     }
-  }, [open, product, defaultCategoryId, categories, form]);
+    // `categories` de propósito fora das deps: recarrega (nova referência) ao
+    // criar categoria inline, e isso não deve resetar o resto do formulário
+    // que o usuário já preencheu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product, defaultCategoryId, form]);
 
   const unitLabel = unitLabels[form.watch("unit")];
   const purchaseUnitLabel = unitLabels[form.watch("purchaseUnit")];
@@ -111,9 +125,16 @@ export function ProductDialog({
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit(async (values) => {
+            if (requireSalePrice && !(values.defaultSalePrice > 0)) {
+              form.setError("defaultSalePrice", {
+                message: "Preço obrigatório pra vender este insumo no atacado.",
+              });
+              return;
+            }
             try {
-              await save.mutateAsync(values);
+              const saved = await save.mutateAsync(values);
               toast.success("Insumo salvo.");
+              onCreated?.(saved);
               onOpenChange(false);
             } catch (error) {
               toast.error(
@@ -157,17 +178,48 @@ export function ProductDialog({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Categoria" required error={form.formState.errors.categoryId?.message}>
+            <Field
+              label="Categoria"
+              required
+              error={form.formState.errors.categoryId?.message}
+              action={
+                <button
+                  type="button"
+                  onClick={() => setNewCategoryOpen(true)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Nova categoria
+                </button>
+              }
+            >
               <Controller
                 control={form.control}
                 name="categoryId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    key={categorySelectKey}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
                     <SelectTrigger data-testid="product-category-select">
-                      <SelectValue placeholder="Selecione" />
+                      {/* children explícito (não só placeholder): o Radix só
+                          "aprende" o texto de um SelectItem quando o menu já
+                          foi aberto pelo menos uma vez — sem isso, selecionar
+                          uma categoria criada na hora (via "Nova categoria")
+                          mostraria "Selecione" mesmo com o valor certo. */}
+                      <SelectValue
+                        placeholder={
+                          categories?.length === 0
+                            ? "Nenhuma categoria ainda"
+                            : "Selecione"
+                        }
+                      >
+                        {categories?.find((c) => c.id === field.value)?.name}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((c) => (
+                      {(categories ?? []).map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
                         </SelectItem>
@@ -256,11 +308,15 @@ export function ProductDialog({
                   : "Preço de venda avulsa"
               }
               htmlFor="p-sale"
-              optional
+              required={requireSalePrice}
+              optional={!requireSalePrice}
+              error={form.formState.errors.defaultSalePrice?.message}
               hint={
                 salePrice > 0 && isPack
                   ? `= ${formatCurrency(salePerUnit)}/${unitLabel} ao vender por ${unitLabel}.`
-                  : "Só se você revende este insumo. Se ele só entra em buquês (ex.: um urso), deixe zerado — o custo já vai no preço do buquê."
+                  : requireSalePrice
+                    ? "Sem preço, este insumo não aparece na lista da venda no atacado."
+                    : "Só se você revende este insumo. Se ele só entra em buquês (ex.: um urso), deixe zerado — o custo já vai no preço do buquê."
               }
             >
               <Controller
@@ -341,6 +397,15 @@ export function ProductDialog({
             </Button>
           </DialogFooter>
         </form>
+
+        <CategoryDialog
+          open={newCategoryOpen}
+          onOpenChange={setNewCategoryOpen}
+          onCreated={(category) => {
+            form.setValue("categoryId", category.id, { shouldValidate: true });
+            setCategorySelectKey((k) => k + 1);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

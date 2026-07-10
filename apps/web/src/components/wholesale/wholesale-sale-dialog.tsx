@@ -1,10 +1,11 @@
 "use client";
 
-import type { Customer, ProductUnit } from "@sistema-flores/types";
+import type { Customer, Product, ProductUnit } from "@sistema-flores/types";
 import { Minus, Plus, Search, ShoppingCart, Trash2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ProductDialog } from "@/components/catalog/product-dialog";
 import { CustomerDialog } from "@/components/customers/customer-dialog";
 import { UnitToggle } from "@/components/events/unit-toggle";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,7 @@ export function WholesaleSaleDialog({
   const [paid, setPaid] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
+  const [newProductOpen, setNewProductOpen] = useState(false);
 
   const reset = () => {
     setSearch("");
@@ -144,6 +146,18 @@ export function WholesaleSaleDialog({
           saleUnit,
         },
       };
+    });
+
+  /** Cadastrado na hora, de dentro da venda — já entra direto no carrinho. */
+  const addCreatedProduct = (product: Product) =>
+    addSellable({
+      id: product.id,
+      name: product.name,
+      price: product.defaultSalePrice,
+      packSize: product.packSize,
+      purchaseUnit: product.purchaseUnit,
+      unit: product.unit,
+      imageUrl: product.imageUrl,
     });
 
   const setPrice = (id: string, price: number) =>
@@ -233,6 +247,17 @@ export function WholesaleSaleDialog({
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Insumo</Label>
+              <button
+                type="button"
+                onClick={() => setNewProductOpen(true)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Novo insumo
+              </button>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -267,13 +292,31 @@ export function WholesaleSaleDialog({
                 </button>
               ))}
               {filtered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  {loadingProducts
-                    ? "Carregando…"
-                    : sellables.length === 0
-                      ? "Nada cadastrado ainda. Cadastre um insumo com preço de venda."
-                      : "Nada encontrado."}
-                </p>
+                loadingProducts ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Carregando…
+                  </p>
+                ) : sellables.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 py-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      {(products?.data.length ?? 0) > 0
+                        ? "Seus insumos ainda não têm preço de venda definido."
+                        : "Você ainda não cadastrou nenhum insumo."}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setNewProductOpen(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Cadastrar insumo
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Nada encontrado.
+                  </p>
+                )
               ) : null}
             </div>
           </div>
@@ -427,6 +470,12 @@ export function WholesaleSaleDialog({
           onOpenChange={setNewCustomerOpen}
           defaultChannel="WHOLESALE"
           onCreated={(customer: Customer) => setCustomerId(customer.id)}
+        />
+        <ProductDialog
+          open={newProductOpen}
+          onOpenChange={setNewProductOpen}
+          requireSalePrice
+          onCreated={addCreatedProduct}
         />
       </DialogContent>
     </Dialog>

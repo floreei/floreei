@@ -11,6 +11,8 @@ interface FieldProps {
   required?: boolean;
   /** Mostra "(opcional)" ao lado do rótulo. */
   optional?: boolean;
+  /** Ação secundária alinhada à direita do rótulo (ex.: link "Nova categoria"). */
+  action?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
 }
@@ -23,6 +25,7 @@ export function Field({
   hint,
   required,
   optional,
+  action,
   className,
   children,
 }: FieldProps) {
@@ -52,6 +55,7 @@ export function Field({
             (opcional)
           </span>
         ) : null}
+        {action ? <span className="ml-auto">{action}</span> : null}
       </div>
       {children}
       {hint && !error ? (

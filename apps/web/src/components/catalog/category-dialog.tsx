@@ -23,10 +23,12 @@ export function CategoryDialog({
   open,
   onOpenChange,
   category,
+  onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   category?: Category | null;
+  onCreated?: (category: Category) => void;
 }) {
   const save = useSaveCategory(category?.id);
   const form = useForm({
@@ -53,8 +55,9 @@ export function CategoryDialog({
           className="space-y-4"
           onSubmit={form.handleSubmit(async (values) => {
             try {
-              await save.mutateAsync(values);
+              const saved = await save.mutateAsync(values);
               toast.success("Categoria salva.");
+              onCreated?.(saved);
               onOpenChange(false);
             } catch (error) {
               toast.error(

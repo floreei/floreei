@@ -75,7 +75,6 @@ export default function CatalogPage() {
           Nova categoria
         </Button>
         <Button
-          disabled={!categories?.length}
           onClick={() => {
             setEditingProd(null);
             setProdDialog(true);
@@ -304,7 +303,6 @@ export default function CatalogPage() {
         open={prodDialog}
         onOpenChange={setProdDialog}
         product={editingProd}
-        categories={categories ?? []}
         defaultCategoryId={selected}
       />
 
