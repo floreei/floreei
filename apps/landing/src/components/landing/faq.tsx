@@ -21,7 +21,10 @@ export function Faq() {
         />
 
         <div className="mt-12 grid items-start gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          <Reveal className="relative mx-auto max-w-md self-start lg:sticky lg:top-28 lg:mx-0">
+          <Reveal
+            variant="scale"
+            className="relative mx-auto max-w-md self-start lg:sticky lg:top-28 lg:mx-0"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/landing/faq.webp"
@@ -29,19 +32,21 @@ export function Faq() {
               className="aspect-[4/5] w-full rounded-2xl object-cover shadow-lg"
               loading="lazy"
             />
-            <PhotoBadge
-              icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />}
-              title="Suporte em português"
-              subtitle="Gente de verdade respondendo"
-              className="-bottom-5 left-5"
-            />
+            <Reveal variant="pop" delay={280}>
+              <PhotoBadge
+                icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />}
+                title="Suporte em português"
+                subtitle="Gente de verdade respondendo"
+                className="-bottom-5 left-5"
+              />
+            </Reveal>
           </Reveal>
 
           <div className="space-y-3">
             {faqData.map((item, i) => {
               const isOpen = open === i;
               return (
-                <Reveal key={item.q} delay={i * 60}>
+                <Reveal key={item.q} variant="right" delay={i * 60}>
                   <div className="overflow-hidden rounded-lg border border-border bg-card">
                     <button
                       onClick={() => setOpen(isOpen ? -1 : i)}

@@ -17,7 +17,7 @@ export function Testimonials() {
         />
 
         <div className="mt-12 grid items-start gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          <Reveal className="relative mx-auto max-w-md lg:mx-0">
+          <Reveal variant="scale" className="relative mx-auto max-w-md lg:mx-0">
             <span
               aria-hidden="true"
               className="absolute -left-5 -top-5 h-full w-full rounded-2xl bg-clay/15"
@@ -30,21 +30,27 @@ export function Testimonials() {
                 className="aspect-[4/5] w-full rounded-2xl object-cover shadow-lg"
                 loading="lazy"
               />
-              <div className="absolute right-4 top-4 flex items-center gap-0.5 rounded-full bg-card px-2.5 py-1.5 text-clay shadow-lg">
+              <Reveal
+                variant="pop"
+                delay={200}
+                className="absolute right-4 top-4 flex items-center gap-0.5 rounded-full bg-card px-2.5 py-1.5 text-clay shadow-lg"
+              >
                 {Array.from({ length: 5 }).map((_, k) => (
                   <Star key={k} className="h-3.5 w-3.5" fill="currentColor" />
                 ))}
-              </div>
-              <StatBadge
-                value="+30%"
-                label="orçamentos fechados"
-                className="-bottom-5 left-5"
-              />
+              </Reveal>
+              <Reveal variant="pop" delay={320}>
+                <StatBadge
+                  value="+30%"
+                  label="orçamentos fechados"
+                  className="-bottom-5 left-5"
+                />
+              </Reveal>
             </div>
           </Reveal>
 
           <div>
-            <Reveal>
+            <Reveal variant="left">
               <figure>
                 <div className="flex gap-0.5 text-clay">
                   {Array.from({ length: 5 }).map((_, k) => (
@@ -67,7 +73,7 @@ export function Testimonials() {
 
             <div className="mt-8 space-y-6 border-t border-border pt-7">
               {rest.map((t, i) => (
-                <Reveal key={t.name} delay={i * 90}>
+                <Reveal key={t.name} variant="left" delay={i * 90}>
                   <figure className="flex gap-3.5">
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"

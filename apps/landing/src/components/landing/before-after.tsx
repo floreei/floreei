@@ -31,7 +31,7 @@ export function BeforeAfter() {
         />
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">
-          <Reveal>
+          <Reveal variant="left">
             <div className="h-full rounded-2xl border border-border/70 bg-card p-7 shadow-card">
               <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Sem um sistema
@@ -52,7 +52,7 @@ export function BeforeAfter() {
             </div>
           </Reveal>
 
-          <Reveal delay={90}>
+          <Reveal variant="right" delay={90}>
             <div className="h-full rounded-2xl border border-primary/20 bg-primary/[0.04] p-7 shadow-card">
               <p className="text-sm font-semibold uppercase tracking-wide text-primary">
                 Com o Floreei

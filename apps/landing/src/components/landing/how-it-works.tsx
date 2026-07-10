@@ -19,7 +19,10 @@ export function HowItWorks() {
           align="left"
         />
         <div className="mt-12 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-          <Reveal className="relative mx-auto max-w-md lg:mx-0">
+          <Reveal
+            variant="scale"
+            className="relative mx-auto max-w-md lg:mx-0"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/landing/como-funciona.webp"
@@ -27,16 +30,18 @@ export function HowItWorks() {
               className="aspect-[4/5] w-full rounded-2xl object-cover shadow-lg"
               loading="lazy"
             />
-            <PhotoBadge
-              icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
-              title="Equipe treinada no 1º dia"
-              className="-bottom-5 left-5"
-            />
+            <Reveal variant="pop" delay={280}>
+              <PhotoBadge
+                icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                title="Equipe treinada no 1º dia"
+                className="-bottom-5 left-5"
+              />
+            </Reveal>
           </Reveal>
 
           <div className="space-y-4">
             {steps.map((s, i) => (
-              <Reveal key={s.n} delay={i * 90}>
+              <Reveal key={s.n} variant="right" delay={i * 90}>
                 <div className="flex gap-4 rounded-lg border border-border/70 bg-card p-5 shadow-card">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
                     {s.n}

@@ -30,7 +30,7 @@ export function CtaFinal() {
             />
 
             <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-              <div>
+              <Reveal variant="left" amount={0.4}>
                 <h2 className="sf-serif t-cta font-semibold leading-tight">
                   Vamos organizar a sua floricultura juntos?
                 </h2>
@@ -57,9 +57,14 @@ export function CtaFinal() {
                 >
                   Resposta no mesmo dia · Sem compromisso
                 </p>
-              </div>
+              </Reveal>
 
-              <div className="relative mx-auto hidden w-full max-w-sm sm:block">
+              <Reveal
+                variant="right"
+                delay={120}
+                amount={0.4}
+                className="relative mx-auto hidden w-full max-w-sm sm:block"
+              >
                 <div className="rounded-2xl bg-primary-foreground/10 p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -69,12 +74,14 @@ export function CtaFinal() {
                     loading="lazy"
                   />
                 </div>
-                <PhotoBadge
-                  icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                  title="Configuramos com você"
-                  className="-bottom-5 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0"
-                />
-              </div>
+                <Reveal variant="pop" delay={380}>
+                  <PhotoBadge
+                    icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                    title="Configuramos com você"
+                    className="-bottom-5 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0"
+                  />
+                </Reveal>
+              </Reveal>
             </div>
           </div>
         </Reveal>

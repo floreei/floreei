@@ -14,7 +14,7 @@ export function Features() {
         />
         <div className="mt-10 grid grid-cols-3 gap-5 max-[1100px]:grid-cols-2 max-[720px]:grid-cols-1">
           {features.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 3) * 70}>
+            <Reveal key={f.title} variant="scale" delay={(i % 3) * 70}>
               <div className="sf-feat h-full rounded-lg border border-border/70 bg-card p-[26px] shadow-card">
                 <span
                   className="flex h-[46px] w-[46px] items-center justify-center rounded-md"

@@ -10,14 +10,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@sistema-flores/types": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.451.0",
+    "motion": "^12.42.2",
     "next": "^15.5.20",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.3",
-    "tailwindcss-animate": "^1.0.7",
-    "@sistema-flores/types": "workspace:*"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@sistema-flores/config": "workspace:*",
