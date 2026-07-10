@@ -23,7 +23,7 @@ const VARIANTS: Record<RevealVariant, Variants> = {
     show: { opacity: 1, scale: 1, y: 0 },
   },
   pop: {
-    hidden: { opacity: 0, scale: 0.7 },
+    hidden: { opacity: 0, scale: 0.88 },
     show: { opacity: 1, scale: 1 },
   },
 };
@@ -63,11 +63,11 @@ export function Reveal({
       viewport={{ once: false, amount, margin: "-60px" }}
       variants={VARIANTS[variant]}
       transition={{
-        duration: variant === "pop" ? 0.5 : 0.65,
+        duration: variant === "pop" ? 0.4 : 0.65,
         delay: delay / 1000,
         ease: variant === "pop" ? undefined : [0.16, 1, 0.3, 1],
         type: variant === "pop" ? "spring" : undefined,
-        bounce: variant === "pop" ? 0.45 : undefined,
+        bounce: variant === "pop" ? 0.15 : undefined,
       }}
     >
       {children}

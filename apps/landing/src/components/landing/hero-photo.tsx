@@ -26,7 +26,7 @@ export function HeroPhoto() {
         <MiniStat
           label="Vendas do mês"
           value={`R$ ${vendas.toFixed(1).replace(".", ",")}k`}
-          className="-left-4 top-8 sm:-left-6"
+          className="sf-cloud -left-4 top-8 sm:-left-6"
         />
       </Reveal>
 
@@ -35,7 +35,7 @@ export function HeroPhoto() {
           icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
           title="Orçamento aprovado"
           subtitle="Casamento — Ana & Rui"
-          className="-left-4 top-1/2 -translate-y-1/2 sm:-left-6"
+          className="sf-cloud-b -left-4 top-1/2 -translate-y-1/2 sm:-left-6"
         />
       </Reveal>
 
@@ -43,7 +43,7 @@ export function HeroPhoto() {
         <MiniStat
           label="A receber"
           value={`R$ ${inteiro(receber)}`}
-          className="-bottom-5 -right-4 sm:-right-6"
+          className="sf-cloud-c -bottom-5 -right-4 sm:-right-6"
         />
       </Reveal>
     </div>
