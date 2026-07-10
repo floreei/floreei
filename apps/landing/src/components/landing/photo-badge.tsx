@@ -15,7 +15,7 @@ export function PhotoBadge({
   return (
     <div
       className={cn(
-        "absolute z-10 flex max-w-[15rem] items-center gap-2.5 rounded-lg border border-border/70 bg-card px-3.5 py-2.5 shadow-lg",
+        "absolute z-10 flex max-w-[15rem] items-center gap-2.5 rounded-lg border border-border/70 bg-card px-3.5 py-2.5 text-card-foreground shadow-lg",
         className,
       )}
     >
@@ -23,7 +23,9 @@ export function PhotoBadge({
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold leading-tight">{title}</p>
+        <p className="text-[13px] font-semibold leading-tight text-card-foreground">
+          {title}
+        </p>
         {subtitle ? (
           <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
             {subtitle}

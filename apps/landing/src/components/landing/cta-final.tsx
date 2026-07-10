@@ -60,7 +60,7 @@ export function CtaFinal() {
               </div>
 
               <div className="relative mx-auto hidden w-full max-w-sm sm:block">
-                <div className="rounded-2xl bg-primary-foreground/10 p-2.5 backdrop-blur-sm">
+                <div className="rounded-2xl bg-primary-foreground/10 p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/images/landing/cta-final.webp"
