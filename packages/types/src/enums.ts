@@ -31,6 +31,32 @@ export const productUnitSchema = z.enum([
 ]);
 export type ProductUnit = z.infer<typeof productUnitSchema>;
 
+/**
+ * Unidades medidas por grandeza contínua — aceitam fração (ex.: 2,5 m de fita,
+ * 250 g de granel). As demais são contáveis: a quantidade deve ser inteira.
+ */
+export const FRACTIONAL_UNITS: readonly ProductUnit[] = ["METRO", "GRAMA"];
+
+/** A unidade aceita quantidade fracionada? (Metro/Grama sim; as contáveis não.) */
+export function isFractionalUnit(unit: ProductUnit): boolean {
+  return FRACTIONAL_UNITS.includes(unit);
+}
+
+/**
+ * Valida a quantidade conforme a unidade: inteira para unidades contáveis,
+ * decimal para Metro/Grama. Retorna `null` se válida, ou a mensagem de erro.
+ */
+export function invalidQuantityForUnit(
+  quantity: number,
+  unit: ProductUnit,
+): string | null {
+  if (!(quantity > 0)) return "Quantidade deve ser maior que zero";
+  if (!isFractionalUnit(unit) && !Number.isInteger(quantity)) {
+    return "Quantidade deve ser um número inteiro";
+  }
+  return null;
+}
+
 /** Ciclo de vida de um orçamento. */
 export const QuoteStatus = {
   DRAFT: "DRAFT",

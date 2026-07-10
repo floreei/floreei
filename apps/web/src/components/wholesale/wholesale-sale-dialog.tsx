@@ -90,6 +90,8 @@ export function WholesaleSaleDialog({
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [paid, setPaid] = useState(true);
+  // Atacado costuma ser pedido/retirada → por padrão "a entregar".
+  const [delivered, setDelivered] = useState(false);
   const [saleDate, setSaleDate] = useState(todayLocalISO);
   const [deliveryDate, setDeliveryDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -101,6 +103,7 @@ export function WholesaleSaleDialog({
     setCart({});
     setCustomerId(undefined);
     setPaid(true);
+    setDelivered(false);
     setSaleDate(todayLocalISO());
     setDeliveryDate("");
   };
@@ -203,6 +206,7 @@ export function WholesaleSaleDialog({
         channel: "WHOLESALE",
         date: saleDate || undefined,
         deliveryDate: deliveryDate || undefined,
+        delivered,
         items: cartItems.map((i) => ({
           productId: i.sellable.id,
           quantity: i.quantity,
@@ -422,6 +426,19 @@ export function WholesaleSaleDialog({
             />
           </Field>
         </div>
+
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-primary"
+            checked={delivered}
+            onChange={(e) => setDelivered(e.target.checked)}
+          />
+          <span className="font-medium">Já entregue</span>
+          <span className="text-muted-foreground">
+            — marque se o pedido já saiu (senão fica “A entregar”).
+          </span>
+        </label>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           <div className="space-y-1">

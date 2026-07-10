@@ -85,6 +85,8 @@ export function QuickSaleDialog({
   const [title, setTitle] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [paid, setPaid] = useState(true);
+  // Venda direta (balcão): o cliente costuma levar na hora → já entregue.
+  const [delivered, setDelivered] = useState(true);
   const [saleDate, setSaleDate] = useState(todayLocalISO);
   const [deliveryDate, setDeliveryDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -98,6 +100,7 @@ export function QuickSaleDialog({
     setTitle("");
     setCustomerId(undefined);
     setPaid(true);
+    setDelivered(true);
     setSaleDate(todayLocalISO());
     setDeliveryDate("");
   };
@@ -173,6 +176,7 @@ export function QuickSaleDialog({
       const dates = {
         date: saleDate || undefined,
         deliveryDate: deliveryDate || undefined,
+        delivered,
       };
       const input =
         mode === "amount"
@@ -433,6 +437,19 @@ export function QuickSaleDialog({
             />
           </Field>
         </div>
+
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-primary"
+            checked={delivered}
+            onChange={(e) => setDelivered(e.target.checked)}
+          />
+          <span className="font-medium">Já entregue</span>
+          <span className="text-muted-foreground">
+            — desmarque se ainda vai entregar (fica “A entregar”).
+          </span>
+        </label>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           <div className="space-y-1">

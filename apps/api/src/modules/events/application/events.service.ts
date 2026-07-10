@@ -176,7 +176,7 @@ export class EventsService {
       title: input.title?.trim() || "Venda de balcão",
       date,
       deliveryDate: input.deliveryDate ?? null,
-      status: "CONFIRMED",
+      status: input.delivered ? "DONE" : "CONFIRMED",
       soldValue,
       cost,
       estimatedProfit,

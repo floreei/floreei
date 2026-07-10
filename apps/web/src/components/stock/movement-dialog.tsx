@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  isFractionalUnit,
   stockMovementInputSchema,
   type StockMovementType,
 } from "@sistema-flores/types";
@@ -73,6 +74,11 @@ export function MovementDialog({
     }
   }, [open, productId, form]);
 
+  const selectedUnit =
+    products?.data.find((p) => p.id === form.watch("productId"))?.unit ??
+    "UNIDADE";
+  const fractionalQty = isFractionalUnit(selectedUnit);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -142,8 +148,8 @@ export function MovementDialog({
               <Input
                 id="m-qty"
                 type="number"
-                step="0.001"
-                min="0"
+                step={fractionalQty ? "any" : "1"}
+                min={fractionalQty ? "0" : "1"}
                 {...form.register("quantity", { valueAsNumber: true })}
               />
             </Field>

@@ -6,6 +6,7 @@ import {
   quantitySchema,
 } from "./common";
 import {
+  invalidQuantityForUnit,
   productUnitSchema,
   quoteStatusSchema,
   type ProductUnit,
@@ -13,14 +14,19 @@ import {
 } from "./enums";
 
 /** Item de um orçamento (entrada). Os totais são calculados no servidor. */
-export const quoteItemInputSchema = z.object({
-  productId: idSchema.nullable().optional(),
-  description: z.string().trim().min(1, "Descreva o item").max(200),
-  quantity: quantitySchema,
-  unit: productUnitSchema.default("UNIDADE"),
-  purchasePrice: moneySchema,
-  salePrice: moneySchema,
-});
+export const quoteItemInputSchema = z
+  .object({
+    productId: idSchema.nullable().optional(),
+    description: z.string().trim().min(1, "Descreva o item").max(200),
+    quantity: quantitySchema,
+    unit: productUnitSchema.default("UNIDADE"),
+    purchasePrice: moneySchema,
+    salePrice: moneySchema,
+  })
+  .refine((v) => invalidQuantityForUnit(v.quantity, v.unit) === null, {
+    message: "Quantidade deve ser um número inteiro",
+    path: ["quantity"],
+  });
 export type QuoteItemInput = z.infer<typeof quoteItemInputSchema>;
 
 /** Dados para criar/editar um orçamento. */

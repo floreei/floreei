@@ -3,6 +3,7 @@
 import {
   calculateItem,
   calculateQuote,
+  isFractionalUnit,
   quoteInputSchema,
   type Product,
   type Quote,
@@ -220,8 +221,8 @@ export function QuoteBuilder({ quote }: QuoteBuilderProps) {
                   <Input
                     className="h-9 text-right"
                     type="number"
-                    step="0.001"
-                    min="0"
+                    step={isFractionalUnit(row?.unit ?? "UNIDADE") ? "any" : "1"}
+                    min={isFractionalUnit(row?.unit ?? "UNIDADE") ? "0" : "1"}
                     aria-label="Quantidade"
                     {...form.register(`items.${index}.quantity`, {
                       valueAsNumber: true,

@@ -48,6 +48,28 @@ describe("Compras — módulo completo (e2e)", () => {
       ?.onHand;
   };
 
+  it("rejeita quantidade fracionada em unidade contável; aceita em Metro", async () => {
+    await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: today,
+        items: [{ productId, description: "Rosa", quantity: 2.5, unit: "MACO", unitPrice: 4 }],
+      })
+      .expect(400);
+
+    await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: today,
+        items: [{ description: "Fita", quantity: 2.5, unit: "METRO", unitPrice: 3 }],
+      })
+      .expect(201);
+  });
+
   it("guarda entrega (data/hora), edita e retorna os itens", async () => {
     const created = await http
       .post("/api/purchases")

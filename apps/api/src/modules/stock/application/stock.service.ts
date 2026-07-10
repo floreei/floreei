@@ -1,10 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import type {
   StockAdjustInput,
   StockMovement,
   StockMovementInput,
   StockOverview,
 } from "@sistema-flores/types";
+import { invalidQuantityForUnit, isFractionalUnit } from "@sistema-flores/types";
 import { roundMoney } from "../../../common/money/money";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
 import { StockMovementEntity } from "../infrastructure/stock-movement.entity";
@@ -74,7 +75,11 @@ export class StockService {
    * `PERDA`). Retorna `null` quando não há diferença.
    */
   async adjustBalance(input: StockAdjustInput): Promise<StockMovement | null> {
-    await this.products.findByIdOrFail(input.productId);
+    const product = await this.products.findByIdOrFail(input.productId);
+    // Saldo pode ser 0 (zerar estoque); só exige inteiro em unidade contável.
+    if (!isFractionalUnit(product.unit) && !Number.isInteger(input.balance)) {
+      throw new BadRequestException("Quantidade deve ser um número inteiro");
+    }
     const current =
       (await this.movements.onHandByProduct()).get(input.productId) ?? 0;
     const delta = roundQty(input.balance - current);
@@ -112,7 +117,9 @@ export class StockService {
 
   /** Lançamento manual (perda, ajuste, entrada/saída avulsa). */
   async registerManual(input: StockMovementInput): Promise<StockMovement> {
-    await this.products.findByIdOrFail(input.productId);
+    const product = await this.products.findByIdOrFail(input.productId);
+    const error = invalidQuantityForUnit(input.quantity, product.unit);
+    if (error) throw new BadRequestException(error);
     const movement = this.movements.create({
       productId: input.productId,
       type: input.type,

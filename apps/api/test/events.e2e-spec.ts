@@ -221,6 +221,22 @@ describe("Eventos + conversão (e2e)", () => {
     expect(orders.body.data[0].title).toBe("Buquê de aniversário");
   });
 
+  it("flag 'já entregue' nasce DONE; sem a flag nasce CONFIRMED", async () => {
+    const entregue = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 80, title: "Balcão entregue", delivered: true })
+      .expect(201);
+    expect(entregue.body.status).toBe("DONE");
+
+    const aEntregar = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 80, title: "Pedido a entregar" })
+      .expect(201);
+    expect(aEntregar.body.status).toBe("CONFIRMED");
+  });
+
   it("venda rápida grava data da venda e data de entrega (pedido antigo)", async () => {
     const sale = await http
       .post("/api/events/quick")

@@ -7,6 +7,7 @@ import {
   quantitySchema,
 } from "./common";
 import {
+  invalidQuantityForUnit,
   productUnitSchema,
   purchaseStatusSchema,
   type ProductUnit,
@@ -14,13 +15,18 @@ import {
 } from "./enums";
 
 /** Item de uma compra (entrada de estoque/insumo). */
-export const purchaseItemInputSchema = z.object({
-  productId: idSchema.nullable().optional(),
-  description: z.string().trim().min(1, "Descreva o item").max(200),
-  quantity: quantitySchema,
-  unit: productUnitSchema.default("UNIDADE"),
-  unitPrice: moneySchema,
-});
+export const purchaseItemInputSchema = z
+  .object({
+    productId: idSchema.nullable().optional(),
+    description: z.string().trim().min(1, "Descreva o item").max(200),
+    quantity: quantitySchema,
+    unit: productUnitSchema.default("UNIDADE"),
+    unitPrice: moneySchema,
+  })
+  .refine((v) => invalidQuantityForUnit(v.quantity, v.unit) === null, {
+    message: "Quantidade deve ser um número inteiro",
+    path: ["quantity"],
+  });
 export type PurchaseItemInput = z.infer<typeof purchaseItemInputSchema>;
 
 /** Dados para registrar/editar uma compra. */

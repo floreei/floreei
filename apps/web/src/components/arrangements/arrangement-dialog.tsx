@@ -4,6 +4,7 @@ import {
   arrangementInputSchema,
   arrangementSalePrice,
   calculateArrangement,
+  isFractionalUnit,
   type Arrangement,
   type ArrangementPricingMode,
 } from "@sistema-flores/types";
@@ -254,8 +255,8 @@ export function ArrangementDialog({
                     <Input
                       className="h-9 text-right"
                       type="number"
-                      step="any"
-                      min="0"
+                      step={isFractionalUnit(product?.unit ?? "UNIDADE") ? "any" : "1"}
+                      min={isFractionalUnit(product?.unit ?? "UNIDADE") ? "0" : "1"}
                       aria-label="Quantidade"
                       {...form.register(`items.${index}.quantity`, { valueAsNumber: true })}
                     />

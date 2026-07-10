@@ -39,6 +39,23 @@ describe("Buquês / ficha técnica (e2e)", () => {
     return res.body.id;
   };
 
+  it("rejeita quantidade fracionada em unidade contável; aceita em Metro/Grama", async () => {
+    const rosa = await insumo("Rosa", "HASTE", 2); // contável
+    const fita = await insumo("Fita", "METRO", 1.2); // fracionável
+
+    await http
+      .post("/api/arrangements")
+      .set(auth())
+      .send({ name: "Buquê Inválido", salePrice: 50, items: [{ productId: rosa, quantity: 2.5 }] })
+      .expect(400);
+
+    await http
+      .post("/api/arrangements")
+      .set(auth())
+      .send({ name: "Buquê OK", salePrice: 50, items: [{ productId: fita, quantity: 0.5 }] })
+      .expect(201);
+  });
+
   it("calcula o custo, a margem e o % do buquê a partir da ficha técnica", async () => {
     const hortensia = await insumo("Hortênsia", "HASTE", 3);
     const rosa = await insumo("Rosa", "UNIDADE", 2.5);

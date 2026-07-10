@@ -1,6 +1,6 @@
 "use client";
 
-import type { StockLevel } from "@sistema-flores/types";
+import { isFractionalUnit, type StockLevel } from "@sistema-flores/types";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Field } from "@/components/shared/field";
@@ -83,7 +83,7 @@ export function AdjustBalanceDialog({
             <Input
               id="ab-balance"
               type="number"
-              step="0.001"
+              step={isFractionalUnit(level.unit) ? "any" : "1"}
               min="0"
               value={balance}
               onChange={(e) => setBalance(e.target.value)}

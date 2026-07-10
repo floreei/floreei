@@ -102,14 +102,18 @@ export default function EventDetailPage() {
   }
 
   const pending = event.soldValue - event.receivedValue;
+  // Atacado e varejo são listas separadas — volta para a de origem.
+  const isWholesale = event.channel === "WHOLESALE";
+  const backHref = isWholesale ? "/atacado" : "/vendas";
+  const backLabel = isWholesale ? "Atacado" : "Vendas";
 
   return (
     <div className="space-y-6">
       <Link
-        href="/vendas"
+        href={backHref}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Eventos
+        <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
       <PageHeader
@@ -326,7 +330,7 @@ export default function EventDetailPage() {
         onConfirm={async () => {
           await remove.mutateAsync(event.id);
           toast.success("Venda excluída.");
-          router.push("/vendas");
+          router.push(backHref);
         }}
       />
     </div>

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type {
   Arrangement,
@@ -7,7 +7,11 @@ import type {
   ArrangementQuery,
   Paginated,
 } from "@sistema-flores/types";
-import { arrangementSalePrice, roundMoney } from "@sistema-flores/types";
+import {
+  arrangementSalePrice,
+  invalidQuantityForUnit,
+  roundMoney,
+} from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { CategoryRepository } from "../../catalog/infrastructure/category.repository";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
@@ -140,7 +144,11 @@ export class ArrangementsService {
       await this.categories.findByIdOrFail(input.categoryId);
     }
     for (const item of input.items) {
-      await this.products.findByIdOrFail(item.productId);
+      const product = await this.products.findByIdOrFail(item.productId);
+      const error = invalidQuantityForUnit(item.quantity, product.unit);
+      if (error) {
+        throw new BadRequestException(`${product.name}: ${error}`);
+      }
     }
   }
 

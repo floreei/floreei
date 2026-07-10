@@ -79,6 +79,8 @@ export const quickSaleSchema = z
     date: dateString.optional(),
     /** Data de entrega (opcional) — pode ser passada (pedido já entregue) ou futura. */
     deliveryDate: dateString.optional(),
+    /** Marca a venda como já entregue (status DONE) em vez de "A entregar". */
+    delivered: z.boolean().optional(),
     items: z.array(quickSaleItemSchema).optional(),
     amount: z.coerce.number().nonnegative().optional(),
     /** Venda direta (varejo) ou atacado (revenda em pacote fechado). */
