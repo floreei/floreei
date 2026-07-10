@@ -40,6 +40,47 @@ import { unitLabels } from "@/lib/labels";
 import { useDebounce } from "@/lib/use-debounce";
 import { cn, formatCurrency } from "@/lib/utils";
 
+/** Margem sobre o preço de venda (null quando não é revendido — só buquê). */
+function marginPct(purchase: number, sale: number): number | null {
+  if (sale <= 0) return null;
+  return Math.round(((sale - purchase) / sale) * 100);
+}
+
+function MarginBadge({ purchase, sale }: { purchase: number; sale: number }) {
+  const m = marginPct(purchase, sale);
+  if (m === null) {
+    return (
+      <Badge variant="secondary" title="Não revendido avulso — entra só em buquês">
+        Só buquê
+      </Badge>
+    );
+  }
+  const variant = m <= 0 ? "destructive" : m < 25 ? "warning" : "success";
+  return <Badge variant={variant}>{m}% margem</Badge>;
+}
+
+/** Miniatura do insumo: foto ou um marcador com a inicial/ícone. */
+function Thumb({ url, name }: { url: string | null; name: string }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        className="h-11 w-11 shrink-0 rounded-lg border border-border object-cover"
+      />
+    );
+  }
+  return (
+    <div
+      aria-hidden
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-sm font-semibold uppercase text-primary/70"
+    >
+      {name.trim().charAt(0) || <Sprout className="h-5 w-5" />}
+    </div>
+  );
+}
+
 export default function CatalogPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
@@ -64,11 +105,17 @@ export default function CatalogPage() {
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [deletingProd, setDeletingProd] = useState<Product | null>(null);
 
+  const activeCategory = categories?.find((c) => c.id === selected) ?? null;
+  const editProduct = (product: Product) => {
+    setEditingProd(product);
+    setProdDialog(true);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Insumos"
-        description="Tudo que você compra — flores, folhagens, papel, cola, decorativos. Cada insumo tem custo e preço de venda: vende no atacado e compõe buquês."
+        description="Tudo que você compra — flores, folhagens, papel, cola, decorativos. O custo vem da compra; a margem sai da diferença pro preço de venda."
       >
         <Button
           variant="outline"
@@ -97,52 +144,41 @@ export default function CatalogPage() {
         searchPlaceholder="Buscar insumo…"
       />
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        <Card className="h-fit p-2">
-          {loadingCats ? (
-            <div className="space-y-1 p-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 w-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-0.5">
-              <button
-                onClick={() => setSelected(undefined)}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
-                  !selected ? "bg-primary/10 text-primary" : "hover:bg-muted",
-                )}
-              >
-                <span className="font-medium">Todos os insumos</span>
-              </button>
-              {categories?.map((cat) => (
-                <div
-                  key={cat.id}
-                  className={cn(
-                    "group flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
-                    selected === cat.id
-                      ? "bg-primary/10 text-primary"
-                      : "hover:bg-muted",
-                  )}
-                >
-                  <button
-                    className="flex flex-1 items-center justify-between"
-                    onClick={() => setSelected(cat.id)}
-                  >
-                    <span>{cat.name}</span>
-                    <Badge variant="secondary">{cat.productCount ?? 0}</Badge>
-                  </button>
+      {/* Filtro por categoria — chips com contagem; a categoria ativa mostra
+          um menu pra renomear/excluir (some a barra lateral antiga). */}
+      {loadingCats ? (
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-24 rounded-full" />
+          ))}
+        </div>
+      ) : categories && categories.length > 0 ? (
+        <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:pb-0">
+          <CategoryChip
+            label="Todos"
+            active={!selected}
+            onClick={() => setSelected(undefined)}
+          />
+          {categories.map((cat) => (
+            <CategoryChip
+              key={cat.id}
+              label={cat.name}
+              count={cat.productCount ?? 0}
+              active={selected === cat.id}
+              onClick={() => setSelected(cat.id)}
+              menu={
+                selected === cat.id ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className="ml-1 opacity-0 transition-opacity group-hover:opacity-100"
-                        aria-label="Ações da categoria"
+                        type="button"
+                        aria-label={`Ações da categoria ${cat.name}`}
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-primary/15"
                       >
-                        <MoreHorizontal className="h-4 w-4" />
+                        <MoreHorizontal className="h-3.5 w-3.5" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="start">
                       <DropdownMenuItem
                         onClick={() => {
                           setEditingCat(cat);
@@ -161,104 +197,106 @@ export default function CatalogPage() {
                       ) : null}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                ) : undefined
+              }
+            />
+          ))}
+        </div>
+      ) : null}
 
+      {loadingProducts ? (
         <Card>
-          {loadingProducts ? (
-            <div className="space-y-2 p-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : products && products.data.length > 0 ? (
-            <>
-              {/* Celular: cartões — toque edita o insumo */}
-              <div className="space-y-2 p-3 sm:hidden">
-                {products.data.map((product) => (
-                  <ListCard
-                    key={product.id}
-                    onClick={() => {
-                      setEditingProd(product);
-                      setProdDialog(true);
-                    }}
-                    leading={
-                      product.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={product.imageUrl}
-                          alt=""
-                          className="h-10 w-10 rounded-md border border-border object-cover"
-                        />
-                      ) : undefined
-                    }
-                    title={product.name}
-                    subtitle={[product.category?.name, unitLabels[product.unit]]
-                      .filter(Boolean)
-                      .join(" · ")}
-                    meta={
-                      product.defaultSalePrice > 0
-                        ? formatCurrency(product.defaultSalePrice)
-                        : "—"
-                    }
-                    metaSub={`compra ${formatCurrency(product.defaultPurchasePrice)}`}
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </div>
+        </Card>
+      ) : products && products.data.length > 0 ? (
+        <Card className="overflow-hidden">
+          {/* Celular: cartões — toque edita o insumo */}
+          <div className="divide-y divide-border sm:hidden">
+            {products.data.map((product) => (
+              <ListCard
+                key={product.id}
+                className="rounded-none border-0 shadow-none"
+                onClick={() => editProduct(product)}
+                leading={<Thumb url={product.imageUrl} name={product.name} />}
+                title={product.name}
+                subtitle={[product.category?.name, unitLabels[product.unit]]
+                  .filter(Boolean)
+                  .join(" · ")}
+                meta={
+                  product.defaultSalePrice > 0
+                    ? formatCurrency(product.defaultSalePrice)
+                    : "—"
+                }
+                metaSub={
+                  <MarginBadge
+                    purchase={product.defaultPurchasePrice}
+                    sale={product.defaultSalePrice}
                   />
-                ))}
-              </div>
-              <div className="hidden sm:block">
+                }
+              />
+            ))}
+          </div>
+
+          {/* Desktop: tabela densa com miniatura e margem */}
+          <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Insumo</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead className="text-right">Compra</TableHead>
+                  <TableHead className="hidden lg:table-cell">Unidade</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
                   <TableHead className="text-right">Venda</TableHead>
+                  <TableHead className="hidden text-right md:table-cell">
+                    Margem
+                  </TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {products.data.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">
-                      <span className="flex items-center gap-2">
-                        {product.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={product.imageUrl}
-                            alt=""
-                            className="h-8 w-8 shrink-0 rounded-md border border-border object-cover"
-                          />
-                        ) : null}
-                        <span>
-                          {product.name}
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {product.category?.name}
+                  <TableRow
+                    key={product.id}
+                    className="cursor-pointer"
+                    onClick={() => editProduct(product)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-3">
+                        <Thumb url={product.imageUrl} name={product.name} />
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">
+                            {product.name}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {product.category?.name ?? "Sem categoria"}
                           </span>
                         </span>
                       </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {unitLabels[product.unit]}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {formatCurrency(product.defaultPurchasePrice)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
-                      {product.defaultSalePrice > 0 ? (
-                        formatCurrency(product.defaultSalePrice)
-                      ) : (
-                        <span
-                          className="text-muted-foreground"
-                          title="Não vendido avulso — usado só em buquês"
-                        >
-                          —
-                        </span>
-                      )}
+                      {product.defaultSalePrice > 0
+                        ? formatCurrency(product.defaultSalePrice)
+                        : "—"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden text-right md:table-cell">
+                      <MarginBadge
+                        purchase={product.defaultPurchasePrice}
+                        sale={product.defaultSalePrice}
+                      />
+                    </TableCell>
+                    <TableCell
+                      className="text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" aria-label="Ações">
@@ -266,12 +304,7 @@ export default function CatalogPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditingProd(product);
-                              setProdDialog(true);
-                            }}
-                          >
+                          <DropdownMenuItem onClick={() => editProduct(product)}>
                             Editar
                           </DropdownMenuItem>
                           {isAdmin ? (
@@ -289,8 +322,21 @@ export default function CatalogPage() {
                 ))}
               </TableBody>
             </Table>
-              </div>
-            </>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          {debounced || activeCategory ? (
+            <EmptyState
+              className="border-0"
+              icon={<Sprout />}
+              title="Nada encontrado"
+              description={
+                activeCategory
+                  ? `Nenhum insumo em "${activeCategory.name}" com esse filtro.`
+                  : "Nenhum insumo bate com essa busca."
+              }
+            />
           ) : (
             <EmptyState
               className="border-0"
@@ -301,10 +347,34 @@ export default function CatalogPage() {
                   ? "Cadastre insumos para vender e compor buquês."
                   : "Crie uma categoria antes de adicionar insumos."
               }
+              action={
+                categories?.length ? (
+                  <Button
+                    onClick={() => {
+                      setEditingProd(null);
+                      setProdDialog(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo insumo
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingCat(null);
+                      setCatDialog(true);
+                    }}
+                  >
+                    <Tag className="h-4 w-4" />
+                    Nova categoria
+                  </Button>
+                )
+              }
             />
           )}
         </Card>
-      </div>
+      )}
 
       <CategoryDialog
         open={catDialog}
@@ -325,6 +395,7 @@ export default function CatalogPage() {
         description={`Excluir "${deletingCat?.name}"? Só é possível se não houver insumos nela.`}
         onConfirm={async () => {
           await deleteCategory.mutateAsync(deletingCat!.id);
+          setSelected(undefined);
           toast.success("Categoria excluída.");
         }}
       />
@@ -339,5 +410,45 @@ export default function CatalogPage() {
         }}
       />
     </div>
+  );
+}
+
+function CategoryChip({
+  label,
+  count,
+  active,
+  onClick,
+  menu,
+}: {
+  label: string;
+  count?: number;
+  active: boolean;
+  onClick: () => void;
+  menu?: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border text-muted-foreground hover:bg-muted",
+      )}
+    >
+      <button type="button" onClick={onClick} className="inline-flex items-center gap-1.5">
+        {label}
+        {count !== undefined ? (
+          <span
+            className={cn(
+              "rounded-full px-1.5 text-xs tabular-nums",
+              active ? "bg-primary/15" : "bg-muted-foreground/10",
+            )}
+          >
+            {count}
+          </span>
+        ) : null}
+      </button>
+      {menu}
+    </span>
   );
 }

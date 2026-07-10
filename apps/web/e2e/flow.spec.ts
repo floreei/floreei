@@ -32,12 +32,12 @@ test("fluxo completo: cadastro → cliente → produto → orçamento → evento
 
   // 3) Criar categoria + produto (compra 4, venda 10)
   await page.goto("/insumos");
-  await page.getByRole("button", { name: "Nova categoria" }).click();
+  await page.getByRole("button", { name: "Nova categoria" }).first().click();
   await page.getByLabel("Nome").fill(categoryName);
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText(categoryName)).toBeVisible();
 
-  await page.getByRole("button", { name: "Novo insumo" }).click();
+  await page.getByRole("button", { name: "Novo insumo" }).first().click();
   await page.getByLabel("Nome").fill(productName);
   await page.getByTestId("product-category-select").click();
   await page.getByRole("option", { name: categoryName }).click();
