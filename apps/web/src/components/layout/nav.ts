@@ -44,6 +44,8 @@ export const navGroups: NavGroup[] = [
       { label: "Início", href: "/inicio", icon: Home },
       { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
       { label: "Clientes", href: "/clientes", icon: Users },
+      { label: "Financeiro", href: "/financeiro", icon: Wallet, feature: "FINANCE" },
+      { label: "Despesas", href: "/despesas", icon: Receipt, feature: "FINANCE" },
     ],
   },
   {
@@ -94,8 +96,6 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard },
       { label: "Orçamentos", href: "/orcamentos", icon: FileText, feature: "QUOTES" },
-      { label: "Financeiro", href: "/financeiro", icon: Wallet, feature: "FINANCE" },
-      { label: "Despesas", href: "/despesas", icon: Receipt, feature: "FINANCE" },
       {
         label: "Relatórios",
         href: "/relatorios",

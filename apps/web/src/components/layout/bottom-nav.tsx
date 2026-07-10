@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarHeart, Home, Menu, Plus, Users } from "lucide-react";
+import { CalendarHeart, Home, Menu, Plus, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -15,7 +15,12 @@ const TABS = [
   { label: "Vendas", href: "/vendas", icon: CalendarHeart },
 ] as const;
 
-const TABS_AFTER = [{ label: "Clientes", href: "/clientes", icon: Users }] as const;
+// Financeiro no lugar de Clientes: ver "quem me deve" é olhada diária; Clientes
+// continua a 1 toque no "Mais". (Financeiro é feature FINANCE — sem ela, o link
+// leva à página de upgrade, mesmo comportamento dos outros itens gated.)
+const TABS_AFTER = [
+  { label: "Financeiro", href: "/financeiro", icon: Wallet },
+] as const;
 
 /**
  * Navegação de polegar no celular: as 3 seções mais usadas + "Mais" (menu
