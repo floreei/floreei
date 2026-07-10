@@ -39,13 +39,12 @@ export function Testimonials() {
                   <Star key={k} className="h-3.5 w-3.5" fill="currentColor" />
                 ))}
               </Reveal>
-              <Reveal variant="pop" delay={320}>
-                <StatBadge
-                  value="+30%"
-                  label="orçamentos fechados"
-                  className="-bottom-5 left-5"
-                />
-              </Reveal>
+              <StatBadge
+                value="+30%"
+                label="orçamentos fechados"
+                delay={320}
+                className="-bottom-5 left-5"
+              />
             </div>
           </Reveal>
 

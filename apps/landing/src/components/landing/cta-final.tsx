@@ -74,13 +74,12 @@ export function CtaFinal() {
                     loading="lazy"
                   />
                 </div>
-                <Reveal variant="pop" delay={380}>
-                  <PhotoBadge
-                    icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                    title="Configuramos com você"
-                    className="-bottom-5 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0"
-                  />
-                </Reveal>
+                <PhotoBadge
+                  icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                  title="Configuramos com você"
+                  delay={380}
+                  className="-bottom-5 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0"
+                />
               </Reveal>
             </div>
           </div>

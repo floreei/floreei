@@ -3,7 +3,6 @@
 import { Check } from "lucide-react";
 import { useCountUp } from "@/lib/use-count-up";
 import { MiniStat, PhotoBadge } from "./photo-badge";
-import { Reveal } from "./reveal";
 
 const inteiro = (v: number) => Math.round(v).toLocaleString("pt-BR");
 
@@ -22,30 +21,27 @@ export function HeroPhoto() {
         loading="eager"
       />
 
-      <Reveal variant="pop" delay={260}>
-        <MiniStat
-          label="Vendas do mês"
-          value={`R$ ${vendas.toFixed(1).replace(".", ",")}k`}
-          className="sf-cloud -left-4 top-8 sm:-left-6"
-        />
-      </Reveal>
+      <MiniStat
+        label="Vendas do mês"
+        value={`R$ ${vendas.toFixed(1).replace(".", ",")}k`}
+        delay={260}
+        className="sf-cloud -left-4 top-8 sm:-left-6"
+      />
 
-      <Reveal variant="pop" delay={420}>
-        <PhotoBadge
-          icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
-          title="Orçamento aprovado"
-          subtitle="Casamento — Ana & Rui"
-          className="sf-cloud-b -left-4 top-1/2 -translate-y-1/2 sm:-left-6"
-        />
-      </Reveal>
+      <PhotoBadge
+        icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
+        title="Orçamento aprovado"
+        subtitle="Casamento — Ana & Rui"
+        delay={420}
+        className="sf-cloud-b -left-4 top-1/2 -translate-y-1/2 sm:-left-6"
+      />
 
-      <Reveal variant="pop" delay={580}>
-        <MiniStat
-          label="A receber"
-          value={`R$ ${inteiro(receber)}`}
-          className="sf-cloud-c -bottom-5 -right-4 sm:-right-6"
-        />
-      </Reveal>
+      <MiniStat
+        label="A receber"
+        value={`R$ ${inteiro(receber)}`}
+        delay={580}
+        className="sf-cloud-c -bottom-5 -right-4 sm:-right-6"
+      />
     </div>
   );
 }

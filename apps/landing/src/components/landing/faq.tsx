@@ -32,14 +32,13 @@ export function Faq() {
               className="aspect-[4/5] w-full rounded-2xl object-cover shadow-lg"
               loading="lazy"
             />
-            <Reveal variant="pop" delay={280}>
-              <PhotoBadge
-                icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />}
-                title="Suporte em português"
-                subtitle="Gente de verdade respondendo"
-                className="-bottom-5 left-5"
-              />
-            </Reveal>
+            <PhotoBadge
+              icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />}
+              title="Suporte em português"
+              subtitle="Gente de verdade respondendo"
+              delay={280}
+              className="-bottom-5 left-5"
+            />
           </Reveal>
 
           <div className="space-y-3">

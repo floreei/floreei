@@ -30,13 +30,12 @@ export function HowItWorks() {
               className="aspect-[4/5] w-full rounded-2xl object-cover shadow-lg"
               loading="lazy"
             />
-            <Reveal variant="pop" delay={280}>
-              <PhotoBadge
-                icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                title="Equipe treinada no 1º dia"
-                className="-bottom-5 left-5"
-              />
-            </Reveal>
+            <PhotoBadge
+              icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />}
+              title="Equipe treinada no 1º dia"
+              delay={280}
+              className="-bottom-5 left-5"
+            />
           </Reveal>
 
           <div className="space-y-4">
