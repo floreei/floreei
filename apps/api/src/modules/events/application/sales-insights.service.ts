@@ -117,7 +117,7 @@ export class SalesInsightsService {
           AND se.date BETWEEN :from AND :to
       )`;
     const lastSold = (idColumn: string) =>
-      `(SELECT MAX(le.date) FROM event_items lei
+      `(SELECT TO_CHAR(MAX(le.date), 'YYYY-MM-DD') FROM event_items lei
         JOIN events le ON le.id = lei.event_id
         WHERE lei.${idColumn} = base.id AND le.status <> 'CANCELED')`;
 
@@ -153,7 +153,7 @@ export class SalesInsightsService {
       id: r.id,
       name: r.name,
       kind: r.kind,
-      lastSoldAt: r.lastSoldAt ? String(r.lastSoldAt).slice(0, 10) : null,
+      lastSoldAt: r.lastSoldAt ?? null,
     }));
 
     // Encalhado há mais tempo primeiro (nunca vendido = null vem antes).
@@ -198,7 +198,7 @@ export class SalesInsightsService {
       .innerJoin("event.customer", "customer")
       .select("customer.id", "id")
       .addSelect("customer.name", "name")
-      .addSelect("MAX(event.date)", "lastPurchaseAt")
+      .addSelect("TO_CHAR(MAX(event.date), 'YYYY-MM-DD')", "lastPurchaseAt")
       .addSelect("COALESCE(SUM(event.sold_value),0)", "total")
       .andWhere("event.status <> 'CANCELED'")
       .groupBy("customer.id")
@@ -216,9 +216,7 @@ export class SalesInsightsService {
     return rows.map((r) => ({
       id: r.id,
       name: r.name,
-      lastPurchaseAt: r.lastPurchaseAt
-        ? String(r.lastPurchaseAt).slice(0, 10)
-        : null,
+      lastPurchaseAt: r.lastPurchaseAt ?? null,
       total: roundMoney(Number(r.total ?? 0)),
     }));
   }

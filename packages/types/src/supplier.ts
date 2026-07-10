@@ -37,8 +37,12 @@ export interface Supplier {
   whatsapp: string | null;
   paymentTerms: string | null;
   notes: string | null;
-  /** Total já comprado deste fornecedor (quando solicitado). */
+  /** Total já comprado deste fornecedor (na listagem enriquecida). */
   totalPurchased?: number;
+  /** Nº de compras (não canceladas) deste fornecedor. */
+  purchasesCount?: number;
+  /** Data da última compra (AAAA-MM-DD), ou null se nunca comprou. */
+  lastPurchaseAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

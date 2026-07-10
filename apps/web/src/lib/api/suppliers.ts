@@ -1,5 +1,6 @@
 import type {
   Paginated,
+  PartyRanking,
   Supplier,
   SupplierInput,
   SupplierProfile,
@@ -20,9 +21,18 @@ export function useSuppliers(query: Partial<SupplierQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Supplier>>("/suppliers", {
         page: query.page ?? 1,
-        pageSize: query.pageSize ?? 100,
+        pageSize: query.pageSize ?? 20,
         search: query.search,
       }),
+  });
+}
+
+/** Ranking "de quem você mais compra" (por total gasto) para o widget. */
+export function useSupplierRanking() {
+  return useQuery({
+    queryKey: [KEY, "ranking"],
+    queryFn: () => api.get<PartyRanking[]>("/suppliers/ranking"),
+    staleTime: 60_000,
   });
 }
 

@@ -1,10 +1,11 @@
 "use client";
 
 import type { Supplier } from "@sistema-flores/types";
-import { Eye, MoreHorizontal, Plus, Truck } from "lucide-react";
+import { Eye, MoreHorizontal, Plus, TrendingUp, Truck } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { RankingList } from "@/components/reports/ranking-list";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
@@ -29,9 +30,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useDeleteSupplier, useSuppliers } from "@/lib/api/suppliers";
+import {
+  useDeleteSupplier,
+  useSupplierRanking,
+  useSuppliers,
+} from "@/lib/api/suppliers";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useDebounce } from "@/lib/use-debounce";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function SuppliersPage() {
   const { user } = useAuth();
@@ -39,6 +45,7 @@ export default function SuppliersPage() {
   const [page, setPage] = useState(1);
   const debounced = useDebounce(search);
   const { data, isLoading } = useSuppliers({ search: debounced, page, pageSize: 20 });
+  const { data: ranking } = useSupplierRanking();
   const remove = useDeleteSupplier();
 
   const changeSearch = (value: string) => {
@@ -63,6 +70,27 @@ export default function SuppliersPage() {
           Novo fornecedor
         </Button>
       </PageHeader>
+
+      {ranking && ranking.length >= 2 ? (
+        <Card className="space-y-4 p-5">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            De quem você mais compra
+          </p>
+          <RankingList
+            rows={ranking.map((r) => ({
+              id: r.id,
+              name: r.name,
+              value: r.total,
+              valueLabel: formatCurrency(r.total),
+              sub: `${r.count} compra${r.count === 1 ? "" : "s"}`,
+            }))}
+            loading={false}
+            empty="Sem compras ainda."
+            tone="clay"
+          />
+        </Card>
+      ) : null}
 
       <SalesFilters
         search={search}
@@ -89,6 +117,16 @@ export default function SuppliersPage() {
                   subtitle={[supplier.city, supplier.whatsapp || supplier.contact]
                     .filter(Boolean)
                     .join(" · ") || "Sem contato"}
+                  meta={
+                    supplier.totalPurchased
+                      ? formatCurrency(supplier.totalPurchased)
+                      : "—"
+                  }
+                  metaSub={
+                    supplier.purchasesCount
+                      ? `${supplier.purchasesCount} compra${supplier.purchasesCount === 1 ? "" : "s"}`
+                      : "sem compras"
+                  }
                 />
               ))}
             </div>
@@ -97,9 +135,11 @@ export default function SuppliersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Cidade</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Pagamento</TableHead>
+                <TableHead className="hidden lg:table-cell">Cidade</TableHead>
+                <TableHead className="hidden md:table-cell">Contato</TableHead>
+                <TableHead className="text-right">Total comprado</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">Compras</TableHead>
+                <TableHead className="hidden md:table-cell">Última compra</TableHead>
                 <TableHead />
                 <TableHead className="w-12" />
               </TableRow>
@@ -115,14 +155,24 @@ export default function SuppliersPage() {
                       {supplier.name}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden text-muted-foreground lg:table-cell">
                     {supplier.city || "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden text-muted-foreground md:table-cell">
                     {supplier.whatsapp || supplier.contact || "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {supplier.paymentTerms || "—"}
+                  <TableCell className="text-right tabular-nums font-medium">
+                    {supplier.totalPurchased
+                      ? formatCurrency(supplier.totalPurchased)
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">
+                    {supplier.purchasesCount ?? 0}
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">
+                    {supplier.lastPurchaseAt
+                      ? formatDate(supplier.lastPurchaseAt)
+                      : "—"}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">
