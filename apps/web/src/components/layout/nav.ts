@@ -48,15 +48,6 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    // Tudo que é dinheiro num lugar só — o que o florista mais consulta no dia.
-    label: "Financeiro",
-    items: [
-      { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
-      { label: "Financeiro", href: "/financeiro", icon: Wallet, feature: "FINANCE" },
-      { label: "Despesas", href: "/despesas", icon: Receipt, feature: "FINANCE" },
-    ],
-  },
-  {
     // A base do negócio (o onboarding manda "comece pela base: insumos").
     label: "Insumos e estoque",
     items: [
@@ -102,6 +93,15 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         feature: "WHOLESALE",
       },
+    ],
+  },
+  {
+    // Tudo que é dinheiro num lugar só, logo acima da Gestão.
+    label: "Financeiro",
+    items: [
+      { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
+      { label: "Financeiro", href: "/financeiro", icon: Wallet, feature: "FINANCE" },
+      { label: "Despesas", href: "/despesas", icon: Receipt, feature: "FINANCE" },
     ],
   },
   {
