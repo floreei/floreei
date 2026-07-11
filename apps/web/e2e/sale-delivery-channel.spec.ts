@@ -41,7 +41,10 @@ test("venda: flag 'já entregue' por canal + detalhe do atacado volta para /atac
   ).json();
 
   // Detalhe da venda do atacado: voltar = "Atacado" e leva para /atacado.
-  await page.goto(`/vendas/${sale.id}`);
+  // "Ver detalhes" na lista do atacado leva para /atacado/[id] (não /vendas).
+  await page.goto("/atacado");
+  await page.getByRole("link", { name: "Ver detalhes" }).first().click();
+  await expect(page).toHaveURL(new RegExp(`/atacado/${sale.id}$`));
   const back = page.getByRole("link", { name: "Atacado", exact: true });
   await expect(back).toBeVisible();
   await expect(back).toHaveAttribute("href", "/atacado");
