@@ -44,7 +44,7 @@ const fadeUp = {
 export function WelcomeDialog() {
   const { user } = useAuth();
   const guide = useGuide();
-  const { choose } = useBusinessFocus(user?.companyId);
+  const { choose } = useBusinessFocus();
   const [open, setOpen] = useState(false);
 
   const access = user?.access;

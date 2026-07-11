@@ -13,6 +13,7 @@ import { navItems, navItemUnlocked } from "@/components/layout/nav";
 import { PaymentBanner } from "@/components/layout/payment-banner";
 import { GuideProvider } from "@/components/onboarding/guide";
 import { WelcomeDialog } from "@/components/onboarding/welcome-dialog";
+import { BusinessFocusProvider } from "@/lib/onboarding/focus";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { TrialBanner } from "@/components/layout/trial-banner";
@@ -60,7 +61,8 @@ export default function DashboardLayout({
       : undefined;
 
   return (
-    <CommandPaletteProvider>
+    <BusinessFocusProvider>
+      <CommandPaletteProvider>
       <GuideProvider>
         <QuickSaleProvider>
           <WelcomeDialog />
@@ -85,6 +87,7 @@ export default function DashboardLayout({
           <BottomNav />
         </QuickSaleProvider>
       </GuideProvider>
-    </CommandPaletteProvider>
+      </CommandPaletteProvider>
+    </BusinessFocusProvider>
   );
 }

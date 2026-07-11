@@ -1,4 +1,4 @@
-import type { Feature } from "@sistema-flores/types";
+import type { Feature, SalesChannel } from "@sistema-flores/types";
 import {
   BarChart3,
   Boxes,
@@ -35,6 +35,8 @@ export interface NavItem {
 export interface NavGroup {
   label: string;
   items: NavItem[];
+  /** Grupo de um canal específico — some do menu quando o foco é o outro canal. */
+  channel?: SalesChannel;
 }
 
 export const navGroups: NavGroup[] = [
@@ -49,31 +51,8 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Varejo",
-    items: [
-      { label: "Vendas", href: "/vendas", icon: CalendarHeart, feature: "SALES" },
-      { label: "Buquês", href: "/buques", icon: Flower, feature: "ARRANGEMENTS" },
-      {
-        label: "Pedidos da loja",
-        href: "/pedidos-loja",
-        icon: ShoppingBag,
-        feature: "STORE",
-      },
-    ],
-  },
-  {
-    label: "Atacado",
-    items: [
-      {
-        label: "Vendas no atacado",
-        href: "/atacado",
-        icon: Boxes,
-        feature: "WHOLESALE",
-      },
-    ],
-  },
-  {
-    label: "Suprimentos",
+    // A base do negócio (o onboarding manda "comece pela base: insumos").
+    label: "Insumos e estoque",
     items: [
       { label: "Insumos", href: "/insumos", icon: Sprout },
       {
@@ -92,10 +71,37 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Varejo",
+    channel: "RETAIL",
+    items: [
+      { label: "Vendas", href: "/vendas", icon: CalendarHeart, feature: "SALES" },
+      // Orçamento é ferramenta de venda (vira venda com 1 clique) → aqui.
+      { label: "Orçamentos", href: "/orcamentos", icon: FileText, feature: "QUOTES" },
+      { label: "Buquês", href: "/buques", icon: Flower, feature: "ARRANGEMENTS" },
+      {
+        label: "Pedidos da loja",
+        href: "/pedidos-loja",
+        icon: ShoppingBag,
+        feature: "STORE",
+      },
+    ],
+  },
+  {
+    label: "Atacado",
+    channel: "WHOLESALE",
+    items: [
+      {
+        label: "Vendas no atacado",
+        href: "/atacado",
+        icon: Boxes,
+        feature: "WHOLESALE",
+      },
+    ],
+  },
+  {
     label: "Gestão",
     items: [
       { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Orçamentos", href: "/orcamentos", icon: FileText, feature: "QUOTES" },
       {
         label: "Relatórios",
         href: "/relatorios",
@@ -122,6 +128,18 @@ export function navItemUnlocked(
   features: readonly string[] | undefined,
 ): boolean {
   return !item.feature || (features ?? []).includes(item.feature);
+}
+
+/**
+ * Grupo visível conforme o foco do negócio: um grupo de canal (Varejo/Atacado)
+ * some quando o foco é o outro canal. `BOTH`/indefinido mostra tudo.
+ */
+export function navGroupVisibleForFocus(
+  group: NavGroup,
+  focus: SalesChannel | "BOTH" | null | undefined,
+): boolean {
+  if (!group.channel || !focus || focus === "BOTH") return true;
+  return group.channel === focus;
 }
 
 export const navItems: NavItem[] = navGroups.flatMap((g) => g.items);

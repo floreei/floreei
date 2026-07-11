@@ -22,8 +22,7 @@ import {
 import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useAuth } from "@/lib/auth/auth-context";
-import { type BusinessFocus, getFocus, setFocus } from "@/lib/onboarding/focus";
+import { type BusinessFocus, useBusinessFocus } from "@/lib/onboarding/focus";
 
 interface GuideStep {
   icon: LucideIcon;
@@ -134,23 +133,14 @@ function GuideDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const { user } = useAuth();
-  const companyId = user?.companyId;
-  // Relê o foco do localStorage a cada abertura (pode ter sido escolhido no
-  // checklist/boas-vindas — instâncias separadas não compartilham estado).
-  const [focus, setFocusState] = useState<BusinessFocus | null>(null);
+  // Foco vem do contexto compartilhado (menu/checklist/boas-vindas em sincronia).
+  const { focus, choose } = useBusinessFocus();
   const [[index, dir], setStep] = useState<[number, number]>([0, 0]);
 
+  // Sempre recomeça do início ao reabrir.
   useEffect(() => {
-    if (!open) return;
-    setStep([0, 0]);
-    setFocusState(companyId ? getFocus(companyId) : null);
-  }, [open, companyId]);
-
-  const choose = (f: BusinessFocus) => {
-    if (companyId) setFocus(companyId, f);
-    setFocusState(f);
-  };
+    if (open) setStep([0, 0]);
+  }, [open]);
 
   // Sem foco escolhido: pergunta primeiro (personaliza o passo a passo).
   if (open && !focus) {

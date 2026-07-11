@@ -93,7 +93,7 @@ function dismissedKey(companyId: string): string {
 export function FirstSteps() {
   const { user } = useAuth();
   const companyId = user?.companyId;
-  const { focus, choose, reset } = useBusinessFocus(companyId);
+  const { focus, choose, reset } = useBusinessFocus();
   const { data } = useFirstSteps(Boolean(companyId));
   const [dismissed, setDismissed] = useState<boolean | undefined>(undefined);
 

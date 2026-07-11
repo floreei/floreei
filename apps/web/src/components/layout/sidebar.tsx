@@ -3,13 +3,15 @@
 import { Flower2, Lock } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navGroups, navItemUnlocked } from "./nav";
+import { navGroupVisibleForFocus, navGroups, navItemUnlocked } from "./nav";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useBusinessFocus } from "@/lib/onboarding/focus";
 import { cn } from "@/lib/utils";
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { focus } = useBusinessFocus();
 
   return (
     <div className="flex h-full flex-col gap-1">
@@ -28,6 +30,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
         {navGroups.map((group) => {
+          if (!navGroupVisibleForFocus(group, focus)) return null;
           const items = group.items.filter(
             (item) => !item.adminOnly || user?.role === "ADMIN",
           );

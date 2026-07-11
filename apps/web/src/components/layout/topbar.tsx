@@ -1,9 +1,17 @@
 "use client";
 
-import { HelpCircle, LogOut, Search } from "lucide-react";
+import { HelpCircle, LogOut, Search, Store } from "lucide-react";
+import { useState } from "react";
+import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { useGuide } from "@/components/onboarding/guide";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useBusinessFocus } from "@/lib/onboarding/focus";
 import { useCommandPalette } from "./command-palette";
 
 function initials(name: string): string {
@@ -28,6 +37,8 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const { open } = useCommandPalette();
   const guide = useGuide();
+  const { focus, choose } = useBusinessFocus();
+  const [focusOpen, setFocusOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
@@ -75,6 +86,11 @@ export function Topbar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setFocusOpen(true)}>
+                <Store className="h-4 w-4" />
+                Como você vende?
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive">
                 <LogOut className="h-4 w-4" />
                 Sair
@@ -83,6 +99,29 @@ export function Topbar() {
           </DropdownMenu>
         ) : null}
       </div>
+
+      <Dialog open={focusOpen} onOpenChange={setFocusOpen}>
+        <DialogContent className="max-w-md">
+          <div className="space-y-4">
+            <div className="space-y-1 text-center">
+              <DialogTitle className="font-serif text-2xl">
+                Como você vende?
+              </DialogTitle>
+              <DialogDescription>
+                Ajusta seu menu: mostra só o canal que você usa (Varejo e/ou
+                Atacado).
+              </DialogDescription>
+            </div>
+            <FocusChooser
+              value={focus ?? null}
+              onChoose={(f) => {
+                choose(f);
+                setFocusOpen(false);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

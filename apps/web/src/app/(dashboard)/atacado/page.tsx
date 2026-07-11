@@ -35,7 +35,6 @@ const paymentFilters: Array<{ label: string; value?: PaymentStatusFilter }> = [
   { label: "Todos pagamentos" },
   { label: "Pagas", value: "paid" },
   { label: "Pendentes", value: "pending" },
-  { label: "Vencidas", value: "overdue" },
 ];
 
 const deliveryFilters: Array<{ label: string; value?: boolean }> = [
