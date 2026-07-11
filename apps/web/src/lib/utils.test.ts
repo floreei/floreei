@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { cn, formatCurrency, formatPercent } from "./utils";
+import {
+  cn,
+  currentMonthRange,
+  formatCurrency,
+  formatDate,
+  formatPercent,
+  todayLocalISO,
+} from "./utils";
 
 // Intl pode usar espaço comum, NBSP (U+00A0) ou narrow NBSP (U+202F) conforme a versão do ICU.
 const normalizeSpaces = (s: string) => s.replace(/[   \s]/g, " ");
@@ -23,5 +30,30 @@ describe("formatCurrency", () => {
 describe("formatPercent", () => {
   it("formata percentual com 1 casa", () => {
     expect(normalizeSpaces(formatPercent(42.5))).toBe("42,5%");
+  });
+});
+
+describe("formatDate", () => {
+  it("formata AAAA-MM-DD no padrão pt-BR", () => {
+    expect(formatDate("2026-07-10")).toBe("10/07/2026");
+  });
+
+  it("devolve travessão quando vazio", () => {
+    expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("todayLocalISO", () => {
+  it("devolve a data de hoje no formato AAAA-MM-DD", () => {
+    expect(todayLocalISO()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("currentMonthRange", () => {
+  it("começa no dia 1 do mês atual e termina hoje", () => {
+    const { from, to } = currentMonthRange();
+    expect(from).toMatch(/^\d{4}-\d{2}-01$/);
+    expect(to).toBe(todayLocalISO());
+    expect(from.slice(0, 7)).toBe(to.slice(0, 7));
   });
 });
