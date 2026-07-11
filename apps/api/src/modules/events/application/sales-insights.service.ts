@@ -4,6 +4,7 @@ import type {
   AtRiskCustomer,
   IdleItem,
   PartyRanking,
+  SalesChannel,
   SalesInsights,
   SoldItemRanking,
 } from "@sistema-flores/types";
@@ -54,24 +55,32 @@ export class SalesInsightsService {
     };
   }
 
-  async generate(fromInput?: string, toInput?: string): Promise<SalesInsights> {
+  async generate(
+    fromInput?: string,
+    toInput?: string,
+    channel?: SalesChannel,
+  ): Promise<SalesInsights> {
     const { from, to } = this.defaultRange(fromInput, toInput);
     const [topItems, idleItems, topCustomers, atRiskCustomers] =
       await Promise.all([
-        this.topItems(from, to),
-        this.idleItems(from, to),
-        this.topCustomers(from, to),
-        this.atRiskCustomers(from),
+        this.topItems(from, to, channel),
+        this.idleItems(from, to, channel),
+        this.topCustomers(from, to, channel),
+        this.atRiskCustomers(from, channel),
       ]);
     return { from, to, topItems, idleItems, topCustomers, atRiskCustomers };
   }
 
   /** Itens (insumo ou buquê) mais vendidos no período, por quantidade. */
-  private async topItems(from: string, to: string): Promise<SoldItemRanking[]> {
+  private async topItems(
+    from: string,
+    to: string,
+    channel?: SalesChannel,
+  ): Promise<SoldItemRanking[]> {
     const cid = this.tenant.getCompanyIdOrThrow();
     const kindExpr =
       "CASE WHEN ei.product_id IS NOT NULL THEN 'product' ELSE 'arrangement' END";
-    const rows = await this.items
+    const qb = this.items
       .createQueryBuilder("ei")
       .innerJoin("ei.event", "event")
       .select("COALESCE(ei.product_id, ei.arrangement_id)", "id")
@@ -82,7 +91,9 @@ export class SalesInsightsService {
       .where("event.company_id = :cid", { cid })
       .andWhere("event.status <> 'CANCELED'")
       .andWhere("event.date BETWEEN :from AND :to", { from, to })
-      .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL")
+      .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
+    if (channel) qb.andWhere("event.channel = :channel", { channel });
+    const rows = await qb
       .groupBy("COALESCE(ei.product_id, ei.arrangement_id)")
       .addGroupBy(kindExpr)
       .orderBy("quantity", "DESC")
@@ -105,8 +116,15 @@ export class SalesInsightsService {
   }
 
   /** Insumos e buquês ativos sem NENHUMA venda no período (encalhados). */
-  private async idleItems(from: string, to: string): Promise<IdleItem[]> {
+  private async idleItems(
+    from: string,
+    to: string,
+    channel?: SalesChannel,
+  ): Promise<IdleItem[]> {
     const cid = this.tenant.getCompanyIdOrThrow();
+    // channel é enum validado (RETAIL/WHOLESALE) — seguro interpolar.
+    const chanS = channel ? `AND se.channel = '${channel}'` : "";
+    const chanL = channel ? `AND le.channel = '${channel}'` : "";
 
     const notSoldInPeriod = (idColumn: string) =>
       `NOT EXISTS (
@@ -114,12 +132,13 @@ export class SalesInsightsService {
         JOIN events se ON se.id = sei.event_id
         WHERE sei.${idColumn} = base.id
           AND se.status <> 'CANCELED'
+          ${chanS}
           AND se.date BETWEEN :from AND :to
       )`;
     const lastSold = (idColumn: string) =>
       `(SELECT TO_CHAR(MAX(le.date), 'YYYY-MM-DD') FROM event_items lei
         JOIN events le ON le.id = lei.event_id
-        WHERE lei.${idColumn} = base.id AND le.status <> 'CANCELED')`;
+        WHERE lei.${idColumn} = base.id AND le.status <> 'CANCELED' ${chanL})`;
 
     type IdleRow = {
       id: string;
@@ -138,16 +157,20 @@ export class SalesInsightsService {
       .andWhere(notSoldInPeriod("product_id"), { from, to })
       .getRawMany<IdleRow>();
 
-    const arrangements = await this.arrangements
-      .createQueryBuilder("base")
-      .select("base.id", "id")
-      .addSelect("base.name", "name")
-      .addSelect("'arrangement'", "kind")
-      .addSelect(lastSold("arrangement_id"), "lastSoldAt")
-      .where("base.company_id = :cid", { cid })
-      .andWhere("base.active = true")
-      .andWhere(notSoldInPeriod("arrangement_id"), { from, to })
-      .getRawMany<IdleRow>();
+    // No atacado só vendemos insumos — buquês não entram nos "encalhados".
+    const arrangements: IdleRow[] =
+      channel === "WHOLESALE"
+        ? []
+        : await this.arrangements
+            .createQueryBuilder("base")
+            .select("base.id", "id")
+            .addSelect("base.name", "name")
+            .addSelect("'arrangement'", "kind")
+            .addSelect(lastSold("arrangement_id"), "lastSoldAt")
+            .where("base.company_id = :cid", { cid })
+            .andWhere("base.active = true")
+            .andWhere(notSoldInPeriod("arrangement_id"), { from, to })
+            .getRawMany<IdleRow>();
 
     const merged: IdleItem[] = [...products, ...arrangements].map((r) => ({
       id: r.id,
@@ -167,8 +190,12 @@ export class SalesInsightsService {
   }
 
   /** Clientes que mais compraram no período (por receita). */
-  private async topCustomers(from: string, to: string): Promise<PartyRanking[]> {
-    const rows = await this.events
+  private async topCustomers(
+    from: string,
+    to: string,
+    channel?: SalesChannel,
+  ): Promise<PartyRanking[]> {
+    const qb = this.events
       .qb("event")
       .innerJoin("event.customer", "customer")
       .select("customer.id", "id")
@@ -176,7 +203,9 @@ export class SalesInsightsService {
       .addSelect("COALESCE(SUM(event.sold_value),0)", "total")
       .addSelect("COUNT(*)", "count")
       .andWhere("event.status <> 'CANCELED'")
-      .andWhere("event.date BETWEEN :from AND :to", { from, to })
+      .andWhere("event.date BETWEEN :from AND :to", { from, to });
+    if (channel) qb.andWhere("event.channel = :channel", { channel });
+    const rows = await qb
       .groupBy("customer.id")
       .addGroupBy("customer.name")
       .orderBy("total", "DESC")
@@ -192,15 +221,20 @@ export class SalesInsightsService {
   }
 
   /** Clientes com compra anterior ao período e nenhuma dentro dele (sumiram). */
-  private async atRiskCustomers(from: string): Promise<AtRiskCustomer[]> {
-    const rows = await this.events
+  private async atRiskCustomers(
+    from: string,
+    channel?: SalesChannel,
+  ): Promise<AtRiskCustomer[]> {
+    const qb = this.events
       .qb("event")
       .innerJoin("event.customer", "customer")
       .select("customer.id", "id")
       .addSelect("customer.name", "name")
       .addSelect("TO_CHAR(MAX(event.date), 'YYYY-MM-DD')", "lastPurchaseAt")
       .addSelect("COALESCE(SUM(event.sold_value),0)", "total")
-      .andWhere("event.status <> 'CANCELED'")
+      .andWhere("event.status <> 'CANCELED'");
+    if (channel) qb.andWhere("event.channel = :channel", { channel });
+    const rows = await qb
       .groupBy("customer.id")
       .addGroupBy("customer.name")
       .having("MAX(event.date) < :from", { from })

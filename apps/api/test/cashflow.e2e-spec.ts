@@ -80,6 +80,43 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
     expect(receivement.description).toContain("Recebimento");
   });
 
+  it("venda cancelada e venda excluída somem do caixa (recebimento não conta)", async () => {
+    const mkPaidSale = async (amount: number) => {
+      const sale = await http
+        .post("/api/events/quick")
+        .set(auth())
+        .send({ customerId, amount })
+        .expect(201);
+      await http
+        .post(`/api/finance/events/${sale.body.id}/payments`)
+        .set(auth())
+        .send({ amount, method: "PIX" })
+        .expect(201);
+      return sale.body.id;
+    };
+
+    const keep = await mkPaidSale(100);
+    const toCancel = await mkPaidSale(200);
+    const toDelete = await mkPaidSale(300);
+
+    let res = await http.get("/api/finance/cashflow").set(auth()).expect(200);
+    expect(res.body.entradas).toBe(600);
+
+    await http.post(`/api/events/${toCancel}/cancel`).set(auth()).expect(200);
+    await http.delete(`/api/events/${toDelete}`).set(auth()).expect(204);
+
+    res = await http.get("/api/finance/cashflow").set(auth()).expect(200);
+    expect(res.body.entradas).toBe(100); // só a venda mantida
+    const ids = res.body.movements.map((m: { sourceId: string | null }) => m.sourceId);
+    expect(ids).toContain(keep);
+    expect(ids).not.toContain(toCancel);
+    expect(ids).not.toContain(toDelete);
+
+    // Some também do "recebido no mês" do resumo financeiro.
+    const summary = await http.get("/api/finance/summary").set(auth()).expect(200);
+    expect(summary.body.receivedThisMonth).toBe(100);
+  });
+
   it("agrega entradas/saídas/saldo por mês no ano", async () => {
     const year = d.getFullYear();
 

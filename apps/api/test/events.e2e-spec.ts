@@ -221,6 +221,46 @@ describe("Eventos + conversão (e2e)", () => {
     expect(orders.body.data[0].title).toBe("Buquê de aniversário");
   });
 
+  it("filtra por entrega: delivered=true só DONE; false exclui entregues e cancelados", async () => {
+    const done = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 50, title: "Entregue", delivered: true })
+      .expect(201);
+    await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 60, title: "A entregar" })
+      .expect(201);
+    const canceled = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 70, title: "Cancelada" })
+      .expect(201);
+    await http
+      .post(`/api/events/${canceled.body.id}/cancel`)
+      .set(bearer(token))
+      .expect(200);
+
+    const entregues = await http
+      .get("/api/events?delivered=true")
+      .set(bearer(token))
+      .expect(200);
+    expect(entregues.body.data.map((e: { title: string }) => e.title)).toEqual([
+      "Entregue",
+    ]);
+    expect(entregues.body.data[0].id).toBe(done.body.id);
+
+    const aEntregar = await http
+      .get("/api/events?delivered=false")
+      .set(bearer(token))
+      .expect(200);
+    const titles = aEntregar.body.data.map((e: { title: string }) => e.title);
+    expect(titles).toContain("A entregar");
+    expect(titles).not.toContain("Entregue");
+    expect(titles).not.toContain("Cancelada");
+  });
+
   it("flag 'já entregue' nasce DONE; sem a flag nasce CONFIRMED", async () => {
     const entregue = await http
       .post("/api/events/quick")

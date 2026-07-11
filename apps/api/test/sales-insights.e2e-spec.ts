@@ -76,6 +76,51 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     expect(atRisk.total).toBe(300);
   });
 
+  it("insights filtram por canal (atacado vê só vendas do atacado)", async () => {
+    const cat = await (
+      await http.post("/api/categories").set(auth()).send({ name: "Rosas" }).expect(201)
+    ).body;
+    const mk = async (name: string) =>
+      (
+        await http
+          .post("/api/products")
+          .set(auth())
+          .send({ categoryId: cat.id, name, unit: "MACO", defaultSalePrice: 10 })
+          .expect(201)
+      ).body.id;
+    const atacadoProd = await mk("Rosa Atacado");
+    const varejoProd = await mk("Rosa Varejo");
+
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", items: [{ productId: atacadoProd, quantity: 5, unitSalePrice: 8 }] })
+      .expect(201);
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "RETAIL", items: [{ productId: varejoProd, quantity: 3, unitSalePrice: 12 }] })
+      .expect(201);
+
+    const wholesale = await http
+      .get("/api/events/insights")
+      .query({ channel: "WHOLESALE" })
+      .set(auth())
+      .expect(200);
+    const wsIds = wholesale.body.topItems.map((i: { id: string }) => i.id);
+    expect(wsIds).toContain(atacadoProd);
+    expect(wsIds).not.toContain(varejoProd);
+
+    const retail = await http
+      .get("/api/events/insights")
+      .query({ channel: "RETAIL" })
+      .set(auth())
+      .expect(200);
+    const rtIds = retail.body.topItems.map((i: { id: string }) => i.id);
+    expect(rtIds).toContain(varejoProd);
+    expect(rtIds).not.toContain(atacadoProd);
+  });
+
   it("filtra vendas por situação de pagamento (paga vs pendente)", async () => {
     // Uma venda quitada (recebe o total) e uma a prazo (sem recebimento).
     const sale = await http

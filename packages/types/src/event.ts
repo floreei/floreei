@@ -137,10 +137,23 @@ export const eventQuerySchema = paginationQuerySchema.extend({
   status: eventStatusSchema.optional(),
   customerId: idSchema.optional(),
   paymentStatus: paymentStatusFilterSchema.optional(),
+  /** true ⇒ só entregues (DONE); false ⇒ só "a entregar" (CONFIRMED/IN_PROGRESS). */
+  delivered: z.preprocess(
+    (v) => (v === "true" ? true : v === "false" ? false : v),
+    z.boolean().optional(),
+  ),
   from: dateString.optional(),
   to: dateString.optional(),
 });
 export type EventQuery = z.infer<typeof eventQuerySchema>;
+
+/** Filtro dos insights de venda (período + canal opcional). */
+export const insightsQuerySchema = z.object({
+  from: dateString.optional(),
+  to: dateString.optional(),
+  channel: salesChannelSchema.optional(),
+});
+export type InsightsQuery = z.infer<typeof insightsQuerySchema>;
 
 /** Item vendido numa venda (insumo avulso ou buquê). */
 export interface EventItem {

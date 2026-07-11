@@ -31,6 +31,18 @@ export function todayLocalISO(): string {
   return local.toISOString().slice(0, 10);
 }
 
+/**
+ * Intervalo do mês atual (1º dia → hoje) no formato "AAAA-MM-DD". Casa com a
+ * preset "Este mês" de `sales-filters.tsx` para ela ficar marcada por padrão.
+ */
+export function currentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const y = now.getFullYear();
+  const m = pad(now.getMonth() + 1);
+  return { from: `${y}-${m}-01`, to: `${y}-${m}-${pad(now.getDate())}` };
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);

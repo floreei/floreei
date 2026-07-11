@@ -345,39 +345,25 @@ export function WholesaleSaleDialog({
                 cartItems.map((item) => {
                   const id = item.sellable.id;
                   return (
-                    <div key={id} className="space-y-2 rounded-md bg-background p-2">
-                      <div className="flex items-center gap-2">
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    <div
+                      key={id}
+                      className="space-y-2.5 rounded-lg border border-border/60 bg-background p-3"
+                    >
+                      {/* Nome em linha própria (sem cortar) + remover */}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-medium leading-snug">
                           {item.sellable.name}
                         </span>
                         <button
                           type="button"
-                          aria-label="Menos"
-                          className="flex h-9 w-9 items-center justify-center rounded-md border border-border sm:h-7 sm:w-7"
-                          onClick={() => changeQty(id, -1)}
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="w-6 text-center text-sm tabular-nums">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Mais"
-                          className="flex h-9 w-9 items-center justify-center rounded-md border border-border sm:h-7 sm:w-7"
-                          onClick={() => changeQty(id, 1)}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
                           aria-label="Remover"
-                          className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-destructive sm:h-7 sm:w-7"
+                          className="-mr-1 -mt-1 shrink-0 p-1 text-muted-foreground hover:text-destructive"
                           onClick={() => changeQty(id, -item.quantity)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
+
                       {hasUnitChoice(item.sellable) ? (
                         <UnitToggle
                           purchaseUnit={item.sellable.purchaseUnit as ProductUnit}
@@ -386,19 +372,49 @@ export function WholesaleSaleDialog({
                           onChange={(u) => changeSaleUnit(id, u)}
                         />
                       ) : null}
+
+                      {/* Quantidade à esquerda, total da linha à direita */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label="Menos"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
+                            onClick={() => changeQty(id, -1)}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-medium tabular-nums">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Mais"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
+                            onClick={() => changeQty(id, 1)}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <span className="text-base font-semibold tabular-nums">
+                          {formatCurrency(round(item.quantity * item.price))}
+                        </span>
+                      </div>
+
+                      {/* Preço unitário editável em linha própria */}
                       <div className="flex items-center gap-2">
-                        <Label htmlFor={`price-${id}`} className="text-xs text-muted-foreground">
+                        <Label
+                          htmlFor={`price-${id}`}
+                          className="shrink-0 text-xs text-muted-foreground"
+                        >
                           Preço{item.saleUnit ? `/${unitLabels[item.saleUnit]}` : ""}
                         </Label>
                         <CurrencyInput
                           id={`price-${id}`}
-                          className="h-10 min-w-0 sm:h-8"
+                          className="h-9"
                           value={item.price}
                           onChange={(v) => setPrice(id, v)}
                         />
-                        <span className="shrink-0 text-sm font-semibold tabular-nums">
-                          {formatCurrency(round(item.quantity * item.price))}
-                        </span>
                       </div>
                     </div>
                   );

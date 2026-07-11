@@ -15,7 +15,7 @@ import {
   editSaleItemsSchema,
   quickSaleSchema,
 } from "@sistema-flores/types";
-import { reportQuerySchema } from "@sistema-flores/types";
+import { insightsQuerySchema } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { RequiresFeature } from "../../../common/auth/feature.guard";
 import { Roles } from "../../../common/auth/roles.decorator";
@@ -32,7 +32,7 @@ import {
 class AttachmentInputDto extends createZodDto(attachmentInputSchema) {}
 class QuickSaleDto extends createZodDto(quickSaleSchema) {}
 class EditSaleItemsDto extends createZodDto(editSaleItemsSchema) {}
-class InsightsQueryDto extends createZodDto(reportQuerySchema) {}
+class InsightsQueryDto extends createZodDto(insightsQuerySchema) {}
 
 @Controller("events")
 export class EventsController {
@@ -50,7 +50,7 @@ export class EventsController {
   @Get("insights")
   @RequiresFeature("SALES")
   getInsights(@Query() query: InsightsQueryDto) {
-    return this.insights.generate(query.from, query.to);
+    return this.insights.generate(query.from, query.to, query.channel);
   }
 
   @Get(":id")

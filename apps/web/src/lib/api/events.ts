@@ -9,6 +9,7 @@ import type {
   EventUpdate,
   Paginated,
   QuickSaleInput,
+  SalesChannel,
   SalesInsights,
 } from "@sistema-flores/types";
 import {
@@ -33,6 +34,7 @@ export function useEvents(query: Partial<EventQuery> = {}) {
         status: query.status,
         customerId: query.customerId,
         paymentStatus: query.paymentStatus,
+        delivered: query.delivered,
         from: query.from,
         to: query.to,
       }),
@@ -40,13 +42,18 @@ export function useEvents(query: Partial<EventQuery> = {}) {
 }
 
 /** Insights práticos da tela de Vendas (mais/parados, top/em risco) no período. */
-export function useSalesInsights(from?: string, to?: string) {
+export function useSalesInsights(
+  from?: string,
+  to?: string,
+  channel?: SalesChannel,
+) {
   return useQuery({
-    queryKey: [KEY, "insights", from ?? "", to ?? ""],
+    queryKey: [KEY, "insights", from ?? "", to ?? "", channel ?? ""],
     queryFn: () =>
       api.get<SalesInsights>("/events/insights", {
         from: from || undefined,
         to: to || undefined,
+        channel,
       }),
     staleTime: 60_000,
   });

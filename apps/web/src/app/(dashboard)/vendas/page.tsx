@@ -4,6 +4,7 @@ import type { EventType, PaymentStatusFilter } from "@sistema-flores/types";
 import { BarChart3, CalendarHeart, ChevronDown, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { DeliveryToggle } from "@/components/events/delivery-toggle";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { useEvents } from "@/lib/api/events";
 import { useDebounce } from "@/lib/use-debounce";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, currentMonthRange, formatCurrency, formatDate } from "@/lib/utils";
 
 const filters: Array<{ label: string; value?: EventType }> = [
   { label: "Todas" },
@@ -44,12 +45,20 @@ const paymentFilters: Array<{ label: string; value?: PaymentStatusFilter }> = [
   { label: "Vencidas", value: "overdue" },
 ];
 
+const deliveryFilters: Array<{ label: string; value?: boolean }> = [
+  { label: "Entrega: todas" },
+  { label: "Entregues", value: true },
+  { label: "A entregar", value: false },
+];
+
 export default function EventsPage() {
   const [type, setType] = useState<EventType | undefined>();
   const [payment, setPayment] = useState<PaymentStatusFilter | undefined>();
+  const [delivered, setDelivered] = useState<boolean | undefined>();
   const [search, setSearch] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const initialRange = currentMonthRange();
+  const [from, setFrom] = useState(initialRange.from);
+  const [to, setTo] = useState(initialRange.to);
   const [page, setPage] = useState(1);
   const [showInsights, setShowInsights] = useState(false);
   const debouncedSearch = useDebounce(search);
@@ -59,6 +68,7 @@ export default function EventsPage() {
     type,
     channel: "RETAIL",
     paymentStatus: payment,
+    delivered,
     search: debouncedSearch || undefined,
     from: from || undefined,
     to: to || undefined,
@@ -73,6 +83,10 @@ export default function EventsPage() {
   };
   const changePayment = (value: PaymentStatusFilter | undefined) => {
     setPayment(value);
+    setPage(1);
+  };
+  const changeDelivered = (value: boolean | undefined) => {
+    setDelivered(value);
     setPage(1);
   };
   const changeSearch = (value: string) => {
@@ -138,6 +152,22 @@ export default function EventsPage() {
             </button>
           ))}
         </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
+          {deliveryFilters.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => changeDelivered(f.value)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
+                delivered === f.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>
@@ -157,7 +187,7 @@ export default function EventsPage() {
         </button>
         {showInsights ? (
           <div className="mt-4">
-            <SalesInsightsPanel from={from} to={to} />
+            <SalesInsightsPanel from={from} to={to} channel="RETAIL" />
           </div>
         ) : null}
       </div>
@@ -213,6 +243,7 @@ export default function EventsPage() {
                   <TableHead className="hidden lg:table-cell">Tipo</TableHead>
                   <TableHead className="hidden md:table-cell">Data</TableHead>
                   <TableHead>Pagamento</TableHead>
+                  <TableHead className="hidden md:table-cell">Entrega</TableHead>
                   <TableHead className="text-right">Vendido</TableHead>
                   <TableHead className="hidden text-right lg:table-cell">Saldo</TableHead>
                   <TableHead className="w-32 text-right" />
@@ -250,6 +281,12 @@ export default function EventsPage() {
                         />
                       )}
                     </TableCell>
+                    <TableCell
+                      className="hidden md:table-cell"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DeliveryToggle id={event.id} status={event.status} />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
                       {formatCurrency(event.soldValue)}
                     </TableCell>
@@ -280,7 +317,7 @@ export default function EventsPage() {
         </>
       ) : (
         <Card>
-          {debouncedSearch || from || to || type ? (
+          {debouncedSearch || type || payment || delivered !== undefined ? (
             <EmptyState
               className="border-0"
               icon={<CalendarHeart />}

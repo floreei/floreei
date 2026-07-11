@@ -47,6 +47,11 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
       qb.andWhere("event.received_value < event.sold_value");
       qb.andWhere("event.date < CURRENT_DATE");
     }
+    if (query.delivered === true) {
+      qb.andWhere("event.status = 'DONE'");
+    } else if (query.delivered === false) {
+      qb.andWhere("event.status IN ('CONFIRMED', 'IN_PROGRESS')");
+    }
     if (query.from) {
       qb.andWhere("event.date >= :from", { from: query.from });
     }

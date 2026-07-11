@@ -4,6 +4,7 @@ import type {
   AtRiskCustomer,
   IdleItem,
   PartyRanking,
+  SalesChannel,
   SoldItemRanking,
 } from "@sistema-flores/types";
 import { Flower, Package, TrendingDown, TrendingUp, Users } from "lucide-react";
@@ -33,9 +34,17 @@ function customerRows(rows: PartyRanking[]): RankRow[] {
   }));
 }
 
-/** Insights práticos da tela de Vendas, respeitando o período filtrado. */
-export function SalesInsightsPanel({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useSalesInsights(from, to);
+/** Insights práticos da tela de Vendas, respeitando o período e o canal. */
+export function SalesInsightsPanel({
+  from,
+  to,
+  channel,
+}: {
+  from: string;
+  to: string;
+  channel?: SalesChannel;
+}) {
+  const { data, isLoading } = useSalesInsights(from, to, channel);
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
