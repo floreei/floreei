@@ -44,8 +44,14 @@ export const navGroups: NavGroup[] = [
     label: "Dia a dia",
     items: [
       { label: "Início", href: "/inicio", icon: Home },
-      { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
       { label: "Clientes", href: "/clientes", icon: Users },
+    ],
+  },
+  {
+    // Tudo que é dinheiro num lugar só — o que o florista mais consulta no dia.
+    label: "Financeiro",
+    items: [
+      { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
       { label: "Financeiro", href: "/financeiro", icon: Wallet, feature: "FINANCE" },
       { label: "Despesas", href: "/despesas", icon: Receipt, feature: "FINANCE" },
     ],

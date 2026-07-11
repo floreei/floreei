@@ -25,6 +25,12 @@ test("menu: ordem nova, filtro sem 'Vencidas', e nav segue o foco", async ({
   // Orçamentos migrou para o grupo Varejo.
   await expect(aside.getByRole("link", { name: "Orçamentos" })).toBeVisible();
 
+  // Dinheiro num grupo próprio "Financeiro" (Caixa + Financeiro + Despesas);
+  // "Dia a dia" fica só com Início + Clientes.
+  await expect(aside.getByText("Financeiro", { exact: true })).toHaveCount(2); // grupo + item
+  await expect(aside.getByRole("link", { name: "Caixa" })).toBeVisible();
+  await expect(aside.getByRole("link", { name: "Despesas" })).toBeVisible();
+
   // Filtro de pagamento sem "Vencidas" (varejo e atacado).
   await page.goto("/vendas");
   await expect(page.getByRole("button", { name: "Pendentes" })).toBeVisible();
