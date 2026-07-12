@@ -4,6 +4,7 @@ import type { EventType, PaymentStatusFilter } from "@sistema-flores/types";
 import { BarChart3, CalendarHeart, ChevronDown, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
@@ -306,9 +307,15 @@ export default function EventsPage() {
                       className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button asChild variant="outline" size="sm" className="h-8">
-                        <Link href={`/vendas/${event.id}`}>Ver detalhes</Link>
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {event.status !== "CANCELED" &&
+                        event.soldValue - event.receivedValue > 0.005 ? (
+                          <CobrancaButton eventId={event.id} />
+                        ) : null}
+                        <Button asChild variant="outline" size="sm" className="h-8">
+                          <Link href={`/vendas/${event.id}`}>Ver detalhes</Link>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

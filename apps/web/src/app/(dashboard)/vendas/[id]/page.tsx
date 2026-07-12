@@ -202,6 +202,9 @@ export default function EventDetailPage() {
             {event.deliveryDate ? (
               <Detail label="Entrega" value={formatDate(event.deliveryDate)} />
             ) : null}
+            {event.dueDate ? (
+              <Detail label="Vencimento" value={formatDate(event.dueDate)} />
+            ) : null}
             <Detail
               label="Local"
               value={event.location ?? "—"}

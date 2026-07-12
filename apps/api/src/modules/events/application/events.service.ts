@@ -179,6 +179,7 @@ export class EventsService {
       title: input.title?.trim() || defaultTitle,
       date,
       deliveryDate: input.deliveryDate ?? null,
+      dueDate: input.dueDate ?? null,
       status: input.delivered ? "DONE" : "CONFIRMED",
       soldValue,
       cost,

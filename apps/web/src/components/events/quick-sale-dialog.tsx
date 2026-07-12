@@ -89,6 +89,7 @@ export function QuickSaleDialog({
   const [delivered, setDelivered] = useState(true);
   const [saleDate, setSaleDate] = useState(todayLocalISO);
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
 
@@ -103,6 +104,7 @@ export function QuickSaleDialog({
     setDelivered(true);
     setSaleDate(todayLocalISO());
     setDeliveryDate("");
+    setDueDate("");
   };
 
   const sellables = useMemo<Sellable[]>(
@@ -176,6 +178,8 @@ export function QuickSaleDialog({
       const dates = {
         date: saleDate || undefined,
         deliveryDate: deliveryDate || undefined,
+        // Vencimento só faz sentido para venda a prazo — referência da cobrança.
+        dueDate: !paid && dueDate ? dueDate : undefined,
         delivered,
       };
       const input =
@@ -513,6 +517,20 @@ export function QuickSaleDialog({
             </p>
           </div>
         </div>
+
+        {!paid ? (
+          <Field label="Data de vencimento (opcional)" htmlFor="qs-due">
+            <Input
+              id="qs-due"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Referência da régua de cobrança. Sem data, usa a data da venda.
+            </p>
+          </Field>
+        ) : null}
 
         {/* Rodapé sticky COMPACTO (Total + ação numa linha só): o CTA fica
             sempre visível no celular sem esconder o conteúdo acima. Margem

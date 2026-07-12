@@ -37,6 +37,7 @@ export function toEvent(event: EventEntity): Event {
     title: event.title,
     date: event.date,
     deliveryDate: event.deliveryDate ?? null,
+    dueDate: event.dueDate ?? null,
     location: event.location,
     status: event.status,
     soldValue: event.soldValue,

@@ -27,6 +27,8 @@ export const eventInputSchema = z.object({
   customerId: idSchema.nullable().optional(),
   title: z.string().trim().min(2, "Informe um título").max(180),
   date: dateString,
+  /** Vencimento do saldo a receber — referência da régua de cobrança. */
+  dueDate: dateString.optional(),
   location: z
     .string()
     .trim()
@@ -79,6 +81,8 @@ export const quickSaleSchema = z
     date: dateString.optional(),
     /** Data de entrega (opcional) — pode ser passada (pedido já entregue) ou futura. */
     deliveryDate: dateString.optional(),
+    /** Vencimento do saldo a receber (venda a prazo) — referência da cobrança. */
+    dueDate: dateString.optional(),
     /** Marca a venda como já entregue (status DONE) em vez de "A entregar". */
     delivered: z.boolean().optional(),
     items: z.array(quickSaleItemSchema).optional(),
@@ -180,6 +184,8 @@ export interface Event {
   date: string;
   /** Data de entrega (opcional) — null quando não informada. */
   deliveryDate: string | null;
+  /** Vencimento do saldo (venda a prazo) — referência da cobrança. */
+  dueDate: string | null;
   location: string | null;
   status: EventStatus;
   soldValue: number;

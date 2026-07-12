@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -44,6 +46,12 @@ export class DunningController {
   @RequiresFeature("FINANCE")
   log() {
     return this.dunning.history(this.tenant.getCompanyIdOrThrow());
+  }
+
+  /** Monta a cobrança de uma venda para envio manual (abrir no WhatsApp). */
+  @Post("send/:eventId")
+  manualCobranca(@Param("eventId", ParseUUIDPipe) eventId: string) {
+    return this.dunning.buildManualCobranca(eventId);
   }
 
   /** Disparo diário da régua (Cloud Scheduler). Rota pública com token. */

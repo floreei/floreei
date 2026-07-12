@@ -100,6 +100,63 @@ describe("Régua de cobrança (e2e)", () => {
     expect(run2.body.processed).toBe(0);
   });
 
+  it("usa dueDate como referência da régua (não a data da venda)", async () => {
+    const cust = await http
+      .post("/api/customers")
+      .set(bearer(token))
+      .send({ name: "Bia", whatsapp: "11977776666" })
+      .expect(201);
+    // Vendida há 10 dias, mas vence HOJE → passo 0 deve disparar hoje.
+    const past = new Date();
+    past.setDate(past.getDate() - 10);
+    const pastISO = past.toISOString().slice(0, 10);
+    await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 200, customerId: cust.body.id, date: pastISO, dueDate: todayLocal() })
+      .expect(201);
+    await http
+      .patch("/api/dunning/settings")
+      .set(bearer(token))
+      .send({ enabled: true, steps: [{ offsetDays: 0, enabled: true }] })
+      .expect(200);
+
+    const run = await http.post("/api/dunning/run").set(bearer(RUN_TOKEN)).expect(200);
+    expect(run.body.sent).toBe(1);
+  });
+
+  it("cobrança manual devolve telefone e mensagem da venda", async () => {
+    const cust = await http
+      .post("/api/customers")
+      .set(bearer(token))
+      .send({ name: "Carla", whatsapp: "11955554444" })
+      .expect(201);
+    const sale = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 90, customerId: cust.body.id })
+      .expect(201);
+
+    const res = await http
+      .post(`/api/dunning/send/${sale.body.id}`)
+      .set(bearer(token))
+      .expect(201);
+    expect(res.body.phone).toBe("5511955554444");
+    expect(res.body.message).toContain("Carla");
+    expect(res.body.message).toContain("90");
+
+    // Venda quitada → recusa.
+    await http
+      .post(`/api/finance/events/${sale.body.id}/payments`)
+      .set(bearer(token))
+      .send({ amount: 90, method: "PIX" })
+      .expect(201);
+    await http
+      .post(`/api/dunning/send/${sale.body.id}`)
+      .set(bearer(token))
+      .expect(400);
+  });
+
   it("bloqueia /dunning/run sem token", async () => {
     await http.post("/api/dunning/run").expect(401);
   });

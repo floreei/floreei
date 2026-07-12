@@ -1,16 +1,25 @@
-import { Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { DunningLogEntry } from "@sistema-flores/types";
+import type { CobrancaMessage, DunningLogEntry } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { todayISO } from "../../../common/date/today";
 import { roundMoney } from "../../../common/money/money";
+import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { EventEntity } from "../../events/infrastructure/event.entity";
 import { DunningLogEntity } from "../infrastructure/dunning-log.entity";
 import { DunningSettingsEntity } from "../infrastructure/dunning-settings.entity";
 import { buildDunningMessage } from "./dunning-message";
 import { DunningSender } from "./dunning-sender.service";
-import { toDunningSettings } from "./dunning-settings.service";
+import {
+  DunningSettingsService,
+  toDunningSettings,
+} from "./dunning-settings.service";
 
 /** Soma dias a uma data "AAAA-MM-DD" e devolve no mesmo formato (UTC-safe). */
 function addDays(iso: string, days: number): string {
@@ -24,6 +33,14 @@ function toPhone(raw: string | null): string | null {
   const digits = (raw ?? "").replace(/\D/g, "");
   if (digits.length < 10) return null;
   return digits.length <= 11 ? `55${digits}` : digits;
+}
+
+/** Dias de `a` até `b` (positivo se `b` é depois de `a`). */
+function daysBetween(a: string, b: string): number {
+  const ms =
+    Date.parse(`${b.slice(0, 10)}T00:00:00Z`) -
+    Date.parse(`${a.slice(0, 10)}T00:00:00Z`);
+  return Math.round(ms / 86_400_000);
 }
 
 interface Reminder {
@@ -49,7 +66,39 @@ export class DunningService {
     @InjectRepository(CompanyEntity)
     private readonly companies: Repository<CompanyEntity>,
     private readonly sender: DunningSender,
+    private readonly settingsService: DunningSettingsService,
+    private readonly tenant: TenantContextService,
   ) {}
+
+  /** Monta a cobrança de uma venda para envio MANUAL (abrir no WhatsApp). */
+  async buildManualCobranca(eventId: string): Promise<CobrancaMessage> {
+    const companyId = this.tenant.getCompanyIdOrThrow();
+    const event = await this.events.findOne({
+      where: { id: eventId, companyId },
+      relations: ["customer"],
+    });
+    if (!event) throw new NotFoundException("Venda não encontrada.");
+    const balance = roundMoney(event.soldValue - event.receivedValue);
+    if (balance <= 0) {
+      throw new BadRequestException("Esta venda já está quitada.");
+    }
+    const dueDate = (event.dueDate ?? event.date).slice(0, 10);
+    const company = await this.companies.findOne({ where: { id: companyId } });
+    const message = buildDunningMessage(
+      {
+        companyName: company?.name ?? "sua floricultura",
+        customerName: event.customer?.name ?? "cliente",
+        amount: balance,
+        dueDate,
+        offsetDays: daysBetween(dueDate, todayISO()),
+      },
+      await this.settingsService.get(),
+    );
+    return {
+      phone: toPhone(event.customer?.whatsapp ?? event.customer?.phone ?? null),
+      message,
+    };
+  }
 
   /** Roda a régua de todas as empresas com cobrança ligada. */
   async runAll(today = todayISO()): Promise<{ processed: number; sent: number }> {
@@ -119,7 +168,10 @@ export class DunningService {
       .createQueryBuilder("event")
       .innerJoin("event.customer", "customer")
       .select("event.id", "event_id")
-      .addSelect("TO_CHAR(event.date, 'YYYY-MM-DD')", "date")
+      .addSelect(
+        "TO_CHAR(COALESCE(event.due_date, event.date), 'YYYY-MM-DD')",
+        "date",
+      )
       .addSelect("event.soldValue", "sold")
       .addSelect("event.receivedValue", "received")
       .addSelect("customer.name", "customer_name")

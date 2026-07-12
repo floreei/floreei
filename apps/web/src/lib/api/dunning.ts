@@ -1,4 +1,5 @@
 import type {
+  CobrancaMessage,
   DunningLogEntry,
   DunningSettings,
   DunningSettingsInput,
@@ -28,5 +29,13 @@ export function useDunningLog() {
   return useQuery({
     queryKey: [KEY, "log"],
     queryFn: () => api.get<DunningLogEntry[]>("/dunning/log"),
+  });
+}
+
+/** Monta a cobrança de uma venda para envio manual (abrir no WhatsApp). */
+export function useSendCobranca() {
+  return useMutation({
+    mutationFn: (eventId: string) =>
+      api.post<CobrancaMessage>(`/dunning/send/${eventId}`),
   });
 }

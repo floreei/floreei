@@ -94,6 +94,7 @@ export function WholesaleSaleDialog({
   const [delivered, setDelivered] = useState(false);
   const [saleDate, setSaleDate] = useState(todayLocalISO);
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const [newProductOpen, setNewProductOpen] = useState(false);
@@ -106,6 +107,7 @@ export function WholesaleSaleDialog({
     setDelivered(false);
     setSaleDate(todayLocalISO());
     setDeliveryDate("");
+    setDueDate("");
   };
 
   // Só produtos marcados "aparece no atacado" e com preço de venda entram aqui.
@@ -206,6 +208,8 @@ export function WholesaleSaleDialog({
         channel: "WHOLESALE",
         date: saleDate || undefined,
         deliveryDate: deliveryDate || undefined,
+        // Vencimento só faz sentido para venda a prazo — referência da cobrança.
+        dueDate: !paid && dueDate ? dueDate : undefined,
         delivered,
         items: cartItems.map((i) => ({
           productId: i.sellable.id,
@@ -503,6 +507,20 @@ export function WholesaleSaleDialog({
             </p>
           </div>
         </div>
+
+        {!paid ? (
+          <Field label="Data de vencimento (opcional)" htmlFor="ws-due">
+            <Input
+              id="ws-due"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Referência da régua de cobrança. Sem data, usa a data da venda.
+            </p>
+          </Field>
+        ) : null}
 
         {/* sticky sem margem negativa no mesmo elemento — ver quick-sale-dialog.tsx */}
         <div data-kb-hide className="sticky bottom-0 z-10 max-sm:mt-auto">

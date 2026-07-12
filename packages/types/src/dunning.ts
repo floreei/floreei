@@ -50,6 +50,13 @@ export interface DunningSettings {
   extraLine: string | null;
 }
 
+/** Mensagem de cobrança pronta para envio manual (abrir no WhatsApp). */
+export interface CobrancaMessage {
+  /** Telefone do cliente (só dígitos, com DDI) ou null se não houver. */
+  phone: string | null;
+  message: string;
+}
+
 export type DunningStatus = "SENT" | "FAILED" | "SKIPPED";
 
 /** Um envio (ou tentativa) registrado, para dedupe e histórico. */
