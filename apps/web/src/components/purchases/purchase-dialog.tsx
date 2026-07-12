@@ -9,9 +9,10 @@ import {
 } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PackageCheck, Plus, Trash2, Truck } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { ProductDialog } from "@/components/catalog/product-dialog";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -106,6 +107,7 @@ export function PurchaseDialog({
   const { data: products } = useProducts({ pageSize: 200, onlyActive: true });
   const save = useSavePurchase(purchase?.id);
   const isEdit = Boolean(purchase);
+  const [newProductOpen, setNewProductOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(purchaseInputSchema),
@@ -117,7 +119,7 @@ export function PurchaseDialog({
     if (open) form.reset(initialValues(purchase));
   }, [open, purchase, form]);
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "items",
   });
@@ -143,13 +145,31 @@ export function PurchaseDialog({
     }
   };
 
+  // Produto cadastrado na hora: entra numa linha vazia (a inicial) ou numa nova.
+  const addProductRow = (product: Product) => {
+    const rows = form.getValues("items");
+    const row: ItemForm = {
+      productId: product.id,
+      description: product.name,
+      quantity: 1,
+      unit: product.purchaseUnit,
+      unitPrice: product.defaultPurchasePrice,
+    };
+    const emptyIndex = rows.findIndex((r) => !r.productId);
+    if (emptyIndex >= 0) {
+      update(emptyIndex, row);
+    } else {
+      append(row);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar compra" : "Nova compra"}</DialogTitle>
           <DialogDescription>
-            Escolha o fornecedor, liste os itens (insumos, para atualizar o
+            Escolha o fornecedor, liste os itens (produtos, para atualizar o
             estoque) — flores, materiais, doces, decorativos — a entrega e o valor.
           </DialogDescription>
         </DialogHeader>
@@ -203,9 +223,9 @@ export function PurchaseDialog({
           {/* Itens (flores) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Insumos</Label>
+              <Label>Produtos</Label>
               <span className="text-xs text-muted-foreground">
-                Ligue ao insumo para entrar no estoque
+                Ligue ao produto para entrar no estoque
               </span>
             </div>
             <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -237,7 +257,7 @@ export function PurchaseDialog({
                               className="h-9 flex-1"
                               data-testid="purchase-item-product"
                             >
-                              <SelectValue placeholder="Insumo" />
+                              <SelectValue placeholder="Produto" />
                             </SelectTrigger>
                             <SelectContent>
                               {products?.data.map((p) => (
@@ -259,11 +279,6 @@ export function PurchaseDialog({
                         <Trash2 className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </div>
-                    <Input
-                      className="h-9"
-                      placeholder="Ou descreva (não atualiza estoque)"
-                      {...form.register(`items.${index}.description`)}
-                    />
                     <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">Qtd.</Label>
@@ -321,15 +336,27 @@ export function PurchaseDialog({
                 );
               })}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ ...emptyItem })}
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar item
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ ...emptyItem })}
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar item
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-primary"
+                onClick={() => setNewProductOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Registrar novo produto
+              </Button>
+            </div>
           </div>
 
           {/* Entrega */}
@@ -430,6 +457,12 @@ export function PurchaseDialog({
             </Button>
           </DialogFooter>
         </form>
+
+        <ProductDialog
+          open={newProductOpen}
+          onOpenChange={setNewProductOpen}
+          onCreated={addProductRow}
+        />
       </DialogContent>
     </Dialog>
   );

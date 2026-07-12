@@ -36,18 +36,18 @@ interface GuideStep {
 
 const BASE: GuideStep = {
   icon: Sprout,
-  title: "A base: categorias e insumos",
-  text: "Tudo começa aqui. Crie categorias (Flores, Laços, Doces) e cadastre seus insumos — o que você compra e vende.",
-  example: 'Ex.: categoria "Rosas" → insumo "Rosa Vermelha", R$ 4 o maço.',
-  href: "/insumos",
-  cta: "Cadastrar insumos",
+  title: "A base: categorias e produtos",
+  text: "Tudo começa aqui. Crie categorias (Flores, Laços, Doces) e cadastre seus produtos — o que você compra e vende.",
+  example: 'Ex.: categoria "Rosas" → produto "Rosa Vermelha", R$ 4 o maço.',
+  href: "/produtos",
+  cta: "Cadastrar produtos",
 };
 
 const RETAIL: GuideStep[] = [
   {
     icon: Flower,
     title: "Monte seus buquês",
-    text: "Junte insumos numa ficha técnica. O custo vem dos insumos e o preço sai automático pela margem que você definir.",
+    text: "Junte produtos numa ficha técnica. O custo vem dos produtos e o preço sai automático pela margem que você definir.",
     example: 'Ex.: 12 rosas + papel + laço = "Buquê Encanto".',
     href: "/buques",
     cta: "Montar um buquê",
@@ -55,7 +55,7 @@ const RETAIL: GuideStep[] = [
   {
     icon: CalendarHeart,
     title: "Faça a venda direta",
-    text: "Venda o buquê (ou um insumo avulso) ao cliente e receba na hora ou fiado.",
+    text: "Venda o buquê (ou um produto avulso) ao cliente e receba na hora ou fiado.",
     example: 'Ex.: "Buquê Encanto — R$ 120" vira venda e entra no caixa.',
     href: "/vendas",
     cta: "Ir para Vendas",
@@ -66,7 +66,7 @@ const WHOLESALE: GuideStep[] = [
   {
     icon: Truck,
     title: "Compre do fornecedor",
-    text: "Cadastre o fornecedor e registre a compra. O estoque sobe e o custo dos insumos se atualiza sozinho.",
+    text: "Cadastre o fornecedor e registre a compra. O estoque sobe e o custo dos produtos se atualiza sozinho.",
     example: "Ex.: comprou 50 maços de rosas da Ceasa → estoque e custo prontos.",
     href: "/fornecedores",
     cta: "Cadastrar fornecedor",

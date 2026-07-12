@@ -3,7 +3,7 @@ import { firebaseIdToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
-test("buquê: seletor de insumo busca e agrupa por categoria (flor, laço, doce)", async ({
+test("buquê: seletor de produto busca e agrupa por categoria (flor, laço, doce)", async ({
   page,
 }) => {
   const stamp = Date.now();
@@ -45,14 +45,14 @@ test("buquê: seletor de insumo busca e agrupa por categoria (flor, laço, doce)
   await prod("Laço Cetim", lacos.id, 1.5);
   await prod("Bombom Trufado", doces.id, 3);
 
-  // Novo buquê → abre o seletor de insumo
+  // Novo buquê → abre o seletor de produto
   await page.goto("/buques");
   await page.getByRole("button", { name: "Novo buquê" }).first().click();
   await page.getByTestId("arrangement-item-product").first().click();
 
   // Busca + agrupamento por categoria (escopado ao popover do seletor —
   // a página de Buquês também tem chips de categoria com o mesmo texto)
-  await expect(page.getByPlaceholder("Buscar insumo…")).toBeVisible();
+  await expect(page.getByPlaceholder("Buscar produto…")).toBeVisible();
   await expect(
     page.getByLabel("Suggestions").getByText("Laços", { exact: true }),
   ).toBeVisible(); // heading do grupo
@@ -60,7 +60,7 @@ test("buquê: seletor de insumo busca e agrupa por categoria (flor, laço, doce)
   await expect(page.getByRole("option", { name: /Bombom Trufado/ })).toBeVisible();
 
   // Digitar filtra: só o bombom fica
-  await page.getByPlaceholder("Buscar insumo…").fill("Bombom");
+  await page.getByPlaceholder("Buscar produto…").fill("Bombom");
   await expect(page.getByRole("option", { name: /Laço Cetim/ })).toHaveCount(0);
   await page.getByRole("option", { name: /Bombom Trufado/ }).click();
 

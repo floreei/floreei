@@ -59,7 +59,7 @@ function MarginBadge({ purchase, sale }: { purchase: number; sale: number }) {
   return <Badge variant={variant}>{m}% margem</Badge>;
 }
 
-/** Miniatura do insumo: foto ou um marcador com a inicial/ícone. */
+/** Miniatura do produto: foto ou um marcador com a inicial/ícone. */
 function Thumb({ url, name }: { url: string | null; name: string }) {
   if (url) {
     return (
@@ -114,7 +114,7 @@ export default function CatalogPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Insumos"
+        title="Produtos"
         description="Tudo que você compra — flores, folhagens, papel, cola, decorativos. O custo vem da compra; a margem sai da diferença pro preço de venda."
       >
         <Button
@@ -134,14 +134,14 @@ export default function CatalogPage() {
           }}
         >
           <Plus className="h-4 w-4" />
-          Novo insumo
+          Novo produto
         </Button>
       </PageHeader>
 
       <SalesFilters
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar insumo…"
+        searchPlaceholder="Buscar produto…"
       />
 
       {/* Filtro por categoria — chips com contagem; a categoria ativa mostra
@@ -214,7 +214,7 @@ export default function CatalogPage() {
         </Card>
       ) : products && products.data.length > 0 ? (
         <Card className="overflow-hidden">
-          {/* Celular: cartões — toque edita o insumo */}
+          {/* Celular: cartões — toque edita o produto */}
           <div className="divide-y divide-border sm:hidden">
             {products.data.map((product) => (
               <ListCard
@@ -246,7 +246,7 @@ export default function CatalogPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Insumo</TableHead>
+                  <TableHead>Produto</TableHead>
                   <TableHead className="hidden lg:table-cell">Unidade</TableHead>
                   <TableHead className="text-right">Custo</TableHead>
                   <TableHead className="text-right">Venda</TableHead>
@@ -333,8 +333,8 @@ export default function CatalogPage() {
               title="Nada encontrado"
               description={
                 activeCategory
-                  ? `Nenhum insumo em "${activeCategory.name}" com esse filtro.`
-                  : "Nenhum insumo bate com essa busca."
+                  ? `Nenhum produto em "${activeCategory.name}" com esse filtro.`
+                  : "Nenhum produto bate com essa busca."
               }
             />
           ) : (
@@ -344,8 +344,8 @@ export default function CatalogPage() {
               title="Comece pela base"
               description={
                 categories?.length
-                  ? "Cadastre seu primeiro insumo — a flor ou material que você compra e vende. É a base dos buquês e das vendas."
-                  : "Tudo começa aqui. Crie uma categoria (ex.: Flores, Laços) e depois cadastre os insumos dentro dela."
+                  ? "Cadastre seu primeiro produto — a flor ou material que você compra e vende. É a base dos buquês e das vendas."
+                  : "Tudo começa aqui. Crie uma categoria (ex.: Flores, Laços) e depois cadastre os produtos dentro dela."
               }
               action={
                 categories?.length ? (
@@ -356,7 +356,7 @@ export default function CatalogPage() {
                     }}
                   >
                     <Plus className="h-4 w-4" />
-                    Novo insumo
+                    Novo produto
                   </Button>
                 ) : (
                   <Button
@@ -392,7 +392,7 @@ export default function CatalogPage() {
         open={Boolean(deletingCat)}
         onOpenChange={(o) => !o && setDeletingCat(null)}
         title="Excluir categoria"
-        description={`Excluir "${deletingCat?.name}"? Só é possível se não houver insumos nela.`}
+        description={`Excluir "${deletingCat?.name}"? Só é possível se não houver produtos nela.`}
         onConfirm={async () => {
           await deleteCategory.mutateAsync(deletingCat!.id);
           setSelected(undefined);
@@ -402,11 +402,11 @@ export default function CatalogPage() {
       <ConfirmDialog
         open={Boolean(deletingProd)}
         onOpenChange={(o) => !o && setDeletingProd(null)}
-        title="Excluir insumo"
+        title="Excluir produto"
         description={`Excluir "${deletingProd?.name}"?`}
         onConfirm={async () => {
           await deleteProduct.mutateAsync(deletingProd!.id);
-          toast.success("Insumo excluído.");
+          toast.success("Produto excluído.");
         }}
       />
     </div>

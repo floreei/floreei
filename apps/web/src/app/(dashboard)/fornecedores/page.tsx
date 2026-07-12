@@ -59,7 +59,7 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Fornecedores" description="De quem você compra flores e insumos.">
+      <PageHeader title="Fornecedores" description="De quem você compra flores e produtos.">
         <Button
           onClick={() => {
             setEditing(null);

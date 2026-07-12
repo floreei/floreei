@@ -4,7 +4,7 @@ const stamp = Date.now();
 const email = `ws_inline_${stamp}@flores.com`;
 const password = "Segredo123!";
 
-test("atacado: cadastra categoria e insumo sem sair da venda", async ({
+test("atacado: cadastra categoria e produto sem sair da venda", async ({
   page,
 }) => {
   await page.goto("/login");
@@ -20,14 +20,14 @@ test("atacado: cadastra categoria e insumo sem sair da venda", async ({
   await page.goto("/atacado");
   await page.getByRole("button", { name: "Nova venda no atacado" }).first().click();
 
-  // Estado vazio acionável (empresa nova, zero insumo).
+  // Estado vazio acionável (empresa nova, zero produto).
   await expect(
-    page.getByText("Você ainda não cadastrou nenhum insumo."),
+    page.getByText("Você ainda não cadastrou nenhum produto."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Cadastrar insumo" }).click();
+  await page.getByRole("button", { name: "Cadastrar produto" }).click();
 
-  // Zero categoria também: o próprio diálogo de insumo guia a criação.
-  const productDialog = page.getByRole("dialog", { name: "Novo insumo" });
+  // Zero categoria também: o próprio diálogo de produto guia a criação.
+  const productDialog = page.getByRole("dialog", { name: "Novo produto" });
   await expect(productDialog.getByText("Nenhuma categoria ainda")).toBeVisible();
   await productDialog.getByRole("button", { name: "Nova categoria" }).click();
 
@@ -43,18 +43,18 @@ test("atacado: cadastra categoria e insumo sem sair da venda", async ({
 
   await productDialog.locator("#p-name").fill("Rosa Vermelha WS");
 
-  // Preço de venda é obrigatório neste contexto (senão o insumo não aparece
+  // Preço de venda é obrigatório neste contexto (senão o produto não aparece
   // na lista do atacado) — confirma que o submit é bloqueado sem preço.
   await productDialog.getByRole("button", { name: "Salvar" }).click();
   await expect(
-    page.getByText("Preço obrigatório pra vender este insumo no atacado."),
+    page.getByText("Preço obrigatório pra vender este produto no atacado."),
   ).toBeVisible();
 
   await productDialog.locator("#p-sale").fill("2500");
   await productDialog.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText("Insumo salvo.")).toBeVisible();
+  await expect(page.getByText("Produto salvo.")).toBeVisible();
 
-  // Insumo recém-criado cai direto no carrinho, sem precisar procurar —
+  // Produto recém-criado cai direto no carrinho, sem precisar procurar —
   // some o placeholder do carrinho vazio e o botão de registrar libera.
   await expect(page.getByText("Toque num item para adicionar.")).toHaveCount(0);
   await expect(

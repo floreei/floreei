@@ -63,7 +63,7 @@ export function SupplierDialog({
           <DialogTitle>
             {supplier ? "Editar fornecedor" : "Novo fornecedor"}
           </DialogTitle>
-          <DialogDescription>De quem você compra flores e insumos.</DialogDescription>
+          <DialogDescription>De quem você compra flores e produtos.</DialogDescription>
         </DialogHeader>
         <form
           className="space-y-4"

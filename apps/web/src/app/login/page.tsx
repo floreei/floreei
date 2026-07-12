@@ -82,7 +82,7 @@ export default function LoginPage() {
             A floricultura inteira, num só lugar.
           </h2>
           <p className="max-w-md text-primary-foreground/80">
-            Tudo integrado, com poucos cliques. Insumos, estoque, compras e
+            Tudo integrado, com poucos cliques. Produtos, estoque, compras e
             despesas; buquês com custo e preço calculados; vendas, caixa e o
             resultado do mês.
           </p>

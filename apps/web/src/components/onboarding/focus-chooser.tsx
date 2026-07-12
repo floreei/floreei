@@ -22,7 +22,7 @@ const OPTIONS: Option[] = [
     focus: "WHOLESALE",
     icon: Boxes,
     title: "Revendo no atacado",
-    desc: "Vendo insumo em pacote a outros lojistas",
+    desc: "Vendo produto em pacote a outros lojistas",
   },
   {
     focus: "BOTH",

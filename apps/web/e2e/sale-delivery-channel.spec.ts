@@ -21,7 +21,7 @@ test("venda: flag 'já entregue' por canal + detalhe do atacado volta para /atac
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
   await page.waitForURL(/\/inicio/);
 
-  // Seed: insumo revendável + venda no atacado (via API).
+  // Seed: produto revendável + venda no atacado (via API).
   const token = await firebaseIdToken(page.request, email, password);
   const auth = { Authorization: `Bearer ${token}` };
   const cat = await (

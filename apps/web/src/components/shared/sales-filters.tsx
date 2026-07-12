@@ -23,7 +23,7 @@ function presets() {
 /**
  * Busca por nome + (opcional) filtro de período — reutilizado nas listas
  * (vendas, compras, pedidos da loja etc.). Páginas sem data útil (fornecedores,
- * buquês, insumos) passam só `search`/`onSearchChange` e o filtro de data some.
+ * buquês, produtos) passam só `search`/`onSearchChange` e o filtro de data some.
  */
 export function SalesFilters({
   search,

@@ -48,7 +48,7 @@ interface ProductDialogProps {
   product?: Product | null;
   defaultCategoryId?: string;
   onCreated?: (product: Product) => void;
-  /** Torna o preço de venda obrigatório (ex.: cadastro aberto de dentro da venda no atacado, que só lista insumos com preço definido). */
+  /** Torna o preço de venda obrigatório (ex.: cadastro aberto de dentro da venda no atacado, que só lista produtos com preço definido). */
   requireSalePrice?: boolean;
 }
 
@@ -125,7 +125,7 @@ export function ProductDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{product ? "Editar insumo" : "Novo insumo"}</DialogTitle>
+          <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
           <DialogDescription>
             Flores, folhagens, materiais (laços, papel, cola), doces ou itens
             decorativos — tudo que você compra para compor buquês e/ou vender.
@@ -136,13 +136,13 @@ export function ProductDialog({
           onSubmit={form.handleSubmit(async (values) => {
             if (requireSalePrice && !(values.defaultSalePrice > 0)) {
               form.setError("defaultSalePrice", {
-                message: "Preço obrigatório pra vender este insumo no atacado.",
+                message: "Preço obrigatório pra vender este produto no atacado.",
               });
               return;
             }
             try {
               const saved = await save.mutateAsync(values);
-              toast.success("Insumo salvo.");
+              toast.success("Produto salvo.");
               onCreated?.(saved);
               onOpenChange(false);
             } catch (error) {
@@ -159,7 +159,7 @@ export function ProductDialog({
           <Field
             label="Imagem do item"
             optional
-            hint="Aparece no catálogo e no seletor de insumo do buquê."
+            hint="Aparece no catálogo e no seletor de produto do buquê."
           >
             <Controller
               control={form.control}
@@ -324,8 +324,8 @@ export function ProductDialog({
                 salePrice > 0 && isPack
                   ? `= ${formatCurrency(salePerUnit)}/${unitLabel} ao vender por ${unitLabel}.`
                   : requireSalePrice
-                    ? "Sem preço, este insumo não aparece na lista da venda no atacado."
-                    : "Só se você revende este insumo. Se ele só entra em buquês (ex.: um urso), deixe zerado — o custo já vai no preço do buquê."
+                    ? "Sem preço, este produto não aparece na lista da venda no atacado."
+                    : "Só se você revende este produto. Se ele só entra em buquês (ex.: um urso), deixe zerado — o custo já vai no preço do buquê."
               }
             >
               <Controller
@@ -365,7 +365,7 @@ export function ProductDialog({
                     revenda em pacote a outros lojistas/floristas.
                   </p>
                   <p>
-                    Se desmarcar as duas, o insumo fica só como componente de
+                    Se desmarcar as duas, o produto fica só como componente de
                     buquê. Precisa ter{" "}
                     <strong className="text-foreground">preço de venda</strong>{" "}
                     para aparecer.

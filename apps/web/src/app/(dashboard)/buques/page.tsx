@@ -74,7 +74,7 @@ export default function ArrangementsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Buquês"
-        description="Composições feitas de insumos (ficha técnica) — o custo vem dos insumos e o lucro é calculado por buquê."
+        description="Composições feitas de produtos (ficha técnica) — o custo vem dos produtos e o lucro é calculado por buquê."
       >
         <Button
           onClick={() => {
@@ -144,7 +144,7 @@ export default function ArrangementsPage() {
                     setDialog(true);
                   }}
                   title={a.name}
-                  subtitle={`${a.items.length} insumo${a.items.length === 1 ? "" : "s"} · custo ${formatCurrency(a.cost)}`}
+                  subtitle={`${a.items.length} produto${a.items.length === 1 ? "" : "s"} · custo ${formatCurrency(a.cost)}`}
                   meta={formatCurrency(a.salePrice)}
                   metaSub={
                     <Badge variant={a.margin < 0 ? "destructive" : "success"}>
@@ -172,7 +172,7 @@ export default function ArrangementsPage() {
                   <TableCell className="font-medium">
                     {a.name}
                     <span className="ml-2 text-xs text-muted-foreground">
-                      {a.items.length} insumo{a.items.length === 1 ? "" : "s"}
+                      {a.items.length} produto{a.items.length === 1 ? "" : "s"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">
@@ -238,13 +238,13 @@ export default function ArrangementsPage() {
           <EmptyState
             className="border-0"
             icon={<Sprout />}
-            title="Primeiro, cadastre insumos"
-            description="Um buquê é feito de insumos (flores, folhagens, laços…). Cadastre seus insumos e volte aqui para montar o buquê."
+            title="Primeiro, cadastre produtos"
+            description="Um buquê é feito de produtos (flores, folhagens, laços…). Cadastre seus produtos e volte aqui para montar o buquê."
             action={
               <Button asChild>
-                <Link href="/insumos">
+                <Link href="/produtos">
                   <Plus className="h-4 w-4" />
-                  Cadastrar insumos
+                  Cadastrar produtos
                 </Link>
               </Button>
             }
@@ -254,7 +254,7 @@ export default function ArrangementsPage() {
             className="border-0"
             icon={<Flower />}
             title="Nenhum buquê"
-            description="Monte a ficha técnica com os seus insumos — o custo vem deles e o preço sai pela margem que você definir."
+            description="Monte a ficha técnica com os seus produtos — o custo vem deles e o preço sai pela margem que você definir."
             action={
               isAdmin ? (
                 <Button

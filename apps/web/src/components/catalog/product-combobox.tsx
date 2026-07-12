@@ -21,14 +21,14 @@ import { unitLabels } from "@/lib/labels";
 import { cn, formatCurrency } from "@/lib/utils";
 
 /**
- * Seletor de produto/insumo buscável e **agrupado por categoria**. Usa o mesmo
+ * Seletor de produto/produto buscável e **agrupado por categoria**. Usa o mesmo
  * `command.tsx` (cmdk) da busca global. Serve para flores, laços, doces,
  * decorativos — qualquer produto do catálogo entra num buquê.
  */
 export function ProductCombobox({
   value,
   onChange,
-  placeholder = "Insumo",
+  placeholder = "Produto",
   className,
   "data-testid": testId,
 }: {
@@ -82,9 +82,9 @@ export function ProductCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[260px]">
         <Command>
-          <CommandInput placeholder="Buscar insumo…" />
+          <CommandInput placeholder="Buscar produto…" />
           <CommandList>
-            <CommandEmpty>Nenhum insumo encontrado.</CommandEmpty>
+            <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
             {groups.map((g) => (
               <CommandGroup key={g.name} heading={g.name}>
                 {g.items.map((p) => (

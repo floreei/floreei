@@ -6,8 +6,11 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@sistema-flores/types"],
   async redirects() {
-    // "Catálogo" virou "Insumos" — mantém links antigos funcionando.
-    return [{ source: "/catalogo", destination: "/insumos", permanent: false }];
+    // "Catálogo" → "Insumos" → "Produtos": mantém links antigos funcionando.
+    return [
+      { source: "/catalogo", destination: "/produtos", permanent: false },
+      { source: "/insumos", destination: "/produtos", permanent: false },
+    ];
   },
 };
 

@@ -22,7 +22,7 @@ test("onboarding: passos personalizados por tipo de negócio + guia", async ({
   // Escolhe Varejo → passos de buquê/venda direta; nada de atacado.
   await page.getByRole("button", { name: /Vendo ao cliente/ }).click();
   await expect(page.getByText("Crie uma categoria")).toBeVisible();
-  await expect(page.getByText("Cadastre um insumo")).toBeVisible();
+  await expect(page.getByText("Cadastre um produto")).toBeVisible();
   await expect(page.getByText("Monte um buquê")).toBeVisible();
   await expect(page.getByText("Faça uma venda direta")).toBeVisible();
   await expect(page.getByText("Cadastre um fornecedor")).toHaveCount(0);
@@ -38,6 +38,6 @@ test("onboarding: passos personalizados por tipo de negócio + guia", async ({
 
   // O guia "Ajuda" abre já com o passo a passo na ordem certa (não é mais tour de áreas).
   await page.getByRole("button", { name: "Ajuda" }).click();
-  await expect(page.getByText("A base: categorias e insumos")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Cadastrar insumos/ })).toBeVisible();
+  await expect(page.getByText("A base: categorias e produtos")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Cadastrar produtos/ })).toBeVisible();
 });

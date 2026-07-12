@@ -60,7 +60,7 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Compras"
-        description="Comprar insumos dos fornecedores — dá entrada no estoque, atualiza o custo e controla o que ainda deve."
+        description="Comprar produtos dos fornecedores — dá entrada no estoque, atualiza o custo e controla o que ainda deve."
       >
         <Button
           onClick={() => {
@@ -212,7 +212,7 @@ export default function PurchasesPage() {
             className="border-0"
             icon={<ShoppingBasket />}
             title="Nenhuma compra"
-            description="Registre a compra do fornecedor: o estoque dos insumos sobe, o custo se atualiza e entra nas contas a pagar."
+            description="Registre a compra do fornecedor: o estoque dos produtos sobe, o custo se atualiza e entra nas contas a pagar."
             action={
               <Button
                 onClick={() => {

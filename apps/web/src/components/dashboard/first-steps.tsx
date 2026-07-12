@@ -24,14 +24,14 @@ const BASE: Step[] = [
   {
     key: "hasCategory",
     label: "Crie uma categoria",
-    hint: "Agrupa seus insumos (Flores, Laços…)",
-    href: "/insumos",
+    hint: "Agrupa seus produtos (Flores, Laços…)",
+    href: "/produtos",
   },
   {
     key: "hasProduct",
-    label: "Cadastre um insumo",
+    label: "Cadastre um produto",
     hint: "A flor/material que você compra e vende",
-    href: "/insumos",
+    href: "/produtos",
   },
 ];
 
@@ -54,7 +54,7 @@ const WHOLESALE: Step[] = [
   {
     key: "hasSupplier",
     label: "Cadastre um fornecedor",
-    hint: "De quem você compra insumos",
+    hint: "De quem você compra produtos",
     href: "/fornecedores",
   },
   {
@@ -87,7 +87,7 @@ function dismissedKey(companyId: string): string {
 
 /**
  * Checklist de primeiros passos no Início, na ordem de dependência do negócio
- * (categoria → insumo → [buquê/venda direta | fornecedor/compra/atacado]).
+ * (categoria → produto → [buquê/venda direta | fornecedor/compra/atacado]).
  * Personalizado pelo foco do lojista; some quando tudo é feito ou é dispensado.
  */
 export function FirstSteps() {

@@ -193,7 +193,7 @@ export default function PurchaseDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Flores / insumos</CardTitle>
+          <CardTitle>Flores / produtos</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border">

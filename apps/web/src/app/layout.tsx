@@ -23,7 +23,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Floreei — Gestão para floriculturas, floristas, atacado e eventos",
   description:
-    "ERP para floriculturas, floristas, atacado e decoração de eventos: insumos, estoque, buquês com custeio, compras, vendas, despesas e financeiro — tudo num só lugar.",
+    "ERP para floriculturas, floristas, atacado e decoração de eventos: produtos, estoque, buquês com custeio, compras, vendas, despesas e financeiro — tudo num só lugar.",
   manifest: "/manifest.webmanifest",
   // Instalado na tela inicial (PWA): título curto e tela cheia no iOS.
   appleWebApp: {

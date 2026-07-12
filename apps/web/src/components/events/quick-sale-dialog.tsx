@@ -37,7 +37,7 @@ const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 /**
- * Item vendável na venda direta: um buquê (arranjo) ou um insumo avulso marcado
+ * Item vendável na venda direta: um buquê (arranjo) ou um produto avulso marcado
  * "aparece na venda direta" (flag `showInRetail`).
  */
 interface Sellable {
@@ -114,7 +114,7 @@ export function QuickSaleDialog({
         price: a.salePrice,
         imageUrl: a.imageUrl,
       })),
-      // Insumos avulsos habilitados para a venda direta (precisam de preço).
+      // Produtos avulsos habilitados para a venda direta (precisam de preço).
       ...(products?.data ?? [])
         .filter((p) => p.showInRetail && p.defaultSalePrice > 0)
         .map((p) => ({
@@ -244,7 +244,7 @@ export function QuickSaleDialog({
         <DialogHeader>
           <DialogTitle className="text-xl">Venda direta</DialogTitle>
           <DialogDescription>
-            Toque nos buquês ou insumos, ou informe um valor. Depois escolha à
+            Toque nos buquês ou produtos, ou informe um valor. Depois escolha à
             vista ou fiado.
           </DialogDescription>
         </DialogHeader>

@@ -315,7 +315,7 @@ export default function EventDetailPage() {
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Cancelar venda"
-        description="A venda será marcada como cancelada e os insumos usados voltam ao estoque. Esta ação não pode ser desfeita."
+        description="A venda será marcada como cancelada e os produtos usados voltam ao estoque. Esta ação não pode ser desfeita."
         confirmLabel="Cancelar venda"
         onConfirm={async () => {
           await cancel.mutateAsync(event.id);

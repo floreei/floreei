@@ -120,7 +120,7 @@ export function EditSaleItemsDialog({
         name: a.name,
         price: a.salePrice,
       })),
-      // Só insumos vendidos avulso (preço > 0) — os "só buquê" ficam de fora.
+      // Só produtos vendidos avulso (preço > 0) — os "só buquê" ficam de fora.
       ...(products?.data ?? [])
         .filter((p) => p.defaultSalePrice > 0)
         .map((p) => ({

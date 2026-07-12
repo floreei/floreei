@@ -21,12 +21,12 @@ test("buquê: produzir N ao cadastrar baixa N× a ficha técnica do estoque", as
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
   await page.waitForURL(/\/inicio/);
 
-  // Insumo com custo por unidade-base
+  // Produto com custo por unidade-base
   const token = await firebaseIdToken(page.request, email, password);
   const auth = { Authorization: `Bearer ${token}` };
   const cat = await page.request.post(`${API}/categories`, {
     headers: auth,
-    data: { name: "Insumos" },
+    data: { name: "Produtos" },
   });
   const pid = await (
     await page.request.post(`${API}/products`, {

@@ -122,9 +122,9 @@ export function ArrangementDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar buquê" : "Novo buquê"}</DialogTitle>
           <DialogDescription>
-            Monte a ficha técnica com os insumos — flores, folhagens, laços,
+            Monte a ficha técnica com os produtos — flores, folhagens, laços,
             bombons, itens decorativos — e a quantidade de cada um. O custo vem
-            do custo atual de cada insumo.
+            do custo atual de cada produto.
           </DialogDescription>
         </DialogHeader>
 
@@ -215,15 +215,15 @@ export function ArrangementDialog({
               {pricingMode === "FIXED"
                 ? "Você define o preço de venda."
                 : pricingMode === "MARGIN_PCT"
-                  ? "Preço = custo + esse % sobre o custo. Ex.: 100% dobra o custo. Acompanha o custo dos insumos."
-                  : "O preço acompanha o custo dos insumos para manter o lucro."}
+                  ? "Preço = custo + esse % sobre o custo. Ex.: 100% dobra o custo. Acompanha o custo dos produtos."
+                  : "O preço acompanha o custo dos produtos para manter o lucro."}
             </p>
           </div>
 
           {/* Ficha técnica */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Ficha técnica (insumos)</Label>
+              <Label>Ficha técnica (produtos)</Label>
               {form.formState.errors.items?.message ? (
                 <span className="text-xs font-medium text-destructive">
                   {form.formState.errors.items.message}
@@ -267,7 +267,7 @@ export function ArrangementDialog({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      aria-label="Remover insumo"
+                      aria-label="Remover produto"
                       onClick={() => remove(index)}
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground" />
@@ -278,7 +278,7 @@ export function ArrangementDialog({
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => append({ ...emptyItem })}>
               <Plus className="h-4 w-4" />
-              Adicionar insumo
+              Adicionar produto
             </Button>
           </div>
 

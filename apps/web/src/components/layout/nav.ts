@@ -48,10 +48,10 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    // A base do negócio (o onboarding manda "comece pela base: insumos").
-    label: "Insumos e estoque",
+    // A base do negócio (o onboarding manda "comece pela base: produtos").
+    label: "Produtos e estoque",
     items: [
-      { label: "Insumos", href: "/insumos", icon: Sprout },
+      { label: "Produtos", href: "/produtos", icon: Sprout },
       {
         label: "Compras",
         href: "/compras",

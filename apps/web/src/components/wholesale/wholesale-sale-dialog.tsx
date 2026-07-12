@@ -43,7 +43,7 @@ import { formatCurrency, todayLocalISO } from "@/lib/utils";
 const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-/** Insumo revendido no atacado — mesmo catálogo de Insumos, sem buquês. */
+/** Produto revendido no atacado — mesmo catálogo de Produtos, sem buquês. */
 interface Sellable {
   id: string;
   name: string;
@@ -65,7 +65,7 @@ interface CartItem {
 }
 
 /**
- * Venda no atacado: revenda de insumo em pacote fechado (maço) para outro
+ * Venda no atacado: revenda de produto em pacote fechado (maço) para outro
  * lojista/florista. Mesmo mecanismo de unidade Maço↔Haste da venda direta
  * (`sale-units.ts`), mas por padrão já sugere a unidade de compra inteira —
  * é o fluxo natural de quem compra o maço e revende o maço.
@@ -108,7 +108,7 @@ export function WholesaleSaleDialog({
     setDeliveryDate("");
   };
 
-  // Só insumos marcados "aparece no atacado" e com preço de venda entram aqui.
+  // Só produtos marcados "aparece no atacado" e com preço de venda entram aqui.
   const sellables = useMemo<Sellable[]>(
     () =>
       (products?.data ?? [])
@@ -251,7 +251,7 @@ export function WholesaleSaleDialog({
         <DialogHeader>
           <DialogTitle className="text-xl">Venda no atacado</DialogTitle>
           <DialogDescription>
-            Revenda de insumo em pacote fechado (maço) ou fracionado, para
+            Revenda de produto em pacote fechado (maço) ou fracionado, para
             outro lojista/florista.
           </DialogDescription>
         </DialogHeader>
@@ -259,20 +259,20 @@ export function WholesaleSaleDialog({
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Insumo</Label>
+              <Label className="text-xs text-muted-foreground">Produto</Label>
               <button
                 type="button"
                 onClick={() => setNewProductOpen(true)}
                 className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Novo insumo
+                Novo produto
               </button>
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar insumo…"
+                placeholder="Buscar produto…"
                 className="h-11 lg:h-11 pl-9"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -311,8 +311,8 @@ export function WholesaleSaleDialog({
                   <div className="flex flex-col items-center gap-3 py-6 text-center">
                     <p className="text-sm text-muted-foreground">
                       {(products?.data.length ?? 0) > 0
-                        ? "Nenhum insumo marcado para o atacado com preço definido. Marque “Atacado” no cadastro do insumo."
-                        : "Você ainda não cadastrou nenhum insumo."}
+                        ? "Nenhum produto marcado para o atacado com preço definido. Marque “Atacado” no cadastro do produto."
+                        : "Você ainda não cadastrou nenhum produto."}
                     </p>
                     <Button
                       type="button"
@@ -320,7 +320,7 @@ export function WholesaleSaleDialog({
                       onClick={() => setNewProductOpen(true)}
                     >
                       <Plus className="h-4 w-4" />
-                      Cadastrar insumo
+                      Cadastrar produto
                     </Button>
                   </div>
                 ) : (

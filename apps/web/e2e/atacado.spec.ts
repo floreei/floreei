@@ -53,7 +53,7 @@ test("atacado: vive separado do varejo — nav, dialog dedicado, canal e listas"
   });
 
   // Venda rápida (varejo) só tem Buquês + Valor livre — a revenda migrou pro
-  // Atacado, então o insumo avulso não aparece mais aqui.
+  // Atacado, então o produto avulso não aparece mais aqui.
   await page.goto("/inicio");
   await page.getByRole("button", { name: "Nova venda" }).first().click();
   await expect(page.getByRole("button", { name: /Buquê Teste/ })).toBeVisible();

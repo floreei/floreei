@@ -61,7 +61,7 @@ export default function StockPage() {
     <div className="space-y-6">
       <PageHeader
         title="Estoque"
-        description="Quanto você tem de cada insumo. Baixa sozinho ao vender no atacado ou ao montar um buquê; avisa quando está acabando."
+        description="Quanto você tem de cada produto. Baixa sozinho ao vender no atacado ou ao montar um buquê; avisa quando está acabando."
       >
         <Button variant="outline" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" />
@@ -131,7 +131,7 @@ export default function StockPage() {
         <SalesFilters
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Buscar insumo…"
+          searchPlaceholder="Buscar produto…"
         >
           <div className="flex gap-1.5">
             {(
@@ -246,14 +246,14 @@ export default function StockPage() {
             className="border-0"
             icon={<Package />}
             title="Nada encontrado"
-            description="Nenhum insumo bate com esses filtros."
+            description="Nenhum produto bate com esses filtros."
           />
         ) : (
           <EmptyState
             className="border-0"
             icon={<Package />}
             title="Estoque vazio"
-            description="Registre compras de insumos (recebidas) para alimentar o estoque automaticamente."
+            description="Registre compras de produtos (recebidas) para alimentar o estoque automaticamente."
           />
         )}
       </Card>

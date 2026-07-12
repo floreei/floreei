@@ -6,7 +6,7 @@ const password = "Segredo123!";
 const categoryName = `Flores ${stamp}`;
 const productName = `Rosa NCM ${stamp}`;
 
-test("NCM: busca por texto no cadastro de insumo e persiste o código escolhido", async ({
+test("NCM: busca por texto no cadastro de produto e persiste o código escolhido", async ({
   page,
 }) => {
   await page.goto("/login");
@@ -19,13 +19,13 @@ test("NCM: busca por texto no cadastro de insumo e persiste o código escolhido"
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
   await expect(page).toHaveURL(/\/inicio/);
 
-  await page.goto("/insumos");
+  await page.goto("/produtos");
   await page.getByRole("button", { name: "Nova categoria" }).first().click();
   await page.getByLabel("Nome").fill(categoryName);
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText(categoryName)).toBeVisible();
 
-  await page.getByRole("button", { name: "Novo insumo" }).first().click();
+  await page.getByRole("button", { name: "Novo produto" }).first().click();
   await page.getByLabel("Nome").fill(productName);
   await page.getByTestId("product-category-select").click();
   await page.getByRole("option", { name: categoryName }).click();
@@ -42,7 +42,7 @@ test("NCM: busca por texto no cadastro de insumo e persiste o código escolhido"
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.locator("table").getByText(productName)).toBeVisible();
 
-  // Reabre o insumo salvo e confirma que o NCM persistiu.
+  // Reabre o produto salvo e confirma que o NCM persistiu.
   const row = page.locator("table tbody tr", { hasText: productName });
   await row.getByRole("button", { name: "Ações" }).click();
   await page.getByRole("menuitem", { name: "Editar" }).click();

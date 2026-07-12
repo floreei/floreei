@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth/auth-context";
  * Como o lojista vende — define o passo a passo do onboarding E quais canais
  * aparecem no menu lateral.
  * - RETAIL: venda direta ao consumidor (buquês).
- * - WHOLESALE: revenda de insumo a outros lojistas (atacado).
+ * - WHOLESALE: revenda de produto a outros lojistas (atacado).
  * - BOTH: os dois.
  */
 export type BusinessFocus = "RETAIL" | "WHOLESALE" | "BOTH";

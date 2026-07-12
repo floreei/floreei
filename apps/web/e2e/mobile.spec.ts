@@ -21,7 +21,7 @@ const listPages = [
   "/vendas",
   "/caixa",
   "/orcamentos",
-  "/insumos",
+  "/produtos",
 ];
 
 test.describe("responsividade mobile", () => {

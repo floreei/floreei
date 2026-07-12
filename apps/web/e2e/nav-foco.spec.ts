@@ -19,7 +19,7 @@ test("menu: ordem nova, filtro sem 'Vencidas', e nav segue o foco", async ({
   const aside = page.locator("aside");
 
   // Sem foco escolhido: mostra tudo, com os grupos renomeados/reordenados.
-  await expect(aside.getByText("Insumos e estoque", { exact: true })).toBeVisible();
+  await expect(aside.getByText("Produtos e estoque", { exact: true })).toBeVisible();
   await expect(aside.getByText("Varejo", { exact: true })).toBeVisible();
   await expect(aside.getByText("Atacado", { exact: true })).toBeVisible();
   // Orçamentos migrou para o grupo Varejo.

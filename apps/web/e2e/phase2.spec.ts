@@ -20,22 +20,22 @@ test("fase 2: monta buquê pela UI e vê custo/lucro ao vivo", async ({ page }) 
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
   await page.waitForURL(/\/inicio/);
 
-  // Semeia os insumos via API (com custo por unidade-base).
+  // Semeia os produtos via API (com custo por unidade-base).
   const token = await firebaseIdToken(page.request, email, password);
   const auth = { Authorization: `Bearer ${token}` };
   const cat = await page.request.post(`${API}/categories`, {
     headers: auth,
-    data: { name: "Insumos" },
+    data: { name: "Produtos" },
   });
   const categoryId = (await cat.json()).id;
-  const insumo = (name: string, unit: string, currentUnitCost: number) =>
+  const produto = (name: string, unit: string, currentUnitCost: number) =>
     page.request.post(`${API}/products`, {
       headers: auth,
       data: { name, categoryId, unit, currentUnitCost },
     });
-  await insumo("Hortênsia F2", "HASTE", 3);
-  await insumo("Rosa F2", "UNIDADE", 2.5);
-  await insumo("Fita F2", "METRO", 1.2);
+  await produto("Hortênsia F2", "HASTE", 3);
+  await produto("Rosa F2", "UNIDADE", 2.5);
+  await produto("Fita F2", "METRO", 1.2);
 
   // Monta o buquê pela UI (ficha técnica).
   await page.goto("/buques");
@@ -45,18 +45,18 @@ test("fase 2: monta buquê pela UI e vê custo/lucro ao vivo", async ({ page }) 
   // CurrencyInput acumula centavos: "10000" = R$ 100,00.
   await page.locator("#a-sale").fill("10000");
 
-  const pickInsumo = async (row: number, name: string) => {
+  const pickProduto = async (row: number, name: string) => {
     await page.getByTestId("arrangement-item-product").nth(row).click();
     await page.getByRole("option", { name: new RegExp(name) }).click();
   };
 
-  await pickInsumo(0, "Hortênsia F2");
+  await pickProduto(0, "Hortênsia F2");
   await page.getByLabel("Quantidade").nth(0).fill("1");
-  await page.getByRole("button", { name: "Adicionar insumo" }).click();
-  await pickInsumo(1, "Rosa F2");
+  await page.getByRole("button", { name: "Adicionar produto" }).click();
+  await pickProduto(1, "Rosa F2");
   await page.getByLabel("Quantidade").nth(1).fill("3");
-  await page.getByRole("button", { name: "Adicionar insumo" }).click();
-  await pickInsumo(2, "Fita F2");
+  await page.getByRole("button", { name: "Adicionar produto" }).click();
+  await pickProduto(2, "Fita F2");
   await page.getByLabel("Quantidade").nth(2).fill("1");
 
   // Custo ao vivo: 1×3 + 3×2,50 + 1×1,20 = 11,70.

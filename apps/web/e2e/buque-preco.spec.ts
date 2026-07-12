@@ -21,7 +21,7 @@ test("buquê: precifica por markup % (sobre o custo) com preço derivado ao vivo
   await page.getByRole("button", { name: "Criar conta gratuita" }).click();
   await page.waitForURL(/\/inicio/);
 
-  // Insumo com custo 60
+  // Produto com custo 60
   const token = await firebaseIdToken(page.request, email, password);
   const auth = { Authorization: `Bearer ${token}` };
   const cat = await page.request.post(`${API}/categories`, {
