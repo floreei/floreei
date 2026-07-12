@@ -8,6 +8,7 @@ export * from "./company";
 export * from "./customer";
 export * from "./dashboard";
 export * from "./dre";
+export * from "./dunning";
 export * from "./entitlements";
 export * from "./enums";
 export * from "./event";

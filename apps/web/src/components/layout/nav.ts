@@ -1,6 +1,7 @@
 import type { Feature, SalesChannel } from "@sistema-flores/types";
 import {
   BarChart3,
+  BellRing,
   Boxes,
   Building2,
   CalendarHeart,
@@ -102,6 +103,13 @@ export const navGroups: NavGroup[] = [
       { label: "Caixa", href: "/caixa", icon: Coins, feature: "SALES" },
       { label: "Financeiro", href: "/financeiro", icon: Wallet, feature: "FINANCE" },
       { label: "Despesas", href: "/despesas", icon: Receipt, feature: "FINANCE" },
+      {
+        label: "Cobrança",
+        href: "/cobranca",
+        icon: BellRing,
+        adminOnly: true,
+        feature: "FINANCE",
+      },
     ],
   },
   {

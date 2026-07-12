@@ -18,6 +18,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { EventsModule } from "./modules/events/events.module";
 import { ExpensesModule } from "./modules/expenses/expenses.module";
 import { FinanceModule } from "./modules/finance/finance.module";
+import { DunningModule } from "./modules/dunning/dunning.module";
 import { NcmModule } from "./modules/ncm/ncm.module";
 import { PlansModule } from "./modules/plans/plans.module";
 import { PlatformModule } from "./modules/platform/platform.module";
@@ -68,6 +69,7 @@ import { UsersModule } from "./modules/users/users.module";
     PlatformModule,
     StorefrontModule,
     NcmModule,
+    DunningModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
