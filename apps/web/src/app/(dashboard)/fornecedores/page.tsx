@@ -12,6 +12,7 @@ import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
 import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { SupplierDialog } from "@/components/suppliers/supplier-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,7 +45,14 @@ export default function SuppliersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const debounced = useDebounce(search);
-  const { data, isLoading } = useSuppliers({ search: debounced, page, pageSize: 20 });
+  const sortState = useTableSort(() => setPage(1));
+  const { data, isLoading } = useSuppliers({
+    search: debounced,
+    sort: sortState.sort,
+    order: sortState.order,
+    page,
+    pageSize: 20,
+  });
   const { data: ranking } = useSupplierRanking();
   const remove = useDeleteSupplier();
 
@@ -134,8 +142,8 @@ export default function SuppliersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead className="hidden lg:table-cell">Cidade</TableHead>
+                <SortableHead column="name" state={sortState}>Nome</SortableHead>
+                <SortableHead column="city" state={sortState} className="hidden lg:table-cell">Cidade</SortableHead>
                 <TableHead className="hidden md:table-cell">Contato</TableHead>
                 <TableHead className="text-right">Total comprado</TableHead>
                 <TableHead className="hidden text-right sm:table-cell">Compras</TableHead>

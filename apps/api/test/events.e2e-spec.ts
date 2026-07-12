@@ -261,6 +261,38 @@ describe("Eventos + conversão (e2e)", () => {
     expect(titles).not.toContain("Cancelada");
   });
 
+  it("título padrão por canal: 'Venda direta' (varejo) / 'Venda no atacado'", async () => {
+    const retail = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 50 })
+      .expect(201);
+    expect(retail.body.title).toBe("Venda direta");
+
+    const wholesale = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 60, channel: "WHOLESALE" })
+      .expect(201);
+    expect(wholesale.body.title).toBe("Venda no atacado");
+  });
+
+  it("ordena a lista por coluna (sort/order)", async () => {
+    for (const amount of [300, 100, 200]) {
+      await http
+        .post("/api/events/quick")
+        .set(bearer(token))
+        .send({ amount, title: `V${amount}` })
+        .expect(201);
+    }
+    const asc = await http
+      .get("/api/events?sort=sold&order=asc")
+      .set(bearer(token))
+      .expect(200);
+    const sold = asc.body.data.map((e: { soldValue: number }) => e.soldValue);
+    expect(sold).toEqual([...sold].sort((a, b) => a - b));
+  });
+
   it("flag 'já entregue' nasce DONE; sem a flag nasce CONFIRMED", async () => {
     const entregue = await http
       .post("/api/events/quick")

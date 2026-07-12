@@ -3,9 +3,14 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type { CustomerQuery, Paginated } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { paginate } from "../../../common/database/paginate";
+import { applySort } from "../../../common/database/sort";
 import { TenantScopedRepository } from "../../../common/database/tenant-scoped.repository";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CustomerEntity } from "./customer.entity";
+
+const SORT: Record<string, string> = {
+  name: "customer.name",
+};
 
 @Injectable()
 export class CustomerRepository extends TenantScopedRepository<CustomerEntity> {
@@ -18,7 +23,11 @@ export class CustomerRepository extends TenantScopedRepository<CustomerEntity> {
 
   /** Lista paginada com busca por nome, e-mail, telefone ou documento. */
   async search(query: CustomerQuery): Promise<Paginated<CustomerEntity>> {
-    const qb = this.qb("customer").orderBy("customer.name", "ASC");
+    const qb = this.qb("customer");
+    applySort(qb, query.sort, query.order, SORT, {
+      column: "customer.name",
+      direction: "ASC",
+    });
 
     if (query.search) {
       qb.andWhere(

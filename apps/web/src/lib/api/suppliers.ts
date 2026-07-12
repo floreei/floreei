@@ -21,6 +21,8 @@ export function useSuppliers(query: Partial<SupplierQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Supplier>>("/suppliers", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 20,
         search: query.search,
       }),

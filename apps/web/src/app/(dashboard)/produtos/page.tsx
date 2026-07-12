@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -88,9 +89,12 @@ export default function CatalogPage() {
   const [selected, setSelected] = useState<string | undefined>();
   const [search, setSearch] = useState("");
   const debounced = useDebounce(search);
+  const sortState = useTableSort();
   const { data: products, isLoading: loadingProducts } = useProducts({
     categoryId: selected,
     search: debounced || undefined,
+    sort: sortState.sort,
+    order: sortState.order,
     pageSize: 200,
   });
 
@@ -246,10 +250,10 @@ export default function CatalogPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Produto</TableHead>
+                  <SortableHead column="name" state={sortState}>Produto</SortableHead>
                   <TableHead className="hidden lg:table-cell">Unidade</TableHead>
-                  <TableHead className="text-right">Custo</TableHead>
-                  <TableHead className="text-right">Venda</TableHead>
+                  <SortableHead column="cost" state={sortState} align="right" className="text-right">Custo</SortableHead>
+                  <SortableHead column="sale" state={sortState} align="right" className="text-right">Venda</SortableHead>
                   <TableHead className="hidden text-right md:table-cell">
                     Margem
                   </TableHead>

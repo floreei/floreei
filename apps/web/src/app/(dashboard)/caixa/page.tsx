@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCashflow } from "@/lib/api/finance";
+import { useDebounce } from "@/lib/use-debounce";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -36,6 +37,11 @@ export default function CaixaPage() {
   const [customTo, setCustomTo] = useState(() => localISO(new Date()));
   const [inOpen, setInOpen] = useState(false);
   const [outOpen, setOutOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [direction, setDirection] = useState<"IN" | "OUT" | undefined>();
+  const debouncedSearch = useDebounce(search);
 
   const { from, to } = useMemo(() => {
     const now = new Date();
@@ -56,7 +62,12 @@ export default function CaixaPage() {
     return { from: localISO(start), to: today };
   }, [period, customFrom, customTo]);
 
-  const { data, isLoading } = useCashflow(from, to);
+  const { data, isLoading } = useCashflow(from, to, {
+    search: debouncedSearch,
+    minAmount: minAmount ? Number(minAmount) : undefined,
+    maxAmount: maxAmount ? Number(maxAmount) : undefined,
+    direction,
+  });
 
   return (
     <div className="space-y-6">
@@ -129,6 +140,70 @@ export default function CaixaPage() {
             </div>
           </div>
         ) : null}
+
+        {/* Busca por cliente/descrição, faixa de valor e tipo — os totais
+            acima refletem o filtro (ajuda na análise). */}
+        <div className="flex flex-wrap items-end gap-2">
+          <Input
+            placeholder="Buscar por cliente ou descrição…"
+            className="h-9 w-full sm:max-w-xs"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="caixa-min" className="text-xs">
+              Valor mín.
+            </Label>
+            <Input
+              id="caixa-min"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0"
+              className="h-9 w-28"
+              value={minAmount}
+              onChange={(e) => setMinAmount(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="caixa-max" className="text-xs">
+              Valor máx.
+            </Label>
+            <Input
+              id="caixa-max"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="—"
+              className="h-9 w-28"
+              value={maxAmount}
+              onChange={(e) => setMaxAmount(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-1.5">
+            {(
+              [
+                [undefined, "Todas"],
+                ["IN", "Entradas"],
+                ["OUT", "Saídas"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setDirection(value)}
+                className={cn(
+                  "h-9 rounded-full border px-3 text-sm transition-colors",
+                  direction === value
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -186,7 +261,15 @@ export default function CaixaPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{m.description}</p>
+                      <p className="truncate text-sm font-medium">
+                        {m.description}
+                        {m.partyName ? (
+                          <span className="font-normal text-muted-foreground">
+                            {" · "}
+                            {m.partyName}
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(m.date)} · {kindLabels[m.kind]}
                       </p>

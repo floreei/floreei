@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { SalesChannelBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,7 +48,13 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [channel, setChannel] = useState<SalesChannel | undefined>();
   const debounced = useDebounce(search);
-  const { data, isLoading } = useCustomers({ search: debounced, channel });
+  const sortState = useTableSort();
+  const { data, isLoading } = useCustomers({
+    search: debounced,
+    channel,
+    sort: sortState.sort,
+    order: sortState.order,
+  });
   const remove = useDeleteCustomer();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -132,7 +139,7 @@ export default function CustomersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
+                <SortableHead column="name" state={sortState}>Nome</SortableHead>
                 <TableHead>Canal</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead className="hidden sm:table-cell">Documento</TableHead>

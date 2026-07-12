@@ -3,12 +3,18 @@ import type {
   CashInInput,
   CashMovement,
   Cashflow,
+  CashflowQuery,
   MonthlyCashflow,
   MonthlyCashPoint,
   Payment,
 } from "@sistema-flores/types";
 import { todayISO } from "../../../common/date/today";
 import { roundMoney } from "../../../common/money/money";
+
+type CashflowFilters = Pick<
+  CashflowQuery,
+  "search" | "minAmount" | "maxAmount" | "direction"
+>;
 import { EventRepository } from "../../events/infrastructure/event.repository";
 import { ExpenseRepository } from "../../expenses/infrastructure/expense.repository";
 import { PurchaseRepository } from "../../purchases/infrastructure/purchase.repository";
@@ -20,6 +26,7 @@ const today = todayISO;
 function paymentToMovement(
   p: PaymentEntity,
   eventNames: Map<string, string>,
+  eventParties: Map<string, string | null>,
   purchaseNames: Map<string, string>,
 ): CashMovement {
   const isReceive = p.direction === "IN" && Boolean(p.eventId);
@@ -31,14 +38,17 @@ function paymentToMovement(
       : "manual";
 
   let description: string;
+  let partyName: string | null = null;
   let sourceType: CashMovement["sourceType"] = null;
   let sourceId: string | null = null;
   if (isReceive) {
     description = `Recebimento — ${eventNames.get(p.eventId!) ?? "venda"}`;
+    partyName = eventParties.get(p.eventId!) ?? null;
     sourceType = "event";
     sourceId = p.eventId;
   } else if (isSupplier) {
     description = `Pagamento a ${purchaseNames.get(p.purchaseId!) ?? "fornecedor"}`;
+    partyName = purchaseNames.get(p.purchaseId!) ?? null;
     sourceType = "purchase";
     sourceId = p.purchaseId;
   } else {
@@ -52,6 +62,7 @@ function paymentToMovement(
     direction: p.direction,
     kind,
     description,
+    partyName,
     amount: p.amount,
     sourceType,
     sourceId,
@@ -67,7 +78,11 @@ export class CashflowService {
     private readonly purchases: PurchaseRepository,
   ) {}
 
-  async cashflow(fromInput?: string, toInput?: string): Promise<Cashflow> {
+  async cashflow(
+    fromInput?: string,
+    toInput?: string,
+    filters?: CashflowFilters,
+  ): Promise<Cashflow> {
     const from = fromInput ?? today();
     const to = toInput ?? from;
 
@@ -78,12 +93,14 @@ export class CashflowService {
 
     // Enriquece com o nome do cliente (venda) e do fornecedor (compra).
     const eventNames = new Map<string, string>();
+    const eventParties = new Map<string, string | null>();
     const purchaseNames = new Map<string, string>();
     for (const p of payments) {
       if (p.eventId && !eventNames.has(p.eventId)) {
         const ev = await this.events.findById(p.eventId, ["customer"]);
         if (ev) {
           eventNames.set(p.eventId, ev.title || ev.customer?.name || "venda");
+          eventParties.set(p.eventId, ev.customer?.name ?? null);
         }
       }
       if (p.purchaseId && !purchaseNames.has(p.purchaseId)) {
@@ -92,19 +109,37 @@ export class CashflowService {
       }
     }
 
-    const movements: CashMovement[] = [
-      ...payments.map((p) => paymentToMovement(p, eventNames, purchaseNames)),
+    let movements: CashMovement[] = [
+      ...payments.map((p) =>
+        paymentToMovement(p, eventNames, eventParties, purchaseNames),
+      ),
       ...expenses.map((e) => ({
         id: e.id,
         date: e.paidDate ?? e.dueDate,
         direction: "OUT" as const,
         kind: "expense" as const,
         description: `${e.description} · ${e.costCenter}`,
+        partyName: e.costCenter,
         amount: e.amount,
         sourceType: null,
         sourceId: null,
       })),
     ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+    // Filtros (busca, faixa de valor, tipo) — os totais refletem o filtro.
+    if (filters) {
+      const term = filters.search?.trim().toLowerCase();
+      movements = movements.filter((m) => {
+        if (filters.direction && m.direction !== filters.direction) return false;
+        if (filters.minAmount != null && m.amount < filters.minAmount) return false;
+        if (filters.maxAmount != null && m.amount > filters.maxAmount) return false;
+        if (term) {
+          const hay = `${m.description} ${m.partyName ?? ""}`.toLowerCase();
+          if (!hay.includes(term)) return false;
+        }
+        return true;
+      });
+    }
 
     const entradas = roundMoney(
       movements.filter((m) => m.direction === "IN").reduce((s, m) => s + m.amount, 0),

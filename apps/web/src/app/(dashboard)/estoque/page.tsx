@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { AdjustBalanceDialog } from "@/components/stock/adjust-balance-dialog";
 import { MovementDialog } from "@/components/stock/movement-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useStockOverview } from "@/lib/api/stock";
+import { sortRows } from "@/lib/sort";
 import { unitLabels } from "@/lib/labels";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
@@ -56,6 +58,15 @@ export default function StockPage() {
     });
   }, [data, search, filter]);
   const hasFilter = search.trim() !== "" || filter !== "all";
+
+  const sortState = useTableSort();
+  const sortedLevels = sortRows(levels, sortState.sort, sortState.order, {
+    name: (l) => l.productName,
+    category: (l) => l.categoryName ?? "",
+    saldo: (l) => l.onHand,
+    valor: (l) => l.value,
+    minimo: (l) => l.minStock,
+  });
 
   return (
     <div className="space-y-6">
@@ -170,7 +181,7 @@ export default function StockPage() {
           <>
             {/* Celular: cartões — toque ajusta o saldo */}
             <div className="space-y-2 p-3 sm:hidden">
-              {levels.map((level) => (
+              {sortedLevels.map((level) => (
                 <ListCard
                   key={level.productId}
                   onClick={() => setAdjustLevel(level)}
@@ -191,11 +202,11 @@ export default function StockPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Produto</TableHead>
-                <TableHead className="hidden sm:table-cell">Categoria</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead className="hidden text-right sm:table-cell">Valor</TableHead>
-                <TableHead className="hidden text-right md:table-cell">Mínimo</TableHead>
+                <SortableHead column="name" state={sortState}>Produto</SortableHead>
+                <SortableHead column="category" state={sortState} className="hidden sm:table-cell">Categoria</SortableHead>
+                <SortableHead column="saldo" state={sortState} align="right" className="text-right">Saldo</SortableHead>
+                <SortableHead column="valor" state={sortState} align="right" className="hidden text-right sm:table-cell">Valor</SortableHead>
+                <SortableHead column="minimo" state={sortState} align="right" className="hidden text-right md:table-cell">Mínimo</SortableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead className="w-0 text-right">
                   <span className="sr-only">Ações</span>
@@ -203,7 +214,7 @@ export default function StockPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {levels.map((level) => (
+              {sortedLevels.map((level) => (
                 <TableRow key={level.productId}>
                   <TableCell className="font-medium">{level.productName}</TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">

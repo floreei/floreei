@@ -9,6 +9,7 @@ import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
 import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,11 +56,14 @@ export default function StoreOrdersPage() {
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
   const debounced = useDebounce(search);
+  const sortState = useTableSort(() => setPage(1));
   const { data, isLoading } = useStoreOrders({
     search: debounced || undefined,
     status,
     from: from || undefined,
     to: to || undefined,
+    sort: sortState.sort,
+    order: sortState.order,
     page,
     pageSize: 20,
   });
@@ -140,11 +144,11 @@ export default function StoreOrdersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Cliente</TableHead>
+                <SortableHead column="date" state={sortState}>Data</SortableHead>
+                <SortableHead column="customer" state={sortState}>Cliente</SortableHead>
                 <TableHead>Itens</TableHead>
                 <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableHead column="status" state={sortState}>Status</SortableHead>
                 <TableHead className="w-24 text-right">Venda</TableHead>
               </TableRow>
             </TableHeader>

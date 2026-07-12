@@ -32,6 +32,8 @@ export function usePurchases(query: Partial<PurchaseQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Purchase>>("/purchases", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 20,
         supplierId: query.supplierId,
         status: query.status,

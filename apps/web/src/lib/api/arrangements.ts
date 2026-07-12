@@ -15,6 +15,8 @@ export function useArrangements(query: Partial<ArrangementQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Arrangement>>("/arrangements", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 50,
         search: query.search,
         categoryId: query.categoryId,

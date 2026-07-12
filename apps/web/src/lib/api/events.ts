@@ -27,6 +27,8 @@ export function useEvents(query: Partial<EventQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Event>>("/events", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 20,
         search: query.search,
         type: query.type,

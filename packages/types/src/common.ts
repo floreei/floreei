@@ -42,11 +42,18 @@ export const quantitySchema = z.coerce
   .positive("Quantidade deve ser maior que zero")
   .finite();
 
+/** Direção de ordenação de uma coluna. */
+export const sortOrderSchema = z.enum(["asc", "desc"]);
+export type SortOrder = z.infer<typeof sortOrderSchema>;
+
 /** Parâmetros padrão de paginação para listagens. */
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(200).default(20),
   search: z.string().trim().optional(),
+  /** Coluna de ordenação (validada por whitelist no repositório). */
+  sort: z.string().trim().optional(),
+  order: sortOrderSchema.optional(),
 });
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 

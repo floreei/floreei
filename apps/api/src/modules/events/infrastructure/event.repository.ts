@@ -3,9 +3,19 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type { EventQuery, Paginated } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { paginate } from "../../../common/database/paginate";
+import { applySort } from "../../../common/database/sort";
 import { TenantScopedRepository } from "../../../common/database/tenant-scoped.repository";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { EventEntity } from "./event.entity";
+
+const SORT: Record<string, string> = {
+  date: "event.date",
+  title: "event.title",
+  sold: "event.soldValue",
+  received: "event.receivedValue",
+  status: "event.status",
+  customer: "customer.name",
+};
 
 @Injectable()
 export class EventRepository extends TenantScopedRepository<EventEntity> {
@@ -21,9 +31,11 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
   }
 
   async search(query: EventQuery): Promise<Paginated<EventEntity>> {
-    const qb = this.qb("event")
-      .leftJoinAndSelect("event.customer", "customer")
-      .orderBy("event.date", "DESC");
+    const qb = this.qb("event").leftJoinAndSelect("event.customer", "customer");
+    applySort(qb, query.sort, query.order, SORT, {
+      column: "event.date",
+      direction: "DESC",
+    });
 
     if (query.type) {
       qb.andWhere("event.type = :type", { type: query.type });

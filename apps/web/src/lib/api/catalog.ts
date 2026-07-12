@@ -51,6 +51,8 @@ export function useProducts(query: Partial<ProductQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Product>>("/products", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 50,
         search: query.search,
         categoryId: query.categoryId,

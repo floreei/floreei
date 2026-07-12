@@ -12,6 +12,7 @@ import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
 import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,9 +48,12 @@ export default function ArrangementsPage() {
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const debounced = useDebounce(search);
+  const sortState = useTableSort(() => setPage(1));
   const { data, isLoading } = useArrangements({
     search: debounced || undefined,
     categoryId,
+    sort: sortState.sort,
+    order: sortState.order,
     page,
     pageSize: 20,
   });
@@ -158,7 +162,7 @@ export default function ArrangementsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Buquê</TableHead>
+                <SortableHead column="name" state={sortState}>Buquê</SortableHead>
                 <TableHead className="text-right">Custo</TableHead>
                 <TableHead className="text-right">Venda</TableHead>
                 <TableHead className="text-right">Lucro</TableHead>

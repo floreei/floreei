@@ -169,11 +169,14 @@ export class EventsService {
       estimatedProfit = roundMoney(soldValue - cost);
     }
 
+    const channel = input.channel ?? "RETAIL";
+    const defaultTitle =
+      channel === "WHOLESALE" ? "Venda no atacado" : "Venda direta";
     const event = this.events.create({
       type: "ORDER",
-      channel: input.channel ?? "RETAIL",
+      channel,
       customerId: input.customerId ?? null,
-      title: input.title?.trim() || "Venda de balcão",
+      title: input.title?.trim() || defaultTitle,
       date,
       deliveryDate: input.deliveryDate ?? null,
       status: input.delivered ? "DONE" : "CONFIRMED",

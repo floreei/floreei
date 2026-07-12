@@ -65,7 +65,12 @@ class FinanceController {
 
   @Get("cashflow")
   cashflowReport(@Query() query: CashflowQueryDto) {
-    return this.cashflow.cashflow(query.from, query.to);
+    return this.cashflow.cashflow(query.from, query.to, {
+      search: query.search,
+      minAmount: query.minAmount,
+      maxAmount: query.maxAmount,
+      direction: query.direction,
+    });
   }
 
   @Post("cash-in")

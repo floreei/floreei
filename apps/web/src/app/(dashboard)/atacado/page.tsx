@@ -12,6 +12,7 @@ import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
 import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import {
   EventStatusBadge,
   PaymentStatusBadge,
@@ -53,6 +54,7 @@ export default function AtacadoPage() {
   const [page, setPage] = useState(1);
   const [showInsights, setShowInsights] = useState(false);
   const debouncedSearch = useDebounce(search);
+  const sortState = useTableSort(() => setPage(1));
 
   const { data, isLoading } = useEvents({
     channel: "WHOLESALE",
@@ -61,6 +63,8 @@ export default function AtacadoPage() {
     search: debouncedSearch || undefined,
     from: from || undefined,
     to: to || undefined,
+    sort: sortState.sort,
+    order: sortState.order,
     page,
     pageSize: 20,
   });
@@ -209,11 +213,11 @@ export default function AtacadoPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Venda</TableHead>
-                  <TableHead className="hidden md:table-cell">Data</TableHead>
+                  <SortableHead column="title" state={sortState}>Venda</SortableHead>
+                  <SortableHead column="date" state={sortState} className="hidden md:table-cell">Data</SortableHead>
                   <TableHead>Pagamento</TableHead>
                   <TableHead className="hidden md:table-cell">Entrega</TableHead>
-                  <TableHead className="text-right">Vendido</TableHead>
+                  <SortableHead column="sold" state={sortState} align="right" className="text-right">Vendido</SortableHead>
                   <TableHead className="hidden text-right lg:table-cell">Saldo</TableHead>
                   <TableHead className="w-32 text-right" />
                 </TableRow>

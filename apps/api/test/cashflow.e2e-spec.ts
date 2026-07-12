@@ -80,6 +80,50 @@ describe("Caixa / fluxo de caixa (e2e)", () => {
     expect(receivement.description).toContain("Recebimento");
   });
 
+  it("mostra o cliente (partyName) e filtra por busca/valor/tipo", async () => {
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ customerId, amount: 250 })
+      .expect(201);
+    await http
+      .post(`/api/finance/events/${sale.body.id}/payments`)
+      .set(auth())
+      .send({ amount: 250, method: "PIX" })
+      .expect(201);
+    // Entrada avulsa menor, para o filtro de valor separar.
+    await http
+      .post("/api/finance/cash-in")
+      .set(auth())
+      .send({ amount: 30, description: "Troco" })
+      .expect(201);
+
+    // partyName traz o nome do cliente na venda.
+    const all = await http.get("/api/finance/cashflow").set(auth()).expect(200);
+    const receb = all.body.movements.find(
+      (m: { kind: string }) => m.kind === "receivement",
+    );
+    expect(receb.partyName).toBe("Ana");
+
+    // Busca por cliente.
+    const byClient = await http
+      .get("/api/finance/cashflow")
+      .query({ search: "Ana" })
+      .set(auth())
+      .expect(200);
+    expect(byClient.body.movements).toHaveLength(1);
+    expect(byClient.body.entradas).toBe(250);
+
+    // Faixa de valor exclui a entrada de 30.
+    const byValue = await http
+      .get("/api/finance/cashflow")
+      .query({ minAmount: 100 })
+      .set(auth())
+      .expect(200);
+    expect(byValue.body.entradas).toBe(250);
+    expect(byValue.body.movements).toHaveLength(1);
+  });
+
   it("venda cancelada e venda excluída somem do caixa (recebimento não conta)", async () => {
     const mkPaidSale = async (amount: number) => {
       const sale = await http

@@ -20,6 +20,8 @@ export function useCustomers(query: Partial<CustomerQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<Customer>>("/customers", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 20,
         search: query.search,
         channel: query.channel,

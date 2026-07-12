@@ -8,6 +8,8 @@ export function useStoreOrders(query: Partial<StoreOrderQuery> = {}) {
     queryFn: () =>
       api.get<Paginated<StoreOrder>>("/store-orders", {
         page: query.page ?? 1,
+        sort: query.sort,
+        order: query.order,
         pageSize: query.pageSize ?? 20,
         search: query.search,
         status: query.status,

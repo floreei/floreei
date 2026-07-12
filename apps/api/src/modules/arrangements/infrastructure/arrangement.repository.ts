@@ -3,9 +3,15 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type { ArrangementQuery, Paginated } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { paginate } from "../../../common/database/paginate";
+import { applySort } from "../../../common/database/sort";
 import { TenantScopedRepository } from "../../../common/database/tenant-scoped.repository";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { ArrangementEntity } from "./arrangement.entity";
+
+const SORT: Record<string, string> = {
+  name: "arrangement.name",
+  category: "category.name",
+};
 
 @Injectable()
 export class ArrangementRepository extends TenantScopedRepository<ArrangementEntity> {
@@ -41,8 +47,11 @@ export class ArrangementRepository extends TenantScopedRepository<ArrangementEnt
     const qb = this.qb("arrangement")
       .leftJoinAndSelect("arrangement.category", "category")
       .leftJoinAndSelect("arrangement.items", "item")
-      .leftJoinAndSelect("item.product", "product")
-      .orderBy("arrangement.name", "ASC");
+      .leftJoinAndSelect("item.product", "product");
+    applySort(qb, query.sort, query.order, SORT, {
+      column: "arrangement.name",
+      direction: "ASC",
+    });
 
     if (query.search) {
       qb.andWhere("arrangement.name ILIKE :s", { s: `%${query.search}%` });

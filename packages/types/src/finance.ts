@@ -85,6 +85,8 @@ export interface CashMovement {
   direction: PaymentDirection;
   kind: "receivement" | "supplier_payment" | "expense" | "manual";
   description: string;
+  /** Cliente (venda), fornecedor (compra) ou centro de custo (despesa). */
+  partyName: string | null;
   amount: number;
   /** Origem do lançamento, para abrir o pedido de venda/compra. */
   sourceType: "event" | "purchase" | null;
@@ -104,6 +106,13 @@ export interface Cashflow {
 export const cashflowQuerySchema = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** Busca por cliente/descrição do lançamento. */
+  search: z.string().trim().optional(),
+  /** Faixa de valor (absoluto) do lançamento. */
+  minAmount: z.coerce.number().nonnegative().optional(),
+  maxAmount: z.coerce.number().nonnegative().optional(),
+  /** Só entradas (IN) ou só saídas (OUT). */
+  direction: z.enum(["IN", "OUT"]).optional(),
 });
 export type CashflowQuery = z.infer<typeof cashflowQuerySchema>;
 

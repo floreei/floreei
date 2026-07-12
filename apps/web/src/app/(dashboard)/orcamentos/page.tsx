@@ -7,6 +7,7 @@ import { useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { QuoteStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,7 +32,12 @@ const filters: Array<{ label: string; value?: QuoteStatus }> = [
 
 export default function QuotesPage() {
   const [status, setStatus] = useState<QuoteStatus | undefined>();
-  const { data, isLoading } = useQuotes({ status });
+  const sortState = useTableSort();
+  const { data, isLoading } = useQuotes({
+    status,
+    sort: sortState.sort,
+    order: sortState.order,
+  });
 
   return (
     <div className="space-y-6">
@@ -90,9 +96,9 @@ export default function QuotesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nº</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableHead column="number" state={sortState}>Nº</SortableHead>
+                <SortableHead column="customer" state={sortState}>Cliente</SortableHead>
+                <SortableHead column="status" state={sortState}>Status</SortableHead>
                 <TableHead className="text-right">Venda</TableHead>
                 <TableHead className="text-right">Margem</TableHead>
               </TableRow>

@@ -29,10 +29,29 @@ export function useDre(from?: string, to?: string) {
   });
 }
 
-export function useCashflow(from: string, to: string) {
+interface CashflowFilters {
+  search?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  direction?: "IN" | "OUT";
+}
+
+export function useCashflow(
+  from: string,
+  to: string,
+  filters: CashflowFilters = {},
+) {
   return useQuery({
-    queryKey: ["finance", "cashflow", from, to],
-    queryFn: () => api.get<Cashflow>("/finance/cashflow", { from, to }),
+    queryKey: ["finance", "cashflow", from, to, filters],
+    queryFn: () =>
+      api.get<Cashflow>("/finance/cashflow", {
+        from,
+        to,
+        search: filters.search || undefined,
+        minAmount: filters.minAmount,
+        maxAmount: filters.maxAmount,
+        direction: filters.direction,
+      }),
   });
 }
 

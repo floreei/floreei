@@ -3,9 +3,16 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type { Paginated, QuoteQuery } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { paginate } from "../../../common/database/paginate";
+import { applySort } from "../../../common/database/sort";
 import { TenantScopedRepository } from "../../../common/database/tenant-scoped.repository";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { QuoteEntity } from "./quote.entity";
+
+const SORT: Record<string, string> = {
+  number: "quote.number",
+  status: "quote.status",
+  customer: "customer.name",
+};
 
 @Injectable()
 export class QuoteRepository extends TenantScopedRepository<QuoteEntity> {
@@ -29,9 +36,11 @@ export class QuoteRepository extends TenantScopedRepository<QuoteEntity> {
   }
 
   async search(query: QuoteQuery): Promise<Paginated<QuoteEntity>> {
-    const qb = this.qb("quote")
-      .leftJoinAndSelect("quote.customer", "customer")
-      .orderBy("quote.number", "DESC");
+    const qb = this.qb("quote").leftJoinAndSelect("quote.customer", "customer");
+    applySort(qb, query.sort, query.order, SORT, {
+      column: "quote.number",
+      direction: "DESC",
+    });
 
     if (query.status) {
       qb.andWhere("quote.status = :status", { status: query.status });
