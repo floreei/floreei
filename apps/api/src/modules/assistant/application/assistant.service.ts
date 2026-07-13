@@ -33,6 +33,7 @@ import {
   type Event,
   type AssistantDraft,
   type AssistantExecuteResult,
+  type AssistantUsageSummary,
   type CreateArrangementDraft,
   type CreateCustomerDraft,
   type CreateExpenseDraft,
@@ -191,6 +192,11 @@ export class AssistantService {
       messages: working,
       reply: "Não consegui concluir agora. Pode reformular o pedido?",
     };
+  }
+
+  /** Uso e cota do assistente da empresa atual (visível ao próprio cliente). */
+  usageSummary(): Promise<AssistantUsageSummary> {
+    return this.usage.summary(this.tenant.getCompanyIdOrThrow());
   }
 
   execute(draft: AssistantDraft): Promise<AssistantExecuteResult> {

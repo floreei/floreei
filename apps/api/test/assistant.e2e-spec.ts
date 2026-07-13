@@ -201,6 +201,14 @@ describe("Assistente de IA (e2e)", () => {
     expect(after.body.status).toBe("RECEIVED");
   });
 
+  it("expõe uso e cota do assistente ao próprio cliente", async () => {
+    const res = await http.get("/api/assistant/usage").set(bearer(token)).expect(200);
+    expect(res.body.quota).toBeGreaterThan(0);
+    expect(res.body).toHaveProperty("monthTokens");
+    expect(res.body).toHaveProperty("remaining");
+    expect(res.body.remaining).toBeLessThanOrEqual(res.body.quota);
+  });
+
   it("bloqueia (429) quando a cota de tokens do mês é atingida", async () => {
     // Um turno gasta mais que a cota do trial (200k) → o próximo é barrado.
     ai.queue = [

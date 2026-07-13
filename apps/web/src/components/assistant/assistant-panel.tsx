@@ -1,6 +1,10 @@
 "use client";
 
-import type { AiMessage, AssistantDraft } from "@sistema-flores/types";
+import type {
+  AiMessage,
+  AssistantDraft,
+  AssistantUsageSummary,
+} from "@sistema-flores/types";
 import {
   Eraser,
   ExternalLink,
@@ -17,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api/client";
-import { useAssistantChat } from "@/lib/api/assistant";
+import { useAssistantChat, useAssistantUsage } from "@/lib/api/assistant";
 import { useSpeech } from "@/lib/assistant/use-speech";
 import { cn } from "@/lib/utils";
 import { AssistantMessage } from "./assistant-message";
@@ -44,6 +48,7 @@ export function AssistantPanel({
   onOpenChange: (open: boolean) => void;
 }) {
   const chat = useAssistantChat();
+  const usage = useAssistantUsage(open);
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState("");
@@ -243,6 +248,7 @@ export function AssistantPanel({
           </div>
 
           <div className="border-t border-border p-3">
+            {usage.data ? <UsageBar usage={usage.data} /> : null}
             <div className="flex items-end gap-2">
               {speech.supported ? (
                 <Button
@@ -317,6 +323,38 @@ function Capability({
         <Icon className="h-3 w-3" />
       </span>
       <span>{children}</span>
+    </div>
+  );
+}
+
+/** Barra de uso do assistente: tokens do mês vs. cota, com quanto ainda resta. */
+function UsageBar({ usage }: { usage: AssistantUsageSummary }) {
+  const pct =
+    usage.quota > 0
+      ? Math.min(100, Math.round((usage.monthTokens / usage.quota) * 100))
+      : 0;
+  const low = usage.remaining <= 0 || pct >= 90;
+  const mid = !low && pct >= 70;
+  const fmt = (n: number) => n.toLocaleString("pt-BR");
+  return (
+    <div className="mb-2">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>Assistente — uso do mês</span>
+        <span className={cn("tabular-nums", low && "font-medium text-destructive")}>
+          {usage.remaining <= 0
+            ? "sem tokens este mês"
+            : `${fmt(usage.remaining)} de ${fmt(usage.quota)} restantes`}
+        </span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn(
+            "h-full transition-all",
+            low ? "bg-destructive" : mid ? "bg-amber-500" : "bg-primary",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }

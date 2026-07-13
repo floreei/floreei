@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Post } from "@nestjs/common";
 import {
   assistantChatRequestSchema,
   assistantDraftSchema,
@@ -14,6 +14,12 @@ class ChatDto extends createZodDto(assistantChatRequestSchema) {}
 @Controller("assistant")
 export class AssistantController {
   constructor(private readonly assistant: AssistantService) {}
+
+  /** Uso e cota do assistente no mês (tokens) — o cliente vê o que resta. */
+  @Get("usage")
+  usage() {
+    return this.assistant.usageSummary();
+  }
 
   /** Um turno da conversa: devolve texto (pergunta) ou um rascunho para aprovar. */
   @Post("chat")
