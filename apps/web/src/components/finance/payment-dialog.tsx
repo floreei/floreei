@@ -6,7 +6,8 @@ import {
   type PaymentMethod,
 } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { Check, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Field } from "@/components/shared/field";
@@ -54,6 +55,8 @@ interface PaymentDialogProps {
   balanceDue: number;
   /** Quando informado, o diálogo edita este pagamento em vez de criar um novo. */
   payment?: Payment | null;
+  /** Chave Pix de quem vai receber (fornecedor), para pagar por Pix na hora. */
+  payeePixKey?: string | null;
 }
 
 export function PaymentDialog({
@@ -63,6 +66,7 @@ export function PaymentDialog({
   targetId,
   balanceDue,
   payment,
+  payeePixKey,
 }: PaymentDialogProps) {
   const receive = useReceiveForEvent();
   const pay = usePayForPurchase();
@@ -70,6 +74,18 @@ export function PaymentDialog({
   const updatePurchase = useUpdatePurchasePayment(targetId);
   const isEdit = Boolean(payment);
   const isReceive = mode === "receive";
+  const [copied, setCopied] = useState(false);
+
+  const copyPix = async () => {
+    if (!payeePixKey) return;
+    try {
+      await navigator.clipboard.writeText(payeePixKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard indisponível: a chave segue visível para cópia manual.
+    }
+  };
   const form = useForm({
     resolver: zodResolver(paymentInputSchema),
     defaultValues: { amount: 0, method: "PIX" as PaymentMethod, notes: "" },
@@ -105,6 +121,7 @@ export function PaymentDialog({
           </DialogDescription>
         </DialogHeader>
         <form
+          id="payment-form"
           className="space-y-4"
           onSubmit={form.handleSubmit(async (values) => {
             try {
@@ -169,15 +186,45 @@ export function PaymentDialog({
           <Field label="Observação" htmlFor="pay-notes" optional>
             <Input id="pay-notes" {...form.register("notes")} />
           </Field>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" loading={form.formState.isSubmitting}>
-              {isEdit ? "Salvar" : isReceive ? "Receber" : "Pagar"}
-            </Button>
-          </DialogFooter>
+
+          {!isReceive && payeePixKey ? (
+            <div className="rounded-lg border border-primary/15 bg-secondary/30 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/70">
+                Chave Pix do fornecedor
+              </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="min-w-0 flex-1 break-all text-sm font-medium">
+                  {payeePixKey}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyPix}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/30 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/5"
+                >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  {copied ? "Copiada!" : "Copiar chave Pix"}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </form>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            form="payment-form"
+            loading={form.formState.isSubmitting}
+          >
+            {isEdit ? "Salvar" : isReceive ? "Receber" : "Pagar"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

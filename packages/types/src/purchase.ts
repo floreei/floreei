@@ -79,7 +79,7 @@ export interface Purchase {
   id: string;
   companyId: string;
   supplierId: string;
-  supplier?: { id: string; name: string };
+  supplier?: { id: string; name: string; pixKey?: string | null };
   date: string;
   deliveryDate: string | null;
   deliveryTime: string | null;

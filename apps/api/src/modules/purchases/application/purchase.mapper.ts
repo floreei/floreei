@@ -26,7 +26,11 @@ export function toPurchase(purchase: PurchaseEntity): Purchase {
     companyId: purchase.companyId,
     supplierId: purchase.supplierId,
     supplier: purchase.supplier
-      ? { id: purchase.supplier.id, name: purchase.supplier.name }
+      ? {
+          id: purchase.supplier.id,
+          name: purchase.supplier.name,
+          pixKey: purchase.supplier.pixKey ?? null,
+        }
       : undefined,
     date: purchase.date,
     deliveryDate: purchase.deliveryDate ?? null,

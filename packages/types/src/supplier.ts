@@ -20,6 +20,8 @@ export const supplierInputSchema = z.object({
   city: optional(120),
   contact: optional(120),
   whatsapp: optional(30),
+  /** Chave Pix do fornecedor — usada para pagar por Pix na hora do pagamento. */
+  pixKey: optional(140),
   paymentTerms: optional(160),
   notes: optional(2000),
 });
@@ -35,6 +37,7 @@ export interface Supplier {
   city: string | null;
   contact: string | null;
   whatsapp: string | null;
+  pixKey: string | null;
   paymentTerms: string | null;
   notes: string | null;
   /** Total já comprado deste fornecedor (na listagem enriquecida). */

@@ -38,6 +38,7 @@ export function SupplierDialog({
       city: "",
       contact: "",
       whatsapp: "",
+      pixKey: "",
       paymentTerms: "",
       notes: "",
     },
@@ -50,6 +51,7 @@ export function SupplierDialog({
         city: supplier?.city ?? "",
         contact: supplier?.contact ?? "",
         whatsapp: supplier?.whatsapp ?? "",
+        pixKey: supplier?.pixKey ?? "",
         paymentTerms: supplier?.paymentTerms ?? "",
         notes: supplier?.notes ?? "",
       });
@@ -103,6 +105,13 @@ export function SupplierDialog({
               <Input id="s-terms" placeholder="Ex.: 30 dias" {...form.register("paymentTerms")} />
             </Field>
           </div>
+          <Field label="Chave Pix" htmlFor="s-pix" optional>
+            <Input
+              id="s-pix"
+              placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória"
+              {...form.register("pixKey")}
+            />
+          </Field>
           <Field label="Observações" htmlFor="s-notes" optional>
             <Textarea id="s-notes" rows={2} {...form.register("notes")} />
           </Field>

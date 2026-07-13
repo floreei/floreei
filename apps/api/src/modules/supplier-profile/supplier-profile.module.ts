@@ -31,6 +31,7 @@ function toSupplier(s: SupplierEntity): Supplier {
     city: s.city,
     contact: s.contact,
     whatsapp: s.whatsapp,
+    pixKey: s.pixKey,
     paymentTerms: s.paymentTerms,
     notes: s.notes,
     createdAt: s.createdAt instanceof Date ? s.createdAt.toISOString() : s.createdAt,

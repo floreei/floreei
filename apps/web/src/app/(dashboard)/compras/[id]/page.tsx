@@ -223,6 +223,7 @@ export default function PurchaseDetailPage() {
         mode="pay"
         targetId={purchase.id}
         balanceDue={purchase.balanceDue}
+        payeePixKey={purchase.supplier?.pixKey}
       />
       <PurchaseDialog open={editOpen} onOpenChange={setEditOpen} purchase={purchase} />
       <div className="flex justify-end">

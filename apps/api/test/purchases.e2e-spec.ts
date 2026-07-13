@@ -26,7 +26,11 @@ describe("Compras — módulo completo (e2e)", () => {
   beforeEach(async () => {
     await ctx.resetBusiness();
     supplierId = (
-      await http.post("/api/suppliers").set(auth()).send({ name: "Ceasa" }).expect(201)
+      await http
+        .post("/api/suppliers")
+        .set(auth())
+        .send({ name: "Ceasa", pixKey: "ceasa@pix.com" })
+        .expect(201)
     ).body.id;
     const cat = await http
       .post("/api/categories")
@@ -93,6 +97,8 @@ describe("Compras — módulo completo (e2e)", () => {
       .expect(200);
     expect(fetched.body.items).toHaveLength(1);
     expect(fetched.body.items[0].description).toBe("Rosa");
+    // A chave Pix do fornecedor acompanha a compra (usada na tela de pagamento).
+    expect(fetched.body.supplier.pixKey).toBe("ceasa@pix.com");
 
     const edited = await http
       .patch(`/api/purchases/${created.body.id}`)
