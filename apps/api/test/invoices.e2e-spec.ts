@@ -145,6 +145,87 @@ describe("Nota fiscal (e2e)", () => {
     await setCompany("plan = 'TRIAL', tier = NULL, feature_overrides = '{}'");
   });
 
+  it("NF-e no atacado sem endereço fiscal do cliente é bloqueada com mensagem clara", async () => {
+    const customer = await http
+      .post("/api/customers")
+      .set(auth())
+      .send({ name: "Lojista sem endereço", channel: "WHOLESALE", document: "11222333000181" })
+      .expect(201);
+
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        amount: 300,
+        title: "Atacado",
+        channel: "WHOLESALE",
+        customerId: customer.body.id,
+      })
+      .expect(201);
+
+    const res = await http
+      .post(`/api/events/${sale.body.id}/invoice`)
+      .set(auth())
+      .expect(400);
+    expect(res.body.message).toMatch(/endereço fiscal/i);
+  });
+
+  it("com endereço fiscal preenchido, a NF-e no atacado prossegue (rejeitada pelo stub)", async () => {
+    const customer = await http
+      .post("/api/customers")
+      .set(auth())
+      .send({
+        name: "Lojista SP",
+        channel: "WHOLESALE",
+        document: "11222333000181",
+        addressStreet: "Av. Paulista",
+        addressNumber: "1000",
+        addressNeighborhood: "Bela Vista",
+        addressCity: "São Paulo",
+        addressState: "SP",
+        addressZip: "01310100",
+        cityCode: "3550308",
+      })
+      .expect(201);
+
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        amount: 300,
+        title: "Atacado",
+        channel: "WHOLESALE",
+        customerId: customer.body.id,
+      })
+      .expect(201);
+
+    const invoice = await http
+      .post(`/api/events/${sale.body.id}/invoice`)
+      .set(auth())
+      .expect(201);
+    expect(invoice.body.documentType).toBe("NFE");
+    expect(invoice.body.status).toBe("REJECTED");
+  });
+
+  it("refresh devolve a nota vigente (sem provedor, não muda de estado)", async () => {
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ amount: 50, title: "Venda", channel: "RETAIL" })
+      .expect(201);
+    const invoice = await http
+      .post(`/api/events/${sale.body.id}/invoice`)
+      .set(auth())
+      .expect(201);
+
+    const refreshed = await http
+      .post(`/api/events/${sale.body.id}/invoice/refresh`)
+      .set(auth())
+      .expect(200);
+    expect(refreshed.body.id).toBe(invoice.body.id);
+    expect(refreshed.body.status).toBe("REJECTED");
+  });
+
   it("não permite excluir uma venda com nota fiscal emitida", async () => {
     const sale = await http
       .post("/api/events/quick")

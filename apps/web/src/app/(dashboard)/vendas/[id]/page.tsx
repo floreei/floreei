@@ -63,6 +63,7 @@ import {
   useCancelInvoice,
   useEmitInvoice,
   useInvoice,
+  useRefreshInvoice,
 } from "@/lib/api/invoices";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api/client";
@@ -469,6 +470,7 @@ function InvoiceCard({
   const { data: invoice, isLoading } = useInvoice(hasFeature ? eventId : undefined);
   const emit = useEmitInvoice(eventId);
   const cancel = useCancelInvoice(eventId);
+  const refresh = useRefreshInvoice(eventId);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
 
@@ -548,13 +550,55 @@ function InvoiceCard({
               </p>
             ) : null}
 
+            {invoice.status === "PROCESSING" ? (
+              <p className="text-sm text-muted-foreground">
+                Processando a autorização junto à SEFAZ…
+              </p>
+            ) : null}
+
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" disabled={!invoice.xmlUrl}>
-                Baixar XML
-              </Button>
-              <Button variant="outline" size="sm" disabled={!invoice.danfeUrl}>
-                Baixar DANFE
-              </Button>
+              {invoice.xmlUrl ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={invoice.xmlUrl} target="_blank" rel="noreferrer">
+                    Baixar XML
+                  </a>
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  Baixar XML
+                </Button>
+              )}
+              {invoice.danfeUrl ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={invoice.danfeUrl} target="_blank" rel="noreferrer">
+                    Baixar DANFE
+                  </a>
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  Baixar DANFE
+                </Button>
+              )}
+              {invoice.status === "PROCESSING" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={refresh.isPending}
+                  onClick={async () => {
+                    try {
+                      await refresh.mutateAsync();
+                    } catch (error) {
+                      toast.error(
+                        error instanceof ApiError
+                          ? error.message
+                          : "Erro ao atualizar.",
+                      );
+                    }
+                  }}
+                >
+                  Atualizar status
+                </Button>
+              ) : null}
               {invoice.status === "REJECTED" || invoice.status === "CANCELED" ? (
                 <Button
                   variant="outline"

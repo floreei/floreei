@@ -19,12 +19,27 @@ export interface NfeIssuerData {
   };
 }
 
+/** Endereço estruturado do destinatário — exigido no XML da NF-e a CNPJ. */
+export interface NfeAddressData {
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  cityCode: string | null;
+  state: string | null;
+  zip: string | null;
+}
+
 /** Dados de quem recebe a nota. null = consumidor não identificado (comum em NFC-e). */
 export interface NfeRecipientData {
   name: string;
   document: string | null;
+  /** CPF | CNPJ inferido pelo tamanho do documento; null quando sem documento. */
+  documentType: "CPF" | "CNPJ" | null;
+  stateRegistration: string | null;
   email: string | null;
-  address: string | null;
+  address: NfeAddressData | null;
 }
 
 export interface NfeItemData {
@@ -35,10 +50,27 @@ export interface NfeItemData {
   ncm: string | null;
 }
 
+/**
+ * Padrões fiscais da empresa aplicados a TODAS as linhas — o gateway calcula o
+ * imposto a partir daqui + do NCM de cada item (granularidade por-empresa no v1).
+ */
+export interface NfeFiscalDefaults {
+  environment: "HOMOLOGACAO" | "PRODUCAO";
+  naturezaOperacao: string | null;
+  cfopInState: string | null;
+  cfopOutState: string | null;
+  icmsCsosn: string | null;
+  icmsCst: string | null;
+  origem: string | null;
+}
+
 export interface NfeEmissionRequest {
+  /** Referência única da nota (id do InvoiceEntity) — idempotência no gateway. */
+  ref: string;
   documentType: InvoiceDocumentType;
   issuer: NfeIssuerData;
   recipient: NfeRecipientData | null;
+  fiscalDefaults: NfeFiscalDefaults;
   items: NfeItemData[];
   totalValue: number;
 }
@@ -78,9 +110,12 @@ export interface NfeStatusResult {
  * real é trocar essa única linha de DI, sem tocar em service/controller.
  */
 export interface NfeProviderPort {
+  /** Nome curto persistido em `invoice.provider` (ex.: "STUB", "FOCUS"). */
+  readonly name: string;
   emit(request: NfeEmissionRequest): Promise<NfeEmissionResult>;
-  cancel(providerInvoiceId: string, reason: string): Promise<NfeCancelResult>;
-  checkStatus(providerInvoiceId: string): Promise<NfeStatusResult>;
+  /** `ref` é a referência da nota (id do InvoiceEntity), não o número da SEFAZ. */
+  cancel(ref: string, reason: string): Promise<NfeCancelResult>;
+  checkStatus(ref: string): Promise<NfeStatusResult>;
 }
 
 export const NFE_PROVIDER = Symbol("NFE_PROVIDER");

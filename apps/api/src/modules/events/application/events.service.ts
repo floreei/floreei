@@ -36,6 +36,26 @@ function roundQty(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
 
+/** Infere CPF/CNPJ pelo número de dígitos do documento (11=CPF, 14=CNPJ). */
+function docType(document: string | null): "CPF" | "CNPJ" | null {
+  const digits = (document ?? "").replace(/\D/g, "");
+  if (digits.length === 14) return "CNPJ";
+  if (digits.length === 11) return "CPF";
+  return null;
+}
+
+/** true quando o cliente tem endereço fiscal estruturado mínimo para NF-e. */
+function hasFiscalAddress(c: {
+  addressStreet: string | null;
+  addressCity: string | null;
+  addressState: string | null;
+  addressZip: string | null;
+}): boolean {
+  return Boolean(
+    c.addressStreet && c.addressCity && c.addressState && c.addressZip,
+  );
+}
+
 function toAttachment(a: EventAttachmentEntity): EventAttachment {
   return {
     id: a.id,
@@ -411,6 +431,37 @@ export class EventsService {
             },
           ];
 
+    const customer = event.customer;
+    const recipient = customer
+      ? {
+          name: customer.name,
+          document: customer.document,
+          documentType: docType(customer.document),
+          stateRegistration: customer.stateRegistration,
+          email: customer.email,
+          address: hasFiscalAddress(customer)
+            ? {
+                street: customer.addressStreet,
+                number: customer.addressNumber,
+                complement: customer.addressComplement,
+                neighborhood: customer.addressNeighborhood,
+                city: customer.addressCity,
+                cityCode: customer.cityCode,
+                state: customer.addressState,
+                zip: customer.addressZip,
+              }
+            : null,
+        }
+      : null;
+
+    // NF-e (atacado) a CNPJ exige endereço estruturado do destinatário — falha
+    // cedo com mensagem clara em vez de deixar a SEFAZ rejeitar depois.
+    if (event.channel === "WHOLESALE" && recipient && !recipient.address) {
+      throw new BadRequestException(
+        "Para emitir NF-e, informe o endereço fiscal completo do cliente (rua, número, bairro, município, UF e CEP).",
+      );
+    }
+
     return this.invoices.emit({
       eventId: event.id,
       channel: event.channel,
@@ -431,17 +482,27 @@ export class EventsService {
           cityCode: company.fiscalCityCode,
         },
       },
-      recipient: event.customer
-        ? {
-            name: event.customer.name,
-            document: event.customer.document,
-            email: event.customer.email,
-            address: event.customer.address,
-          }
-        : null,
+      recipient,
+      fiscalDefaults: {
+        environment: company.fiscalEnvironment,
+        naturezaOperacao: company.fiscalNature,
+        cfopInState: company.fiscalCfopInState,
+        cfopOutState: company.fiscalCfopOutState,
+        icmsCsosn: company.fiscalIcmsCsosn,
+        icmsCst: company.fiscalIcmsCst,
+        origem: company.fiscalOrigin,
+      },
       items,
       totalValue: event.soldValue,
     });
+  }
+
+  /** Reconsulta o provedor e atualiza a nota vigente ainda em processamento. */
+  async refreshInvoice(id: string): Promise<Invoice | null> {
+    await this.events.findByIdOrFail(id);
+    const current = await this.invoices.latestForEvent(id);
+    if (!current) return null;
+    return this.invoices.refreshStatus(current.id);
   }
 
   async getInvoice(id: string): Promise<Invoice | null> {

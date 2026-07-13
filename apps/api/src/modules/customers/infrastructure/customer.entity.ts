@@ -29,4 +29,32 @@ export class CustomerEntity extends TenantOwnedEntity {
 
   @Column({ type: "text", nullable: true })
   notes!: string | null;
+
+  // Endereço fiscal ESTRUTURADO (destinatário da NF-e; a NFC-e dispensa).
+  @Column({ name: "state_registration", type: "varchar", length: 20, nullable: true })
+  stateRegistration!: string | null;
+
+  @Column({ name: "address_street", type: "varchar", length: 160, nullable: true })
+  addressStreet!: string | null;
+
+  @Column({ name: "address_number", type: "varchar", length: 20, nullable: true })
+  addressNumber!: string | null;
+
+  @Column({ name: "address_complement", type: "varchar", length: 80, nullable: true })
+  addressComplement!: string | null;
+
+  @Column({ name: "address_neighborhood", type: "varchar", length: 80, nullable: true })
+  addressNeighborhood!: string | null;
+
+  @Column({ name: "address_city", type: "varchar", length: 80, nullable: true })
+  addressCity!: string | null;
+
+  @Column({ name: "address_state", type: "varchar", length: 2, nullable: true })
+  addressState!: string | null;
+
+  @Column({ name: "address_zip", type: "varchar", length: 9, nullable: true })
+  addressZip!: string | null;
+
+  @Column({ name: "city_code", type: "varchar", length: 7, nullable: true })
+  cityCode!: string | null;
 }

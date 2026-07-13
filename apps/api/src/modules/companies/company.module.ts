@@ -58,6 +58,13 @@ function toFiscal(c: CompanyEntity): CompanyFiscalSettings {
     addressZip: c.fiscalAddressZip,
     cityCode: c.fiscalCityCode,
     invoiceAutoEmit: c.invoiceAutoEmit,
+    environment: c.fiscalEnvironment,
+    naturezaOperacao: c.fiscalNature,
+    cfopInState: c.fiscalCfopInState,
+    cfopOutState: c.fiscalCfopOutState,
+    icmsCsosn: c.fiscalIcmsCsosn,
+    icmsCst: c.fiscalIcmsCst,
+    origem: c.fiscalOrigin,
   };
 }
 
@@ -163,6 +170,13 @@ export class CompanyService {
     company.fiscalAddressZip = input.addressZip ?? null;
     company.fiscalCityCode = input.cityCode ?? null;
     company.invoiceAutoEmit = input.invoiceAutoEmit;
+    company.fiscalEnvironment = input.environment;
+    company.fiscalNature = input.naturezaOperacao ?? null;
+    company.fiscalCfopInState = input.cfopInState ?? null;
+    company.fiscalCfopOutState = input.cfopOutState ?? null;
+    company.fiscalIcmsCsosn = input.icmsCsosn ?? null;
+    company.fiscalIcmsCst = input.icmsCst ?? null;
+    company.fiscalOrigin = input.origem ?? null;
     return toFiscal(await this.companies.save(company));
   }
 

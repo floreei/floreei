@@ -44,6 +44,15 @@ const empty = {
   address: "",
   notes: "",
   channel: "RETAIL" as SalesChannel,
+  stateRegistration: "",
+  addressStreet: "",
+  addressNumber: "",
+  addressComplement: "",
+  addressNeighborhood: "",
+  addressCity: "",
+  addressState: "",
+  addressZip: "",
+  cityCode: "",
 };
 
 export function CustomerDialog({
@@ -70,9 +79,20 @@ export function CustomerDialog({
         address: customer?.address ?? "",
         notes: customer?.notes ?? "",
         channel: customer?.channel ?? defaultChannel ?? "RETAIL",
+        stateRegistration: customer?.stateRegistration ?? "",
+        addressStreet: customer?.addressStreet ?? "",
+        addressNumber: customer?.addressNumber ?? "",
+        addressComplement: customer?.addressComplement ?? "",
+        addressNeighborhood: customer?.addressNeighborhood ?? "",
+        addressCity: customer?.addressCity ?? "",
+        addressState: customer?.addressState ?? "",
+        addressZip: customer?.addressZip ?? "",
+        cityCode: customer?.cityCode ?? "",
       });
     }
   }, [open, customer, defaultChannel, form]);
+
+  const channel = form.watch("channel");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,6 +195,50 @@ export function CustomerDialog({
           <Field label="Endereço de entrega" htmlFor="c-address" optional>
             <Input id="c-address" {...form.register("address")} />
           </Field>
+
+          {channel === "WHOLESALE" ? (
+            <div className="space-y-4 rounded-lg border border-border/70 p-4">
+              <div>
+                <p className="text-sm font-medium">Endereço fiscal (NF-e)</p>
+                <p className="text-xs text-muted-foreground">
+                  Obrigatório para emitir NF-e no atacado a este cliente.
+                </p>
+              </div>
+              <Field label="Inscrição Estadual" htmlFor="c-ie" optional hint='Deixe "ISENTO" se não tiver.'>
+                <Input id="c-ie" {...form.register("stateRegistration")} />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                <Field label="Logradouro" htmlFor="c-street" optional>
+                  <Input id="c-street" {...form.register("addressStreet")} />
+                </Field>
+                <Field label="Número" htmlFor="c-number" optional>
+                  <Input id="c-number" {...form.register("addressNumber")} />
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Complemento" htmlFor="c-complement" optional>
+                  <Input id="c-complement" {...form.register("addressComplement")} />
+                </Field>
+                <Field label="Bairro" htmlFor="c-neighborhood" optional>
+                  <Input id="c-neighborhood" {...form.register("addressNeighborhood")} />
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-[2fr_0.7fr_1fr_1fr]">
+                <Field label="Cidade" htmlFor="c-city" optional>
+                  <Input id="c-city" {...form.register("addressCity")} />
+                </Field>
+                <Field label="UF" htmlFor="c-state" optional>
+                  <Input id="c-state" maxLength={2} {...form.register("addressState")} />
+                </Field>
+                <Field label="CEP" htmlFor="c-zip" optional>
+                  <Input id="c-zip" {...form.register("addressZip")} />
+                </Field>
+                <Field label="Cód. IBGE" htmlFor="c-citycode" optional hint="Do município.">
+                  <Input id="c-citycode" {...form.register("cityCode")} />
+                </Field>
+              </div>
+            </div>
+          ) : null}
 
           <Field label="Observações" htmlFor="c-notes" optional>
             <Textarea id="c-notes" rows={3} {...form.register("notes")} />

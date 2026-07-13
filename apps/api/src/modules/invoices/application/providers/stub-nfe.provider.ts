@@ -16,6 +16,8 @@ const NAO_CONFIGURADO =
  */
 @Injectable()
 export class StubNfeProvider implements NfeProviderPort {
+  readonly name = "STUB";
+
   async emit(): Promise<NfeEmissionResult> {
     return { status: "REJECTED", rejectionReason: NAO_CONFIGURADO, raw: null };
   }

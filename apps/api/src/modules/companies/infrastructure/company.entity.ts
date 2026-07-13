@@ -121,6 +121,29 @@ export class CompanyEntity extends BaseEntity {
   @Column({ name: "invoice_auto_emit", type: "boolean", default: false })
   invoiceAutoEmit!: boolean;
 
+  // Padrões fiscais aplicados a todas as notas (o gateway calcula o imposto).
+  /** Ambiente de emissão: HOMOLOGACAO (teste) ou PRODUCAO. */
+  @Column({ name: "fiscal_environment", type: "varchar", length: 12, default: "HOMOLOGACAO" })
+  fiscalEnvironment!: "HOMOLOGACAO" | "PRODUCAO";
+
+  @Column({ name: "fiscal_nature", type: "varchar", length: 60, nullable: true })
+  fiscalNature!: string | null;
+
+  @Column({ name: "fiscal_cfop_in_state", type: "varchar", length: 4, nullable: true })
+  fiscalCfopInState!: string | null;
+
+  @Column({ name: "fiscal_cfop_out_state", type: "varchar", length: 4, nullable: true })
+  fiscalCfopOutState!: string | null;
+
+  @Column({ name: "fiscal_icms_csosn", type: "varchar", length: 4, nullable: true })
+  fiscalIcmsCsosn!: string | null;
+
+  @Column({ name: "fiscal_icms_cst", type: "varchar", length: 3, nullable: true })
+  fiscalIcmsCst!: string | null;
+
+  @Column({ name: "fiscal_origin", type: "varchar", length: 1, nullable: true })
+  fiscalOrigin!: string | null;
+
   // ── Plano de preço e features (entitlements) ────────────────────────────────
   /** Plano contratado (null = trial / sem assinatura). */
   @Column({ name: "tier", type: "varchar", length: 16, nullable: true })

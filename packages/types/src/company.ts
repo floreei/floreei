@@ -61,6 +61,15 @@ export const companyFiscalSettingsSchema = z.object({
   cityCode: optional(7), // código IBGE do município, exigido no XML
   /** Emitir a nota automaticamente ao fechar a venda (senão, é manual). */
   invoiceAutoEmit: z.boolean().default(false),
+  // ── Padrões fiscais (aplicados a TODAS as notas; o gateway calcula o imposto) ──
+  /** Ambiente de emissão: homologação (teste, sem valor fiscal) ou produção. */
+  environment: z.enum(["HOMOLOGACAO", "PRODUCAO"]).default("HOMOLOGACAO"),
+  naturezaOperacao: optional(60), // ex.: "Venda de mercadoria"
+  cfopInState: optional(4), // CFOP dentro do estado (ex.: 5102)
+  cfopOutState: optional(4), // CFOP fora do estado (ex.: 6102)
+  icmsCsosn: optional(4), // CSOSN (Simples Nacional, ex.: 102)
+  icmsCst: optional(3), // CST do ICMS (regime normal, ex.: 00)
+  origem: optional(1), // origem da mercadoria (0-8; padrão 0 = nacional)
 });
 export type CompanyFiscalSettingsInput = z.infer<typeof companyFiscalSettingsSchema>;
 
@@ -76,6 +85,13 @@ export interface CompanyFiscalSettings {
   addressZip: string | null;
   cityCode: string | null;
   invoiceAutoEmit: boolean;
+  environment: "HOMOLOGACAO" | "PRODUCAO";
+  naturezaOperacao: string | null;
+  cfopInState: string | null;
+  cfopOutState: string | null;
+  icmsCsosn: string | null;
+  icmsCst: string | null;
+  origem: string | null;
 }
 
 /** Cor no formato hex #RRGGBB. */

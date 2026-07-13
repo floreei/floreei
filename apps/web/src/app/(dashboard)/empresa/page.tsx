@@ -47,6 +47,13 @@ export default function CompanyPage() {
       addressZip: "",
       cityCode: "",
       invoiceAutoEmit: false,
+      environment: "HOMOLOGACAO" as "HOMOLOGACAO" | "PRODUCAO",
+      naturezaOperacao: "",
+      cfopInState: "",
+      cfopOutState: "",
+      icmsCsosn: "",
+      icmsCst: "",
+      origem: "",
     },
   });
 
@@ -90,6 +97,13 @@ export default function CompanyPage() {
         addressZip: fiscal.addressZip ?? "",
         cityCode: fiscal.cityCode ?? "",
         invoiceAutoEmit: fiscal.invoiceAutoEmit,
+        environment: fiscal.environment,
+        naturezaOperacao: fiscal.naturezaOperacao ?? "",
+        cfopInState: fiscal.cfopInState ?? "",
+        cfopOutState: fiscal.cfopOutState ?? "",
+        icmsCsosn: fiscal.icmsCsosn ?? "",
+        icmsCst: fiscal.icmsCst ?? "",
+        origem: fiscal.origem ?? "",
       });
     }
   }, [fiscal, fiscalForm]);
@@ -304,6 +318,54 @@ export default function CompanyPage() {
                 >
                   <Input id="f-citycode" {...fiscalForm.register("cityCode")} />
                 </Field>
+              </div>
+
+              <div className="space-y-4 border-t border-border/70 pt-4">
+                <div>
+                  <p className="text-sm font-medium">Padrões fiscais</p>
+                  <p className="text-xs text-muted-foreground">
+                    Aplicados a todas as notas — o provedor calcula o imposto a
+                    partir daqui e do NCM de cada produto. Na dúvida, confirme com
+                    seu contador.
+                  </p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Ambiente"
+                    htmlFor="f-env"
+                    hint="Homologação é teste (sem valor fiscal). Só use Produção quando estiver pronto."
+                  >
+                    <select
+                      id="f-env"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      {...fiscalForm.register("environment")}
+                    >
+                      <option value="HOMOLOGACAO">Homologação (teste)</option>
+                      <option value="PRODUCAO">Produção</option>
+                    </select>
+                  </Field>
+                  <Field label="Natureza da operação" htmlFor="f-nat" optional>
+                    <Input
+                      id="f-nat"
+                      placeholder="Ex.: Venda de mercadoria"
+                      {...fiscalForm.register("naturezaOperacao")}
+                    />
+                  </Field>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Field label="CFOP dentro do estado" htmlFor="f-cfop-in" optional hint="Ex.: 5102">
+                    <Input id="f-cfop-in" {...fiscalForm.register("cfopInState")} />
+                  </Field>
+                  <Field label="CFOP fora do estado" htmlFor="f-cfop-out" optional hint="Ex.: 6102">
+                    <Input id="f-cfop-out" {...fiscalForm.register("cfopOutState")} />
+                  </Field>
+                  <Field label="CSOSN (Simples)" htmlFor="f-csosn" optional hint="Ex.: 102">
+                    <Input id="f-csosn" {...fiscalForm.register("icmsCsosn")} />
+                  </Field>
+                  <Field label="Origem" htmlFor="f-origem" optional hint="0 = nacional">
+                    <Input id="f-origem" maxLength={1} placeholder="0" {...fiscalForm.register("origem")} />
+                  </Field>
+                </div>
               </div>
 
               <label className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-4">

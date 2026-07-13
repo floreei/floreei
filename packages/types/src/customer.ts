@@ -32,6 +32,16 @@ export const customerInputSchema = z.object({
   notes: optionalText(2000),
   /** Venda direta (varejo) ou atacado — só aparece no seletor do canal correspondente. */
   channel: salesChannelSchema.default("RETAIL"),
+  // ── Endereço fiscal ESTRUTURADO (destinatário da NF-e; a NFC-e dispensa) ──
+  stateRegistration: optionalText(20), // Inscrição Estadual (ou "ISENTO")
+  addressStreet: optionalText(160),
+  addressNumber: optionalText(20),
+  addressComplement: optionalText(80),
+  addressNeighborhood: optionalText(80),
+  addressCity: optionalText(80),
+  addressState: optionalText(2), // UF
+  addressZip: optionalText(9),
+  cityCode: optionalText(7), // código IBGE do município, exigido no XML da NF-e
 });
 export type CustomerInput = z.infer<typeof customerInputSchema>;
 
@@ -53,6 +63,15 @@ export interface Customer {
   address: string | null;
   notes: string | null;
   channel: SalesChannel;
+  stateRegistration: string | null;
+  addressStreet: string | null;
+  addressNumber: string | null;
+  addressComplement: string | null;
+  addressNeighborhood: string | null;
+  addressCity: string | null;
+  addressState: string | null;
+  addressZip: string | null;
+  cityCode: string | null;
   createdAt: string;
   updatedAt: string;
 }

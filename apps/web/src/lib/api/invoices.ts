@@ -9,6 +9,10 @@ export function useInvoice(eventId: string | undefined) {
     queryKey: [KEY, eventId],
     queryFn: () => api.get<Invoice | null>(`/events/${eventId}/invoice`),
     enabled: Boolean(eventId),
+    // Emissão é assíncrona — enquanto o gateway processa, refaz a consulta
+    // sozinho pra a autorização/rejeição aparecer sem recarregar a página.
+    refetchInterval: (query) =>
+      query.state.data?.status === "PROCESSING" ? 5000 : false,
   });
 }
 
@@ -24,6 +28,15 @@ export function useEmitInvoice(eventId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.post<Invoice>(`/events/${eventId}/invoice`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY, eventId] }),
+  });
+}
+
+export function useRefreshInvoice(eventId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<Invoice | null>(`/events/${eventId}/invoice/refresh`),
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY, eventId] }),
   });
 }

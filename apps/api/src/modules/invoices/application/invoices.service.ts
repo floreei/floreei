@@ -5,6 +5,7 @@ import { InvoiceRepository } from "../infrastructure/invoice.repository";
 import {
   NFE_PROVIDER,
   type NfeEmissionResult,
+  type NfeFiscalDefaults,
   type NfeIssuerData,
   type NfeItemData,
   type NfeProviderPort,
@@ -16,6 +17,7 @@ export interface EmitInvoiceInput {
   channel: SalesChannel;
   issuer: NfeIssuerData;
   recipient: NfeRecipientData | null;
+  fiscalDefaults: NfeFiscalDefaults;
   items: NfeItemData[];
   totalValue: number;
 }
@@ -63,6 +65,7 @@ export class InvoicesService {
       eventId: input.eventId,
       documentType,
       status: "PROCESSING",
+      provider: this.provider.name,
       requestedAt: new Date(),
     });
     const saved = await this.invoices.save(entity);
@@ -70,9 +73,11 @@ export class InvoicesService {
     let result: NfeEmissionResult;
     try {
       result = await this.provider.emit({
+        ref: saved.id,
         documentType,
         issuer: input.issuer,
         recipient: input.recipient,
+        fiscalDefaults: input.fiscalDefaults,
         items: input.items,
         totalValue: input.totalValue,
       });
@@ -133,6 +138,51 @@ export class InvoicesService {
       rawResponse: result.raw ?? entity.rawResponse,
     });
     return toInvoice(await this.invoices.findByIdOrFail(invoiceId));
+  }
+
+  /**
+   * Reconsulta o provedor e atualiza uma nota ainda em processamento (escopada
+   * ao tenant — chamada de uma rota autenticada). Emissão de NF-e/NFC-e é
+   * assíncrona; isto é o fallback do webhook (botão "Atualizar status").
+   */
+  async refreshStatus(invoiceId: string): Promise<Invoice> {
+    const entity = await this.invoices.findByIdOrFail(invoiceId);
+    if (entity.status !== "PROCESSING" || !entity.providerInvoiceId) {
+      return toInvoice(entity);
+    }
+    const result = await this.provider.checkStatus(entity.providerInvoiceId);
+    await this.invoices.updateById(invoiceId, this.statusFields(result));
+    return toInvoice(await this.invoices.findByIdOrFail(invoiceId));
+  }
+
+  /**
+   * Aplica o status a partir do webhook do provedor (SEM tenant no contexto).
+   * O `ref` é o id da nota; reconsulta o provedor pra ter o dado autoritativo.
+   */
+  async applyStatusByRef(ref: string): Promise<void> {
+    const entity = await this.invoices.findByIdUnscoped(ref);
+    if (!entity || entity.status !== "PROCESSING") return;
+    const result = await this.provider.checkStatus(ref);
+    await this.invoices.updateByIdUnscoped(ref, this.statusFields(result));
+  }
+
+  private statusFields(result: {
+    status: Invoice["status"];
+    accessKey?: string | null;
+    protocol?: string | null;
+    xmlUrl?: string | null;
+    danfeUrl?: string | null;
+    rejectionReason?: string | null;
+  }): Partial<InvoiceEntity> {
+    return {
+      status: result.status,
+      accessKey: result.accessKey ?? null,
+      protocol: result.protocol ?? null,
+      xmlUrl: result.xmlUrl ?? null,
+      danfeUrl: result.danfeUrl ?? null,
+      rejectionReason: result.rejectionReason ?? null,
+      issueDate: result.status === "AUTHORIZED" ? new Date() : null,
+    };
   }
 
   async latestForEvent(eventId: string): Promise<Invoice | null> {

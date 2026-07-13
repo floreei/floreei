@@ -137,6 +137,13 @@ export class EventsController {
   }
 
   @RequiresFeature("INVOICING")
+  @Post(":id/invoice/refresh")
+  @HttpCode(200)
+  refreshInvoice(@Param("id", ParseUUIDPipe) id: string) {
+    return this.events.refreshInvoice(id);
+  }
+
+  @RequiresFeature("INVOICING")
   @Get(":id/invoices")
   getInvoiceHistory(@Param("id", ParseUUIDPipe) id: string) {
     return this.events.getInvoiceHistory(id);
