@@ -129,7 +129,8 @@ interface CashMovementLike {
 
 export default function InicioPage() {
   const { user } = useAuth();
-  const { openSale } = useQuickSale();
+  const { openSaleChooser } = useQuickSale();
+  const hasWholesale = (user?.access?.features ?? []).includes("WHOLESALE");
   const { data: finance, isLoading: loadingFin } = useFinanceSummary();
 
   const [period, setPeriod] = useState<Period>("month");
@@ -181,8 +182,8 @@ export default function InicioPage() {
         <ActionButton
           icon={ShoppingCart}
           label="Nova venda"
-          hint="Venda direta / entrega"
-          onClick={openSale}
+          hint={hasWholesale ? "Direta ou atacado" : "Venda direta / entrega"}
+          onClick={openSaleChooser}
           primary
         />
         <ActionButton

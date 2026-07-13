@@ -29,7 +29,7 @@ const TABS_AFTER = [
  */
 export function BottomNav() {
   const pathname = usePathname();
-  const { openSale } = useQuickSale();
+  const { openSaleChooser } = useQuickSale();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href: string) =>
@@ -59,7 +59,7 @@ export function BottomNav() {
         <div className="relative">
           <button
             type="button"
-            onClick={openSale}
+            onClick={openSaleChooser}
             aria-label="Nova venda"
             className="absolute left-1/2 top-0 flex h-14 w-14 -translate-x-1/2 -translate-y-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform active:scale-95 motion-reduce:active:scale-100"
           >

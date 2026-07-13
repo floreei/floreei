@@ -31,7 +31,7 @@ const kindLabels: Record<CashMovement["kind"], string> = {
 
 export default function CaixaPage() {
   const [period, setPeriod] = useState<"day" | "week" | "month" | "custom">(
-    "day",
+    "month",
   );
   const [customFrom, setCustomFrom] = useState(() => localISO(new Date()));
   const [customTo, setCustomTo] = useState(() => localISO(new Date()));
