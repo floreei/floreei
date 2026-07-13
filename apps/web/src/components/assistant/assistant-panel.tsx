@@ -1,7 +1,15 @@
 "use client";
 
 import type { AiMessage, AssistantDraft } from "@sistema-flores/types";
-import { Mic, Search, Send, ShoppingBasket, Sparkles, Truck } from "lucide-react";
+import {
+  ExternalLink,
+  Mic,
+  Search,
+  Send,
+  ShoppingBasket,
+  Sparkles,
+  Truck,
+} from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -193,10 +201,11 @@ export function AssistantPanel({
                     {b.href ? (
                       <Link
                         href={b.href}
-                        className="mt-1 block font-medium underline"
                         onClick={() => onOpenChange(false)}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                       >
-                        Ver compra →
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Abrir a compra
                       </Link>
                     ) : null}
                   </div>
