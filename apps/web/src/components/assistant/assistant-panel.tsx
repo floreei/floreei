@@ -11,6 +11,7 @@ import { ApiError } from "@/lib/api/client";
 import { useAssistantChat } from "@/lib/api/assistant";
 import { useSpeech } from "@/lib/assistant/use-speech";
 import { cn } from "@/lib/utils";
+import { AssistantMessage } from "./assistant-message";
 import { AssistantReviewDialog } from "./assistant-review-dialog";
 
 interface Bubble {
@@ -132,7 +133,11 @@ export function AssistantPanel({
                         : "bg-muted",
                     )}
                   >
-                    {b.text}
+                    {b.role === "assistant" ? (
+                      <AssistantMessage text={b.text} />
+                    ) : (
+                      b.text
+                    )}
                     {b.href ? (
                       <Link
                         href={b.href}
