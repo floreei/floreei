@@ -175,6 +175,23 @@ describe("Assistente de IA (e2e)", () => {
       .expect(429);
   });
 
+  it("executa consultas de leitura (financeiro, vendas, estoque) sem erro", async () => {
+    for (const [toolName, question] of [
+      ["finance_status", "quanto tenho a receber?"],
+      ["sales_summary", "quanto faturei esse mês?"],
+      ["stock_status", "o que está acabando?"],
+      ["find_sales", "minhas últimas vendas"],
+    ] as const) {
+      ai.queue = [tool(toolName, {}), { text: `resposta de ${toolName}` }];
+      const res = await http
+        .post("/api/assistant/chat")
+        .set(bearer(token))
+        .send({ messages: [{ role: "user", text: question }] })
+        .expect(201);
+      expect(res.body.reply).toBe(`resposta de ${toolName}`);
+    }
+  });
+
   it("faz uma pergunta quando a IA responde em texto (sem proposta)", async () => {
     ai.queue = [{ text: "Qual fornecedor você quer usar?" }];
     const chat = await http

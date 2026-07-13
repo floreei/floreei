@@ -31,5 +31,6 @@ class ReportsController {
   ],
   controllers: [ReportsController],
   providers: [ReportsService],
+  exports: [ReportsService],
 })
 export class ReportsModule {}

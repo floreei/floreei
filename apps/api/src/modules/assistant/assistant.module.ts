@@ -2,7 +2,11 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { CatalogModule } from "../catalog/catalog.module";
+import { EventsModule } from "../events/events.module";
+import { FinanceModule } from "../finance/finance.module";
 import { PurchasesModule } from "../purchases/purchases.module";
+import { ReportsModule } from "../reports/reports.module";
+import { StockModule } from "../stock/stock.module";
 import { SuppliersModule } from "../suppliers/suppliers.module";
 import { AI_PROVIDER, NullAiProvider } from "./ai/ai-provider";
 import { AnthropicAiProvider } from "./ai/anthropic.provider";
@@ -24,6 +28,10 @@ import { AssistantController } from "./presentation/assistant.controller";
     SuppliersModule,
     CatalogModule,
     PurchasesModule,
+    EventsModule,
+    FinanceModule,
+    ReportsModule,
+    StockModule,
   ],
   controllers: [AssistantController],
   providers: [

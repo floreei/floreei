@@ -31,7 +31,8 @@ interface Bubble {
 const EXAMPLES = [
   "Pedido de 10 hortênsias para o fornecedor Holambra",
   "Marca o último pedido como entregue",
-  "Quanto comprei este mês?",
+  "Quanto faturei essa semana?",
+  "O que está acabando no estoque?",
 ];
 
 export function AssistantPanel({
@@ -156,7 +157,7 @@ export function AssistantPanel({
                     Marcar como entregue ou mudar a data de uma compra
                   </Capability>
                   <Capability icon={Search}>
-                    Consultar quanto e o que você comprou
+                    Consultar vendas/faturamento, financeiro e estoque
                   </Capability>
                 </div>
 

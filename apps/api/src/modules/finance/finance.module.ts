@@ -157,6 +157,6 @@ class FinanceController {
     CashflowService,
     PaymentRepository,
   ],
-  exports: [PaymentRepository],
+  exports: [FinanceService, PaymentRepository],
 })
 export class FinanceModule {}

@@ -6,8 +6,13 @@ import {
   type AiToolCall,
   type AssistantDraft,
 } from "@sistema-flores/types";
+import { roundMoney } from "../../../common/money/money";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
+import { EventsService } from "../../events/application/events.service";
+import { FinanceService } from "../../finance/application/finance.service";
 import { PurchasesService } from "../../purchases/application/purchases.service";
+import { ReportsService } from "../../reports/reports.service";
+import { StockService } from "../../stock/application/stock.service";
 import { SupplierRepository } from "../../suppliers/infrastructure/supplier.repository";
 import type { AiToolDef } from "../ai/ai-provider";
 
@@ -27,6 +32,10 @@ export class AssistantTools {
     private readonly suppliers: SupplierRepository,
     private readonly products: ProductRepository,
     private readonly purchases: PurchasesService,
+    private readonly events: EventsService,
+    private readonly finance: FinanceService,
+    private readonly reports: ReportsService,
+    private readonly stock: StockService,
   ) {}
 
   /** Definições (JSON Schema) expostas ao modelo. */
@@ -85,6 +94,49 @@ export class AssistantTools {
           type: "object",
           properties: { id: { type: "string" } },
           required: ["id"],
+        },
+      },
+      {
+        name: "sales_summary",
+        description:
+          "Faturamento do período (total vendido, nº de vendas, top produtos). Use para 'quanto vendi/faturei'.",
+        parameters: {
+          type: "object",
+          properties: {
+            from: { type: "string", description: "AAAA-MM-DD" },
+            to: { type: "string", description: "AAAA-MM-DD" },
+          },
+        },
+      },
+      {
+        name: "find_sales",
+        description: "Lista vendas recentes (filtros opcionais de data/canal/cliente).",
+        parameters: {
+          type: "object",
+          properties: {
+            from: { type: "string" },
+            to: { type: "string" },
+            channel: { type: "string", enum: ["RETAIL", "WHOLESALE"] },
+            customerId: { type: "string" },
+          },
+        },
+      },
+      {
+        name: "finance_status",
+        description:
+          "Situação financeira: a receber, a pagar, recebido e pago no mês. Use para 'quanto tenho a receber/pagar'.",
+        parameters: { type: "object", properties: {} },
+      },
+      {
+        name: "stock_status",
+        description:
+          "Estoque atual. `query` filtra por nome; `lowOnly` mostra só o que está baixo. Use para 'quanto tenho de rosa' ou 'o que está acabando'.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            lowOnly: { type: "boolean" },
+          },
         },
       },
       {
@@ -230,6 +282,72 @@ export class AssistantTools {
             unitPrice: i.unitPrice,
           })),
         });
+      }
+      case "sales_summary": {
+        const report = await this.reports.generate(
+          input.from as string | undefined,
+          input.to as string | undefined,
+        );
+        return JSON.stringify({
+          from: report.from,
+          to: report.to,
+          revenue: report.summary.revenue,
+          salesCount: report.summary.eventsCount,
+          received: report.summary.received,
+          grossProfit: report.summary.grossProfit,
+          topProducts: report.topProducts.slice(0, 5).map((p) => ({
+            name: p.name,
+            revenue: p.revenue,
+          })),
+        });
+      }
+      case "find_sales": {
+        const page = await this.events.list({
+          from: input.from as string | undefined,
+          to: input.to as string | undefined,
+          channel: input.channel as "RETAIL" | "WHOLESALE" | undefined,
+          customerId: input.customerId as string | undefined,
+          page: 1,
+          pageSize: 8,
+        });
+        return JSON.stringify({
+          sales: page.data.map((e) => ({
+            id: e.id,
+            customerName: e.customer?.name ?? null,
+            date: e.date,
+            channel: e.channel,
+            total: e.soldValue,
+            received: e.receivedValue,
+            balanceDue: roundMoney(e.soldValue - e.receivedValue),
+          })),
+        });
+      }
+      case "finance_status": {
+        const s = await this.finance.summary();
+        return JSON.stringify({
+          totalReceivable: s.totalReceivable,
+          totalPayable: s.totalPayable,
+          receivedThisMonth: s.receivedThisMonth,
+          paidThisMonth: s.paidThisMonth,
+          netThisMonth: s.netThisMonth,
+        });
+      }
+      case "stock_status": {
+        const overview = await this.stock.overview();
+        const q = String(input.query ?? "").toLowerCase();
+        const lowOnly = input.lowOnly === true;
+        const levels = overview.levels
+          .filter((l) => (q ? l.productName.toLowerCase().includes(q) : true))
+          .filter((l) => (lowOnly ? l.low : true))
+          .slice(0, 12)
+          .map((l) => ({
+            name: l.productName,
+            unit: l.unit,
+            onHand: l.onHand,
+            minStock: l.minStock,
+            low: l.low,
+          }));
+        return JSON.stringify({ levels });
       }
       default:
         return JSON.stringify({ error: `Ferramenta desconhecida: ${call.name}` });
