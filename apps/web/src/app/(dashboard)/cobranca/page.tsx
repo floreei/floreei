@@ -50,7 +50,7 @@ function previewMessage(
     "",
     `Identificamos um pagamento em aberto da sua compra na ${company || "sua floricultura"}, no valor de R$ 150,00, que vence hoje (dd/mm/aaaa).`,
     "",
-    "Veja os detalhes e o comprovante aqui: https://app.floreei.com.br/c/…",
+    "Acesse os detalhes e as formas de pagamento aqui: https://app.floreei.com.br/c/…",
   ];
   if (method === "PIX" && pixKey)
     lines.push("", `Se preferir, o PIX (copia e cola) é: ${pixKey}`);

@@ -47,7 +47,7 @@ export function buildDunningMessage(
   }
 
   if (r.link) {
-    lines.push("", `Veja os detalhes e o comprovante aqui: ${r.link}`);
+    lines.push("", `Acesse os detalhes e as formas de pagamento aqui: ${r.link}`);
   }
 
   if (s.paymentMethod === "PIX" && s.pixKey) {

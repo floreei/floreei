@@ -226,6 +226,7 @@ export default function PublicCobrancaPage() {
               merchantName={cobranca.company.name}
               amount={cobranca.amountDue}
               txid={cobranca.reference}
+              copyable
             />
           ) : null}
 
