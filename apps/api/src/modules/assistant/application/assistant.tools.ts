@@ -8,6 +8,7 @@ import {
   CREATE_PRODUCT,
   CREATE_PURCHASE,
   CREATE_SALE,
+  CREATE_SALES_BATCH,
   EDIT_PURCHASE,
   REGISTER_PAYMENT,
   type AiToolCall,
@@ -30,6 +31,7 @@ const DRAFT_KIND: Record<string, string> = {
   propose_create_purchase: CREATE_PURCHASE,
   propose_edit_purchase: EDIT_PURCHASE,
   propose_create_sale: CREATE_SALE,
+  propose_create_sales_batch: CREATE_SALES_BATCH,
   propose_create_customer: CREATE_CUSTOMER,
   propose_create_product: CREATE_PRODUCT,
   propose_create_arrangement: CREATE_ARRANGEMENT,
@@ -75,6 +77,48 @@ export class AssistantTools {
         },
       },
       supplierName: { type: "string" },
+    };
+    // Propriedades de uma venda (compartilhadas entre venda única e lote).
+    const saleProps: Record<string, unknown> = {
+      channel: { type: "string", enum: ["RETAIL", "WHOLESALE"] },
+      customerId: { type: ["string", "null"] },
+      newCustomer: {
+        type: ["object", "null"],
+        properties: { name: { type: "string" }, whatsapp: { type: "string" } },
+      },
+      customerName: { type: "string", description: "'Consumidor' se sem cliente" },
+      amount: { type: "number", description: "valor livre (sem itens)" },
+      title: { type: "string" },
+      newProducts: {
+        type: "array",
+        description: "produtos a criar (referenciados por newProductRef nos itens)",
+        items: {
+          type: "object",
+          properties: { name: { type: "string" }, unit: { type: "string" } },
+          required: ["name"],
+        },
+      },
+      items: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            productId: { type: ["string", "null"] },
+            arrangementId: { type: ["string", "null"] },
+            newProductRef: { type: ["number", "null"], description: "índice em newProducts" },
+            description: { type: "string" },
+            quantity: { type: "number" },
+            unit: { type: "string" },
+            unitSalePrice: { type: "number", description: "0 = usa o preço padrão do produto" },
+          },
+          required: ["description", "quantity"],
+        },
+      },
+      paid: { type: "boolean", description: "recebida agora (à vista)" },
+      delivered: { type: "boolean", description: "já entregue" },
+      date: { type: "string", description: "AAAA-MM-DD" },
+      deliveryDate: { type: "string", description: "entrega prevista" },
+      dueDate: { type: "string", description: "vencimento se a prazo" },
     };
     return [
       {
@@ -238,43 +282,30 @@ export class AssistantTools {
       {
         name: "propose_create_sale",
         description:
-          "Propõe registrar uma VENDA (varejo ou atacado) para o usuário aprovar. Informe cliente (existente, novo, ou consumidor), valor livre (amount+title) OU itens, se já foi paga e se já foi entregue.",
+          "Propõe registrar UMA venda (varejo ou atacado) para o usuário aprovar. Cliente existente/novo/consumidor; valor livre (amount) OU itens; se já foi paga e entregue.",
+        parameters: {
+          type: "object",
+          properties: saleProps,
+          required: ["customerName"],
+        },
+      },
+      {
+        name: "propose_create_sales_batch",
+        description:
+          "Propõe registrar VÁRIAS vendas de uma vez (uma por cliente) — use quando o usuário mandar uma lista. Busque cada cliente/produto antes; produtos que não existirem entram em newProducts.",
         parameters: {
           type: "object",
           properties: {
-            channel: { type: "string", enum: ["RETAIL", "WHOLESALE"] },
-            customerId: { type: ["string", "null"] },
-            newCustomer: {
-              type: ["object", "null"],
-              properties: {
-                name: { type: "string" },
-                whatsapp: { type: "string" },
-              },
-            },
-            customerName: { type: "string", description: "'Consumidor' se sem cliente" },
-            amount: { type: "number", description: "valor livre da venda" },
-            title: { type: "string", description: "descrição do valor livre" },
-            items: {
+            sales: {
               type: "array",
               items: {
                 type: "object",
-                properties: {
-                  productId: { type: ["string", "null"] },
-                  arrangementId: { type: ["string", "null"] },
-                  description: { type: "string" },
-                  quantity: { type: "number" },
-                  unit: { type: "string" },
-                  unitSalePrice: { type: "number" },
-                },
-                required: ["description", "quantity"],
+                properties: saleProps,
+                required: ["customerName"],
               },
             },
-            paid: { type: "boolean", description: "recebida agora (à vista)" },
-            delivered: { type: "boolean", description: "já entregue" },
-            date: { type: "string", description: "AAAA-MM-DD" },
-            dueDate: { type: "string", description: "vencimento se a prazo" },
           },
-          required: ["customerName"],
+          required: ["sales"],
         },
       },
       {

@@ -15,6 +15,7 @@ import {
   CREATE_PRODUCT,
   CREATE_PURCHASE,
   CREATE_SALE,
+  CREATE_SALES_BATCH,
   customerInputSchema,
   expenseInputSchema,
   paymentInputSchema,
@@ -27,6 +28,9 @@ import {
   type AdjustStockDraft,
   type AiMessage,
   type AssistantChatResponse,
+  type BatchSale,
+  type CreateSalesBatchDraft,
+  type Event,
   type AssistantDraft,
   type AssistantExecuteResult,
   type CreateArrangementDraft,
@@ -55,13 +59,14 @@ import { AssistantTools } from "./assistant.tools";
 
 const MAX_STEPS = 6;
 const DEFAULT_CATEGORY = "Diversos";
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const systemPrompt = () => `Você é o assistente do Floreei, um sistema para floriculturas.
 Hoje é ${new Date().toISOString().slice(0, 10)}.
 Ajude o lojista por conversa natural, do usuário leigo ao expert.
 Ações de ESCRITA (sempre via propose_*, o usuário aprova):
 - Compras: propose_create_purchase / propose_edit_purchase.
-- Vendas (varejo/atacado): propose_create_sale (valor livre ou itens; cliente existente/novo/consumidor).
+- Vendas (varejo/atacado): propose_create_sale (valor livre ou itens; cliente existente/novo/consumidor). Se o usuário mandar uma LISTA (vários clientes de uma vez), use propose_create_sales_batch (uma venda por cliente); busque cada cliente/produto; produtos que não existirem vão em newProducts; item sem preço usa 0 (pega o padrão do produto).
 - Cadastros: propose_create_customer, propose_create_product, propose_create_arrangement (buquê).
 - Estoque: propose_adjust_stock (newBalance = saldo FINAL; consulte o atual com stock_status e some/subtraia).
 - Financeiro: propose_create_expense (despesa a pagar); propose_register_payment (receber de cliente = target EVENT via find_sales; pagar fornecedor = target PURCHASE via find_purchases).
@@ -194,6 +199,8 @@ export class AssistantService {
         return this.executeCreate(draft);
       case CREATE_SALE:
         return this.executeCreateSale(draft);
+      case CREATE_SALES_BATCH:
+        return this.executeCreateSalesBatch(draft);
       case CREATE_CUSTOMER:
         return this.executeCreateCustomer(draft);
       case CREATE_PRODUCT:
@@ -409,69 +416,110 @@ export class AssistantService {
   private async executeCreateSale(
     draft: CreateSaleDraft,
   ): Promise<AssistantExecuteResult> {
-    if ((draft.amount ?? 0) <= 0 && (draft.items?.length ?? 0) === 0) {
+    const { event, createdCustomer, createdProducts } =
+      await this.createOneSale(draft);
+    const href =
+      draft.channel === "WHOLESALE" ? `/atacado/${event.id}` : `/vendas/${event.id}`;
+    return {
+      recordId: event.id,
+      href,
+      created: { supplier: false, products: createdProducts, customer: createdCustomer },
+      message: draft.paid
+        ? "Venda registrada e recebida."
+        : "Venda registrada (a prazo).",
+    };
+  }
+
+  private async executeCreateSalesBatch(
+    draft: CreateSalesBatchDraft,
+  ): Promise<AssistantExecuteResult> {
+    let firstId = "";
+    let customers = 0;
+    for (const sale of draft.sales) {
+      const { event, createdCustomer } = await this.createOneSale(sale);
+      if (!firstId) firstId = event.id;
+      if (createdCustomer) customers += 1;
+    }
+    const n = draft.sales.length;
+    return {
+      recordId: firstId,
+      href: `/vendas`,
+      created: { supplier: false, products: 0, customer: customers > 0 },
+      message: `${n} ${n === 1 ? "venda registrada" : "vendas registradas"}.`,
+    };
+  }
+
+  /** Cria uma venda (cliente/produtos inline + recebimento à vista). */
+  private async createOneSale(
+    sale: BatchSale,
+  ): Promise<{ event: Event; createdCustomer: boolean; createdProducts: number }> {
+    if ((sale.amount ?? 0) <= 0 && (sale.items?.length ?? 0) === 0) {
       throw new BadRequestException("Informe o valor ou os itens da venda.");
     }
+    const date = sale.date ?? todayISO();
 
-    // 1) Cliente: existente, novo, ou consumidor (sem cliente).
-    let customerId = draft.customerId ?? null;
+    // Cliente: existente, novo, ou consumidor.
+    let customerId = sale.customerId ?? null;
     let createdCustomer = false;
-    if (!customerId && draft.newCustomer?.name) {
+    if (!customerId && sale.newCustomer?.name) {
       const customer = await this.customersService.create(
         customerInputSchema.parse({
-          name: draft.newCustomer.name,
-          whatsapp: draft.newCustomer.whatsapp,
-          channel: draft.channel,
+          name: sale.newCustomer.name,
+          whatsapp: sale.newCustomer.whatsapp,
+          channel: sale.channel,
         }),
       );
       customerId = customer.id;
       createdCustomer = true;
     }
 
-    // 2) Venda (valor livre ou itens).
-    const sale = await this.eventsService.quickSale(
+    // Produtos novos (categoria "Diversos").
+    const createdProductIds: string[] = [];
+    if (sale.newProducts.length) {
+      const categoryId = await this.defaultCategoryId();
+      for (const np of sale.newProducts) {
+        const product = await this.productsService.create(
+          productInputSchema.parse({ categoryId, name: np.name, unit: np.unit }),
+        );
+        createdProductIds.push(product.id);
+      }
+    }
+
+    const event = await this.eventsService.quickSale(
       quickSaleSchema.parse({
         customerId: customerId ?? undefined,
-        channel: draft.channel,
-        date: draft.date,
-        dueDate: draft.paid ? undefined : draft.dueDate,
-        delivered: draft.delivered,
-        ...(draft.items?.length
+        channel: sale.channel,
+        date,
+        deliveryDate: sale.deliveryDate,
+        dueDate: sale.paid ? undefined : sale.dueDate,
+        delivered: sale.delivered,
+        ...(sale.items?.length
           ? {
-              items: draft.items.map((it) => ({
-                productId: it.productId ?? undefined,
+              items: sale.items.map((it) => ({
+                productId:
+                  it.productId ??
+                  (it.newProductRef != null
+                    ? createdProductIds[it.newProductRef]
+                    : undefined) ??
+                  undefined,
                 arrangementId: it.arrangementId ?? undefined,
                 quantity: it.quantity,
                 saleUnit: it.unit,
                 unitSalePrice: it.unitSalePrice,
               })),
             }
-          : { amount: draft.amount, title: draft.title }),
+          : { amount: sale.amount, title: sale.title }),
       }),
     );
 
-    // 3) À vista → registra o recebimento (retroagido à data da venda).
-    if (draft.paid && sale.soldValue > 0) {
+    if (sale.paid && event.soldValue > 0) {
       await this.paymentsService.receiveForEvent(
-        sale.id,
-        paymentInputSchema.parse({
-          amount: sale.soldValue,
-          method: "PIX",
-          date: draft.date,
-        }),
+        event.id,
+        paymentInputSchema.parse({ amount: event.soldValue, method: "PIX", date }),
       );
     }
 
-    const href =
-      draft.channel === "WHOLESALE" ? `/atacado/${sale.id}` : `/vendas/${sale.id}`;
-    return {
-      recordId: sale.id,
-      href,
-      created: { supplier: false, products: 0, customer: createdCustomer },
-      message: draft.paid
-        ? "Venda registrada e recebida."
-        : "Venda registrada (a prazo).",
-    };
+    return { event, createdCustomer, createdProducts: createdProductIds.length };
   }
 
   private async executeEdit(

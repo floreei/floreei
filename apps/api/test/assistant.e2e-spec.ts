@@ -106,6 +106,55 @@ describe("Assistente de IA (e2e)", () => {
     expect(purchase.body.items[0].productId).toBeTruthy(); // produto criado e vinculado
   });
 
+  it("registra VÁRIAS vendas de uma vez (lote, uma por cliente)", async () => {
+    ai.queue = [
+      tool("propose_create_sales_batch", {
+        sales: [
+          {
+            channel: "RETAIL",
+            customerId: null,
+            newCustomer: { name: "Wesley" },
+            customerName: "Wesley",
+            amount: 90,
+            title: "18 hortênsias azuis",
+            paid: false,
+            delivered: false,
+            date: "2026-07-13",
+          },
+          {
+            channel: "WHOLESALE",
+            customerId: null,
+            newCustomer: { name: "Seu Osmar" },
+            customerName: "Seu Osmar",
+            amount: 50,
+            title: "10 hortênsias",
+            paid: false,
+            delivered: false,
+            date: "2026-07-13",
+          },
+        ],
+      }),
+    ];
+
+    const chat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "registra: Wesley 18 azuis; Seu Osmar 10 no atacado" }] })
+      .expect(201);
+    expect(chat.body.draft.kind).toBe("CREATE_SALES_BATCH");
+    expect(chat.body.draft.sales).toHaveLength(2);
+
+    const exec = await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(chat.body.draft)
+      .expect(201);
+    expect(exec.body.message).toContain("2 vendas");
+
+    const sales = await http.get("/api/events").set(bearer(token)).expect(200);
+    expect(sales.body.total).toBeGreaterThanOrEqual(2);
+  });
+
   it("edita uma compra existente: marca como entregue", async () => {
     const supplier = await http
       .post("/api/suppliers")

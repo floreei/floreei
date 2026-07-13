@@ -118,6 +118,7 @@ export type EditPurchaseDraft = z.infer<typeof editPurchaseDraftSchema>;
 // ── Venda (venda direta ou atacado) ───────────────────────────────────────
 
 export const CREATE_SALE = "CREATE_SALE";
+export const CREATE_SALES_BATCH = "CREATE_SALES_BATCH";
 
 /** Cliente novo (mínimo) que o assistente sugere cadastrar na venda. */
 export const assistantNewCustomerSchema = z.object({
@@ -126,10 +127,12 @@ export const assistantNewCustomerSchema = z.object({
 });
 export type AssistantNewCustomer = z.infer<typeof assistantNewCustomerSchema>;
 
-/** Item de venda: buquê/produto existente ou só descrição + preço. */
+/** Item de venda: produto/buquê existente, produto novo (índice) ou descrição. */
 export const assistantSaleItemSchema = z.object({
   productId: idSchema.nullable().optional(),
   arrangementId: idSchema.nullable().optional(),
+  /** Índice em `newProducts` quando o item é um produto a ser criado. */
+  newProductRef: z.number().int().min(0).nullable().optional(),
   description: z.string().trim().min(1, "Descreva o item").max(200),
   quantity: z.coerce.number().positive("Quantidade deve ser maior que zero"),
   unit: productUnitSchema.optional(),
@@ -137,10 +140,8 @@ export const assistantSaleItemSchema = z.object({
 });
 export type AssistantSaleItem = z.infer<typeof assistantSaleItemSchema>;
 
-// Sem .refine no topo: a união discriminada exige ZodObject puro. A regra
-// "valor OU itens" é validada na execução.
-export const createSaleDraftSchema = z.object({
-  kind: z.literal(CREATE_SALE),
+/** Campos de uma venda (compartilhados entre venda única e lote). */
+const saleFields = {
   channel: salesChannelSchema.default("RETAIL"),
   /** Cliente existente (id) ou novo (`newCustomer`); nenhum = consumidor. */
   customerId: idSchema.nullable().optional(),
@@ -149,16 +150,38 @@ export const createSaleDraftSchema = z.object({
   /** Valor livre (com título) OU itens. */
   amount: moneySchema.optional(),
   title: z.string().trim().max(180).optional(),
+  newProducts: z.array(assistantNewProductSchema).default([]),
   items: z.array(assistantSaleItemSchema).optional(),
   /** Recebido agora (à vista) ou a prazo (fica em contas a receber). */
   paid: z.boolean().default(false),
   /** Já entregue (balcão) ou a entregar. */
   delivered: z.boolean().default(false),
-  date: dateStringSchema,
+  /** Data da venda (padrão: hoje, resolvido na execução). */
+  date: dateStringSchema.optional(),
+  /** Entrega prevista (ex.: "levar na sexta"). */
+  deliveryDate: dateStringSchema.optional(),
   /** Vencimento (só quando a prazo) — referência da cobrança. */
   dueDate: dateStringSchema.optional(),
+};
+
+/** Uma venda dentro de um lote (sem `kind`). */
+export const batchSaleSchema = z.object(saleFields);
+export type BatchSale = z.infer<typeof batchSaleSchema>;
+
+// Sem .refine no topo: a união discriminada exige ZodObject puro. A regra
+// "valor OU itens" é validada na execução.
+export const createSaleDraftSchema = z.object({
+  kind: z.literal(CREATE_SALE),
+  ...saleFields,
 });
 export type CreateSaleDraft = z.infer<typeof createSaleDraftSchema>;
+
+/** Registro de VÁRIAS vendas de uma vez (uma por cliente). */
+export const createSalesBatchDraftSchema = z.object({
+  kind: z.literal(CREATE_SALES_BATCH),
+  sales: z.array(batchSaleSchema).min(1, "Adicione ao menos uma venda").max(40),
+});
+export type CreateSalesBatchDraft = z.infer<typeof createSalesBatchDraftSchema>;
 
 // ── Cadastros e ajustes simples ────────────────────────────────────────────
 
@@ -231,6 +254,7 @@ export const assistantDraftSchema = z.discriminatedUnion("kind", [
   createPurchaseDraftSchema,
   editPurchaseDraftSchema,
   createSaleDraftSchema,
+  createSalesBatchDraftSchema,
   createCustomerDraftSchema,
   createProductDraftSchema,
   createArrangementDraftSchema,

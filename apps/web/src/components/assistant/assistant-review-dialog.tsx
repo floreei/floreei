@@ -3,6 +3,7 @@
 import type {
   AssistantDraft,
   AssistantExecuteResult,
+  BatchSale,
   ProductUnit,
 } from "@sistema-flores/types";
 import { PackageCheck, ShoppingCart, Sparkles, Store, Truck, UserPlus } from "lucide-react";
@@ -194,137 +195,27 @@ export function AssistantReviewDialog({
             </Section>
           </div>
         ) : d.kind === "CREATE_SALE" ? (
-          <div className="space-y-4">
-            {d.newCustomer ? (
-              <Section
-                icon={<UserPlus className="h-4 w-4" />}
-                title="Novo cliente"
-                hint="ainda não existe na base — vamos cadastrar"
-              >
-                <Field label="Nome" htmlFor="rv-cust">
-                  <Input
-                    id="rv-cust"
-                    value={d.newCustomer.name}
-                    onChange={(e) =>
-                      setD({
-                        ...d,
-                        newCustomer: { ...d.newCustomer!, name: e.target.value },
-                        customerName: e.target.value,
-                      })
-                    }
-                  />
-                </Field>
-              </Section>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Cliente:{" "}
-                <span className="font-medium text-foreground">{d.customerName}</span>{" "}
-                · {d.channel === "WHOLESALE" ? "Atacado" : "Venda direta"}
-              </p>
-            )}
-
-            <Section icon={<ShoppingCart className="h-4 w-4" />} title="Venda">
-              {d.items && d.items.length > 0 ? (
-                <div className="space-y-2">
-                  {d.items.map((item, i) => (
-                    <div
-                      key={i}
-                      className="grid grid-cols-[1fr_auto_auto] items-end gap-2 rounded-lg border border-border/60 p-2.5"
-                    >
-                      <p className="min-w-0 truncate text-sm font-medium">
-                        {item.description}
-                      </p>
-                      <label className="text-xs text-muted-foreground">
-                        Qtd.
-                        <Input
-                          type="number"
-                          min={1}
-                          className="mt-1 h-9 w-20"
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const items = [...(d.items ?? [])];
-                            items[i] = { ...items[i], quantity: Number(e.target.value) };
-                            setD({ ...d, items });
-                          }}
-                        />
-                      </label>
-                      <label className="text-xs text-muted-foreground">
-                        Preço unit.
-                        <CurrencyInput
-                          className="mt-1 h-9 w-28"
-                          value={item.unitSalePrice}
-                          onChange={(v) => {
-                            const items = [...(d.items ?? [])];
-                            items[i] = { ...items[i], unitSalePrice: v };
-                            setD({ ...d, items });
-                          }}
-                        />
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Field label="Valor da venda" htmlFor="rv-amount">
-                  <CurrencyInput
-                    id="rv-amount"
-                    value={d.amount ?? 0}
-                    onChange={(v) => setD({ ...d, amount: v })}
-                  />
-                  {d.title ? (
-                    <p className="mt-1 text-xs text-muted-foreground">{d.title}</p>
-                  ) : null}
-                </Field>
-              )}
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field label="Data da venda" htmlFor="rv-sdate">
-                  <Input
-                    id="rv-sdate"
-                    type="date"
-                    value={d.date}
-                    onChange={(e) => setD({ ...d, date: e.target.value })}
-                  />
-                </Field>
-              </div>
-
-              <div className="mt-3 flex flex-col gap-2">
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-primary"
-                    checked={d.paid}
-                    onChange={(e) => setD({ ...d, paid: e.target.checked })}
-                  />
-                  <span className="font-medium">Já pago</span>
-                  <span className="text-muted-foreground">(recebido agora)</span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-primary"
-                    checked={d.delivered}
-                    onChange={(e) => setD({ ...d, delivered: e.target.checked })}
-                  />
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Já entregue</span>
-                </label>
-              </div>
-
-              {!d.paid ? (
-                <Field
-                  label="Vencimento (opcional)"
-                  htmlFor="rv-sdue"
-                  className="mt-3"
-                >
-                  <Input
-                    id="rv-sdue"
-                    type="date"
-                    value={d.dueDate ?? ""}
-                    onChange={(e) => setD({ ...d, dueDate: e.target.value })}
-                  />
-                </Field>
-              ) : null}
-            </Section>
+          <SaleDraftEditor
+            sale={d}
+            onChange={(s) => setD({ ...s, kind: "CREATE_SALE" } as AssistantDraft)}
+          />
+        ) : d.kind === "CREATE_SALES_BATCH" ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {d.sales.length} vendas — revise e ajuste cada uma antes de confirmar.
+            </p>
+            {d.sales.map((sale, i) => (
+              <SaleDraftEditor
+                key={i}
+                sale={sale}
+                index={i + 1}
+                onChange={(s) => {
+                  const sales = [...d.sales];
+                  sales[i] = s;
+                  setD({ ...d, sales });
+                }}
+              />
+            ))}
           </div>
         ) : d.kind === "EDIT_PURCHASE" ? (
           <Section icon={<PackageCheck className="h-4 w-4" />} title={d.purchaseLabel}>
@@ -385,6 +276,158 @@ function Section({
         ) : null}
       </div>
       {children}
+    </div>
+  );
+}
+
+/** Editor de uma venda (usado na venda única e em cada venda do lote). */
+function SaleDraftEditor({
+  sale,
+  onChange,
+  index,
+}: {
+  sale: BatchSale;
+  onChange: (s: BatchSale) => void;
+  index?: number;
+}) {
+  const wrap = (patch: Partial<BatchSale>) => onChange({ ...sale, ...patch });
+  const setItem = (
+    i: number,
+    patch: Partial<NonNullable<BatchSale["items"]>[number]>,
+  ) => {
+    const items = [...(sale.items ?? [])];
+    items[i] = { ...items[i], ...patch };
+    wrap({ items });
+  };
+
+  const body = (
+    <div className="space-y-4">
+      {sale.newCustomer ? (
+        <Section
+          icon={<UserPlus className="h-4 w-4" />}
+          title="Novo cliente"
+          hint="ainda não existe na base — vamos cadastrar"
+        >
+          <Field label="Nome" htmlFor={`rv-cust-${index ?? 0}`}>
+            <Input
+              id={`rv-cust-${index ?? 0}`}
+              value={sale.newCustomer.name}
+              onChange={(e) =>
+                wrap({
+                  newCustomer: { ...sale.newCustomer!, name: e.target.value },
+                  customerName: e.target.value,
+                })
+              }
+            />
+          </Field>
+        </Section>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Cliente:{" "}
+          <span className="font-medium text-foreground">{sale.customerName}</span> ·{" "}
+          {sale.channel === "WHOLESALE" ? "Atacado" : "Venda direta"}
+        </p>
+      )}
+
+      <Section icon={<ShoppingCart className="h-4 w-4" />} title="Venda">
+        {sale.items && sale.items.length > 0 ? (
+          <div className="space-y-2">
+            {sale.items.map((item, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[1fr_auto_auto] items-end gap-2 rounded-lg border border-border/60 p-2.5"
+              >
+                <p className="min-w-0 truncate text-sm font-medium">
+                  {item.description}
+                </p>
+                <label className="text-xs text-muted-foreground">
+                  Qtd.
+                  <Input
+                    type="number"
+                    min={1}
+                    className="mt-1 h-9 w-20"
+                    value={item.quantity}
+                    onChange={(e) => setItem(i, { quantity: Number(e.target.value) })}
+                  />
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  Preço unit.
+                  <CurrencyInput
+                    className="mt-1 h-9 w-28"
+                    value={item.unitSalePrice}
+                    onChange={(v) => setItem(i, { unitSalePrice: v })}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Field label="Valor da venda" htmlFor={`rv-amount-${index ?? 0}`}>
+            <CurrencyInput
+              id={`rv-amount-${index ?? 0}`}
+              value={sale.amount ?? 0}
+              onChange={(v) => wrap({ amount: v })}
+            />
+            {sale.title ? (
+              <p className="mt-1 text-xs text-muted-foreground">{sale.title}</p>
+            ) : null}
+          </Field>
+        )}
+
+        <div className="mt-3 flex flex-col gap-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={sale.paid}
+              onChange={(e) => wrap({ paid: e.target.checked })}
+            />
+            <span className="font-medium">Já pago</span>
+            <span className="text-muted-foreground">(recebido agora)</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={sale.delivered}
+              onChange={(e) => wrap({ delivered: e.target.checked })}
+            />
+            <Truck className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">Já entregue</span>
+          </label>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label="Data" htmlFor={`rv-sdate-${index ?? 0}`}>
+            <Input
+              id={`rv-sdate-${index ?? 0}`}
+              type="date"
+              value={sale.date ?? ""}
+              onChange={(e) => wrap({ date: e.target.value })}
+            />
+          </Field>
+          {!sale.paid ? (
+            <Field label="Vencimento" htmlFor={`rv-sdue-${index ?? 0}`}>
+              <Input
+                id={`rv-sdue-${index ?? 0}`}
+                type="date"
+                value={sale.dueDate ?? ""}
+                onChange={(e) => wrap({ dueDate: e.target.value })}
+              />
+            </Field>
+          ) : null}
+        </div>
+      </Section>
+    </div>
+  );
+
+  if (!index) return body;
+  return (
+    <div className="rounded-xl border border-border p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Venda {index}
+      </p>
+      {body}
     </div>
   );
 }
