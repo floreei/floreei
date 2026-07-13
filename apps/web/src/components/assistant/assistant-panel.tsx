@@ -121,7 +121,7 @@ export function AssistantPanel({
                 <div
                   key={i}
                   className={cn(
-                    "flex",
+                    "flex duration-300 animate-in fade-in-0 slide-in-from-bottom-1",
                     b.role === "user" ? "justify-end" : "justify-start",
                   )}
                 >
@@ -152,9 +152,9 @@ export function AssistantPanel({
               ))
             )}
             {chat.isPending ? (
-              <div className="flex justify-start">
-                <div className="rounded-2xl bg-muted px-3.5 py-2 text-sm text-muted-foreground">
-                  Pensando…
+              <div className="flex justify-start duration-300 animate-in fade-in-0">
+                <div className="rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
+                  <TypingDots />
                 </div>
               </div>
             ) : null}
@@ -217,5 +217,29 @@ export function AssistantPanel({
         />
       ) : null}
     </>
+  );
+}
+
+/** Indicador de digitação: três pontinhos com um "quique" suave e escalonado. */
+function TypingDots() {
+  return (
+    <span className="flex items-center gap-1" aria-label="Digitando…" role="status">
+      <style>{`
+        @keyframes assistant-typing {
+          0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+          30% { opacity: 1; transform: translateY(-3px); }
+        }
+      `}</style>
+      {[0, 200, 400].map((delay) => (
+        <span
+          key={delay}
+          className="h-2 w-2 rounded-full bg-muted-foreground/70 motion-reduce:animate-none"
+          style={{
+            animation: "assistant-typing 1.2s ease-in-out infinite",
+            animationDelay: `${delay}ms`,
+          }}
+        />
+      ))}
+    </span>
   );
 }
