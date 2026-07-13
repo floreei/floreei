@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
 } from "@nestjs/common";
 import {
   CREATE_PURCHASE,
@@ -47,6 +48,8 @@ Regras:
  */
 @Injectable()
 export class AssistantService {
+  private readonly logger = new Logger(AssistantService.name);
+
   constructor(
     @Inject(AI_PROVIDER) private readonly ai: AiProvider,
     private readonly tools: AssistantTools,
@@ -71,12 +74,25 @@ export class AssistantService {
     const toolDefs = this.tools.definitions();
 
     for (let step = 0; step < MAX_STEPS; step++) {
-      const result = await this.ai.complete({
-        system: systemPrompt(),
-        messages: working,
-        tools: toolDefs,
-        userId: companyId,
-      });
+      let result;
+      try {
+        result = await this.ai.complete({
+          system: systemPrompt(),
+          messages: working,
+          tools: toolDefs,
+          userId: companyId,
+        });
+      } catch (err) {
+        // Falha do provedor (sem créditos, rate limit, indisponível…): loga a
+        // causa real e devolve uma mensagem clara — nunca um 500 cru.
+        this.logger.error(
+          `Provedor de IA falhou: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        throw new HttpException(
+          "O assistente está indisponível no momento. Tente novamente em instantes.",
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
       if (result.usage) {
         // Medição por empresa — best-effort, nunca derruba a conversa.
         await this.usage.record(companyId, result.usage).catch(() => undefined);
