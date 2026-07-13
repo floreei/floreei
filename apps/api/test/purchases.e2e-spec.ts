@@ -341,4 +341,39 @@ describe("Compras — módulo completo (e2e)", () => {
       .expect(200);
     expect(after.body).toHaveLength(0);
   });
+
+  it("filtra por fornecedor e ordena por saldo (perfil do fornecedor)", async () => {
+    // Compra maior (saldo maior) e menor.
+    await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: today,
+        items: [{ description: "Lírio", quantity: 1, unit: "MACO", unitPrice: 100 }],
+      })
+      .expect(201);
+    await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId,
+        date: today,
+        items: [{ description: "Cravo", quantity: 1, unit: "MACO", unitPrice: 30 }],
+      })
+      .expect(201);
+
+    const res = await http
+      .get("/api/purchases")
+      .query({ supplierId, sort: "balance", order: "desc", pageSize: 50 })
+      .set(auth())
+      .expect(200);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(2);
+    // Todas do fornecedor filtrado e em ordem decrescente de saldo.
+    for (const p of res.body.data) expect(p.supplier.id).toBe(supplierId);
+    const balances = res.body.data.map(
+      (p: { balanceDue: number }) => p.balanceDue,
+    );
+    expect(balances).toEqual([...balances].sort((a, b) => b - a));
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import type { SupplierPurchaseSummary } from "@sistema-flores/types";
+import type { Purchase } from "@sistema-flores/types";
 import {
   ArrowLeft,
   MapPin,
@@ -10,13 +10,17 @@ import {
   Printer,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { MonthlyBars } from "@/components/profile/monthly-bars";
 import { TopItems } from "@/components/profile/top-items";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ListCard } from "@/components/shared/list-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
+import { SalesFilters } from "@/components/shared/sales-filters";
+import { SortableHead, useTableSort } from "@/components/shared/sortable-head";
 import { SupplierDialog } from "@/components/suppliers/supplier-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,9 +35,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCompany } from "@/lib/api/company";
+import { usePurchases } from "@/lib/api/purchases";
 import { useSupplierProfile } from "@/lib/api/suppliers";
 import { useAuth } from "@/lib/auth/auth-context";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import {
   buildOrderMessage,
   buildStatementMessage,
@@ -42,10 +47,40 @@ import {
 
 export default function SupplierDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const { data, isLoading } = useSupplierProfile(params.id);
   const { data: settings } = useCompany();
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
+
+  // Tabela de compras: mesmo padrão das outras listas (filtros + ordenação +
+  // paginação no servidor), agora filtrada por este fornecedor.
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [unpaidOnly, setUnpaidOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const sortState = useTableSort(() => setPage(1));
+  const { data: purchasesPage, isLoading: loadingPurchases } = usePurchases({
+    supplierId: params.id,
+    from: from || undefined,
+    to: to || undefined,
+    unpaidOnly: unpaidOnly || undefined,
+    sort: sortState.sort,
+    order: sortState.order,
+    page,
+    pageSize: 20,
+  });
+
+  const changeDate = (nextFrom: string, nextTo: string) => {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(1);
+  };
+  const changeUnpaid = (value: boolean) => {
+    setUnpaidOnly(value);
+    setPage(1);
+  };
+  const hasFilter = Boolean(from || to || unpaidOnly);
 
   if (isLoading || !data) {
     return (
@@ -56,7 +91,7 @@ export default function SupplierDetailPage() {
     );
   }
 
-  const { supplier, stats, purchases, topItems, monthly, bestMonth } = data;
+  const { supplier, stats, topItems, monthly, bestMonth } = data;
   const company = settings?.name ?? user?.companyName ?? "Floreei";
   const phone = supplier.whatsapp ?? supplier.contact;
 
@@ -69,13 +104,17 @@ export default function SupplierDetailPage() {
     window.open(href, "_blank", "noopener");
   };
 
-  const sendPurchaseWhatsapp = (purchase: SupplierPurchaseSummary) =>
+  const sendPurchaseWhatsapp = (purchase: Purchase) =>
     openWhatsapp(
       buildOrderMessage({
         company,
         heading: `Pedido de compra ${purchase.id.slice(0, 8).toUpperCase()}`,
         dateLabel: formatDate(purchase.date),
-        items: purchase.items,
+        items: purchase.items.map((i) => ({
+          name: i.description,
+          quantity: i.quantity,
+          lineTotal: i.lineTotal,
+        })),
         total: purchase.total,
         paid: purchase.paidAmount,
         balance: purchase.balanceDue,
@@ -172,79 +211,187 @@ export default function SupplierDetailPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Compras</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {purchases.length === 0 ? (
-            <EmptyState className="border-0" title="Nenhuma compra ainda" />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Pago</TableHead>
-                  <TableHead className="text-right">Saldo</TableHead>
-                  <TableHead className="w-24 text-right">Pedido</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {purchases.map((purchase) => (
-                  <TableRow key={purchase.id}>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(purchase.date)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(purchase.total)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {formatCurrency(purchase.paidAmount)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {purchase.balanceDue > 0 ? (
-                        <span className="font-semibold text-clay">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-semibold">Compras</h2>
+        </div>
+
+        <SalesFilters from={from} to={to} onDateChange={changeDate}>
+          <div className="flex gap-1.5">
+            <StatusChip active={!unpaidOnly} onClick={() => changeUnpaid(false)}>
+              Todas
+            </StatusChip>
+            <StatusChip active={unpaidOnly} onClick={() => changeUnpaid(true)}>
+              Em aberto
+            </StatusChip>
+          </div>
+        </SalesFilters>
+
+        <Card>
+          {loadingPurchases ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : purchasesPage && purchasesPage.data.length > 0 ? (
+            <>
+              {/* Celular: cartões — toque abre a compra */}
+              <div className="space-y-2 p-3 sm:hidden">
+                {purchasesPage.data.map((purchase) => (
+                  <ListCard
+                    key={purchase.id}
+                    href={`/compras/${purchase.id}`}
+                    title={formatDate(purchase.date)}
+                    subtitle={`Total ${formatCurrency(purchase.total)} · pago ${formatCurrency(purchase.paidAmount)}`}
+                    meta={
+                      purchase.balanceDue > 0 ? (
+                        <span className="text-clay">
                           {formatCurrency(purchase.balanceDue)}
                         </span>
                       ) : (
                         <Badge variant="success">Pago</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Imprimir pedido"
-                          title="Imprimir pedido de compra"
-                        >
-                          <Link href={`/compras/${purchase.id}/imprimir`}>
-                            <Printer className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Enviar no WhatsApp"
-                          title="Enviar pedido no WhatsApp"
-                          onClick={() => sendPurchaseWhatsapp(purchase)}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                      )
+                    }
+                  />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <SortableHead column="date" state={sortState}>
+                        Data
+                      </SortableHead>
+                      <SortableHead
+                        column="total"
+                        state={sortState}
+                        align="right"
+                        className="text-right"
+                      >
+                        Total
+                      </SortableHead>
+                      <SortableHead
+                        column="paid"
+                        state={sortState}
+                        align="right"
+                        className="text-right"
+                      >
+                        Pago
+                      </SortableHead>
+                      <SortableHead
+                        column="balance"
+                        state={sortState}
+                        align="right"
+                        className="text-right"
+                      >
+                        Saldo
+                      </SortableHead>
+                      <TableHead className="w-24 text-right">Pedido</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {purchasesPage.data.map((purchase) => (
+                      <TableRow
+                        key={purchase.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/compras/${purchase.id}`)}
+                      >
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(purchase.date)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatCurrency(purchase.total)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {formatCurrency(purchase.paidAmount)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {purchase.balanceDue > 0 ? (
+                            <span className="font-semibold text-clay">
+                              {formatCurrency(purchase.balanceDue)}
+                            </span>
+                          ) : (
+                            <Badge variant="success">Pago</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className="text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              asChild
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Imprimir pedido"
+                              title="Imprimir pedido de compra"
+                            >
+                              <Link href={`/compras/${purchase.id}/imprimir`}>
+                                <Printer className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Enviar no WhatsApp"
+                              title="Enviar pedido no WhatsApp"
+                              onClick={() => sendPurchaseWhatsapp(purchase)}
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              className="border-0"
+              title={hasFilter ? "Nada encontrado" : "Nenhuma compra ainda"}
+              description={
+                hasFilter ? "Nenhuma compra bate com esses filtros." : undefined
+              }
+            />
           )}
-        </CardContent>
-      </Card>
+        </Card>
+
+        {purchasesPage ? (
+          <Pagination data={purchasesPage} onPageChange={setPage} />
+        ) : null}
+      </div>
 
       <SupplierDialog open={editOpen} onOpenChange={setEditOpen} supplier={supplier} />
     </div>
+  );
+}
+
+function StatusChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border text-muted-foreground hover:bg-muted",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -12,6 +12,8 @@ const SORT: Record<string, string> = {
   date: "purchase.date",
   status: "purchase.status",
   supplier: "supplier.name",
+  total: "purchase.total",
+  paid: "purchase.paid_amount",
 };
 
 @Injectable()
@@ -32,10 +34,18 @@ export class PurchaseRepository extends TenantScopedRepository<PurchaseEntity> {
       "purchase.supplier",
       "supplier",
     );
-    applySort(qb, query.sort, query.order, SORT, {
-      column: "purchase.date",
-      direction: "DESC",
-    });
+    if (query.sort === "balance") {
+      // Saldo é calculado (total - pago): ordena por um select aliasado — o
+      // TypeORM não aceita expressão crua com parênteses em orderBy (paginação
+      // com join tenta interpretá-la como "alias.coluna").
+      qb.addSelect("(purchase.total - purchase.paid_amount)", "balance_calc");
+      qb.orderBy("balance_calc", query.order === "asc" ? "ASC" : "DESC");
+    } else {
+      applySort(qb, query.sort, query.order, SORT, {
+        column: "purchase.date",
+        direction: "DESC",
+      });
+    }
 
     if (query.supplierId) {
       qb.andWhere("purchase.supplier_id = :supplierId", {

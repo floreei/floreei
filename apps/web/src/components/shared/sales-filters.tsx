@@ -34,8 +34,9 @@ export function SalesFilters({
   searchPlaceholder = "Buscar por cliente ou título…",
   children,
 }: {
-  search: string;
-  onSearchChange: (value: string) => void;
+  search?: string;
+  /** Sem `onSearchChange`, o campo de busca some (páginas sem busca útil). */
+  onSearchChange?: (value: string) => void;
   from?: string;
   to?: string;
   onDateChange?: (from: string, to: string) => void;
@@ -48,15 +49,17 @@ export function SalesFilters({
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative flex-1 sm:max-w-xs">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder={searchPlaceholder}
-          className="pl-9"
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
+      {onSearchChange ? (
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={searchPlaceholder}
+            className="pl-9"
+            value={search ?? ""}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+      ) : null}
 
       {children}
 
