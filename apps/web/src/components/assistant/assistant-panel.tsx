@@ -1,7 +1,7 @@
 "use client";
 
 import type { AiMessage, AssistantDraft } from "@sistema-flores/types";
-import { Mic, Send, Sparkles } from "lucide-react";
+import { Mic, Search, Send, ShoppingBasket, Sparkles, Truck } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,10 +40,23 @@ export function AssistantPanel({
   const [draft, setDraft] = useState<AssistantDraft | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Texto que já estava no input quando o microfone começou — a fala é
+  // acrescentada por cima, ao vivo (o reconhecimento manda a frase inteira).
+  const dictationBase = useRef("");
 
-  const speech = useSpeech((text) =>
-    setInput((prev) => (prev ? `${prev} ${text}` : text)),
-  );
+  const speech = useSpeech((text) => {
+    const base = dictationBase.current;
+    setInput(base ? `${base} ${text}` : text);
+  });
+
+  const toggleMic = () => {
+    if (speech.listening) {
+      speech.stop();
+    } else {
+      dictationBase.current = input.trim();
+      speech.start();
+    }
+  };
 
   const scrollDown = () =>
     requestAnimationFrame(() => {
@@ -98,18 +111,57 @@ export function AssistantPanel({
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
             {bubbles.length === 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Diga o que você quer fazer. Eu confirmo tudo com você antes de
-                  salvar.
+              <div className="flex h-full flex-col items-center justify-center px-2 text-center">
+                <style>{`
+                  @keyframes assistant-float {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-6px); }
+                  }
+                `}</style>
+
+                {/* Ícone herói com brilho */}
+                <div className="relative mb-5">
+                  <div className="absolute inset-0 -z-10 animate-pulse rounded-full bg-primary/30 blur-2xl" />
+                  <div
+                    className="flex h-20 w-20 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-primary via-primary to-primary/60 text-primary-foreground shadow-lg ring-1 ring-white/25 motion-safe:[animation:assistant-float_4s_ease-in-out_infinite]"
+                  >
+                    <Sparkles className="h-9 w-9" />
+                  </div>
+                </div>
+
+                <h2 className="font-serif text-xl font-semibold">Seu assistente</h2>
+                <p className="mt-1.5 max-w-[18rem] text-sm text-muted-foreground">
+                  Peça por texto ou voz. Eu busco no seu sistema, confirmo com
+                  você e só então registro. Hoje eu cuido de{" "}
+                  <span className="font-medium text-foreground">
+                    compras e pedidos a fornecedor
+                  </span>
+                  .
                 </p>
-                <div className="space-y-2">
+
+                <div className="mt-5 grid w-full max-w-xs gap-2 text-left">
+                  <Capability icon={ShoppingBasket}>
+                    Registrar um pedido — crio fornecedor e produto se não
+                    existirem
+                  </Capability>
+                  <Capability icon={Truck}>
+                    Marcar como entregue ou mudar a data de uma compra
+                  </Capability>
+                  <Capability icon={Search}>
+                    Consultar quanto e o que você comprou
+                  </Capability>
+                </div>
+
+                <div className="mt-6 w-full max-w-xs space-y-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    Experimente
+                  </p>
                   {EXAMPLES.map((ex) => (
                     <button
                       key={ex}
                       type="button"
                       onClick={() => send(ex)}
-                      className="block w-full rounded-lg border border-border px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-primary/5"
+                      className="block w-full rounded-xl border border-border bg-card px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-primary/5"
                     >
                       {ex}
                     </button>
@@ -168,7 +220,8 @@ export function AssistantPanel({
                   size="icon"
                   variant={speech.listening ? "default" : "outline"}
                   aria-label={speech.listening ? "Parar de gravar" : "Falar"}
-                  onClick={() => (speech.listening ? speech.stop() : speech.start())}
+                  className={speech.listening ? "animate-pulse" : undefined}
+                  onClick={toggleMic}
                 >
                   <Mic className="h-4 w-4" />
                 </Button>
@@ -217,6 +270,24 @@ export function AssistantPanel({
         />
       ) : null}
     </>
+  );
+}
+
+/** Uma capacidade do assistente na tela inicial (ícone + texto). */
+function Capability({
+  icon: Icon,
+  children,
+}: {
+  icon: typeof ShoppingBasket;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2.5 text-xs text-muted-foreground">
+      <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icon className="h-3 w-3" />
+      </span>
+      <span>{children}</span>
+    </div>
   );
 }
 

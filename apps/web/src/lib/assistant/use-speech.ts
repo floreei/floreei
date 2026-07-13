@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface SpeechRecognitionLike {
   lang: string;
   interimResults: boolean;
+  continuous: boolean;
   maxAlternatives: number;
   start: () => void;
   stop: () => void;
@@ -28,13 +29,16 @@ function getCtor(): SpeechCtor | null {
 }
 
 /**
- * Ditado por voz via Web Speech API do navegador (grátis, pt-BR). Some quando
- * não suportado (Safari/iOS antigos) — o texto sempre funciona como alternativa.
+ * Ditado por voz via Web Speech API (grátis, pt-BR). Emite o texto PARCIAL a
+ * cada trecho reconhecido (`interimResults`) — o chamador escreve isso ao vivo
+ * no input, como se estivesse sendo digitado. Some quando não suportado.
  */
-export function useSpeech(onResult: (text: string) => void) {
+export function useSpeech(onTranscript: (text: string) => void) {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(false);
   const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const cbRef = useRef(onTranscript);
+  cbRef.current = onTranscript;
 
   useEffect(() => {
     setSupported(getCtor() !== null);
@@ -46,18 +50,23 @@ export function useSpeech(onResult: (text: string) => void) {
     if (!Ctor) return;
     const rec = new Ctor();
     rec.lang = "pt-BR";
-    rec.interimResults = false;
+    rec.interimResults = true;
+    rec.continuous = false;
     rec.maxAlternatives = 1;
     rec.onresult = (event) => {
-      const text = event.results[0]?.[0]?.transcript ?? "";
-      if (text) onResult(text);
+      // Concatena todos os trechos (parciais + finais) → frase completa até aqui.
+      let text = "";
+      for (let i = 0; i < event.results.length; i++) {
+        text += event.results[i]?.[0]?.transcript ?? "";
+      }
+      cbRef.current(text.trim());
     };
     rec.onend = () => setListening(false);
     rec.onerror = () => setListening(false);
     recRef.current = rec;
     setListening(true);
     rec.start();
-  }, [onResult]);
+  }, []);
 
   const stop = useCallback(() => {
     recRef.current?.stop();
