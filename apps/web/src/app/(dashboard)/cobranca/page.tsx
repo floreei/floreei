@@ -48,7 +48,7 @@ function previewMessage(
   const lines = [
     "Olá, Maria! Tudo bem?",
     "",
-    `Passando para lembrar que o saldo da sua compra na ${company || "sua floricultura"}, de R$ 150,00, vence hoje (dd/mm/aaaa).`,
+    `Identificamos um pagamento em aberto da sua compra na ${company || "sua floricultura"}, no valor de R$ 150,00, que vence hoje (dd/mm/aaaa).`,
     "",
     "Veja os detalhes e o comprovante aqui: https://app.floreei.com.br/c/…",
   ];
@@ -57,8 +57,12 @@ function previewMessage(
   else if (method === "MP_LINK" && mpLink)
     lines.push("", `Para pagar pelo Mercado Pago: ${mpLink}`);
   if (extraLine) lines.push("", extraLine);
-  lines.push("", "Qualquer dúvida, é só me chamar por aqui. Obrigado!");
-  lines.push("", "Responda SAIR para não receber estes lembretes.");
+  lines.push(
+    "",
+    "Se você já realizou o pagamento, pode desconsiderar esta mensagem — trata-se de uma cobrança automática.",
+    "",
+    "Responda SAIR para não receber estes lembretes.",
+  );
   return lines.join("\n");
 }
 

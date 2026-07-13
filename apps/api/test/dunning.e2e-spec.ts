@@ -143,6 +143,7 @@ describe("Régua de cobrança (e2e)", () => {
       .expect(201);
     expect(res.body.phone).toBe("5511955554444");
     expect(res.body.message).toContain("Carla");
+    expect(res.body.message).toContain("pagamento em aberto");
     expect(res.body.message).toContain("90");
     // O link da página pública entra na mensagem (e é devolvido à parte).
     expect(res.body.link).toContain(`/c/${sale.body.id}`);

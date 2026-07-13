@@ -37,18 +37,13 @@ export function buildDunningMessage(
   const valor = brl(r.amount);
   const lines: string[] = [`Olá, ${r.customerName}! Tudo bem?`, ""];
 
+  const inicio = `Identificamos um pagamento em aberto da sua compra na ${r.companyName}, no valor de ${valor}`;
   if (r.offsetDays < 0) {
-    lines.push(
-      `Passando para lembrar do saldo da sua compra na ${r.companyName}, de ${valor}, com vencimento em ${venc}.`,
-    );
+    lines.push(`${inicio}, com vencimento em ${venc}.`);
   } else if (r.offsetDays === 0) {
-    lines.push(
-      `Passando para lembrar que o saldo da sua compra na ${r.companyName}, de ${valor}, vence hoje (${venc}).`,
-    );
+    lines.push(`${inicio}, que vence hoje (${venc}).`);
   } else {
-    lines.push(
-      `Passando para lembrar que o saldo da sua compra na ${r.companyName}, de ${valor}, venceu em ${venc}.`,
-    );
+    lines.push(`${inicio}, que venceu em ${venc}.`);
   }
 
   if (r.link) {
@@ -63,10 +58,20 @@ export function buildDunningMessage(
 
   if (s.extraLine) lines.push("", s.extraLine);
 
-  lines.push("", "Qualquer dúvida, é só me chamar por aqui. Obrigado!");
-
   if (r.optOut) {
-    lines.push("", "Responda SAIR para não receber estes lembretes.");
+    // Disparo automático: deixa claro que é automático e como sair.
+    lines.push(
+      "",
+      "Se você já realizou o pagamento, pode desconsiderar esta mensagem — trata-se de uma cobrança automática.",
+      "",
+      "Responda SAIR para não receber estes lembretes.",
+    );
+  } else {
+    // Envio manual (WhatsApp do próprio lojista).
+    lines.push(
+      "",
+      "Se já tiver realizado o pagamento, é só desconsiderar. Qualquer dúvida, estou à disposição. Obrigado!",
+    );
   }
 
   return lines.join("\n");
