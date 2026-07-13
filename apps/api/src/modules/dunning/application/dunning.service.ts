@@ -5,7 +5,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { CobrancaMessage, DunningLogEntry } from "@sistema-flores/types";
+import type {
+  CobrancaMessage,
+  DunningLogEntry,
+  PublicCobranca,
+} from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { todayISO } from "../../../common/date/today";
 import { roundMoney } from "../../../common/money/money";
@@ -26,6 +30,16 @@ function addDays(iso: string, days: number): string {
   const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/** URL base do app (onde vive a página pública da cobrança), sem barra final. */
+function appUrl(): string {
+  return (process.env.APP_URL ?? "https://app.floreei.com.br").replace(/\/+$/, "");
+}
+
+/** Link da página pública da cobrança de uma venda. */
+function cobrancaLink(eventId: string): string {
+  return `${appUrl()}/c/${eventId}`;
 }
 
 /** Normaliza o telefone para dígitos com DDI 55 (Brasil) quando faltar. */
@@ -84,6 +98,7 @@ export class DunningService {
     }
     const dueDate = (event.dueDate ?? event.date).slice(0, 10);
     const company = await this.companies.findOne({ where: { id: companyId } });
+    const link = cobrancaLink(event.id);
     const message = buildDunningMessage(
       {
         companyName: company?.name ?? "sua floricultura",
@@ -91,12 +106,73 @@ export class DunningService {
         amount: balance,
         dueDate,
         offsetDays: daysBetween(dueDate, todayISO()),
+        link,
+        // Envio manual sai do WhatsApp do próprio lojista — sem opt-out.
+        optOut: false,
       },
       await this.settingsService.get(),
     );
     return {
       phone: toPhone(event.customer?.whatsapp ?? event.customer?.phone ?? null),
       message,
+      link,
+    };
+  }
+
+  /**
+   * Dados públicos da cobrança de uma venda (página `/c/[id]`, sem auth). Busca
+   * por id sem contexto de tenant — o id é a chave (UUID não enumerável).
+   */
+  async buildPublicCobranca(eventId: string): Promise<PublicCobranca> {
+    const event = await this.events.findOne({
+      where: { id: eventId },
+      relations: ["customer", "items"],
+    });
+    if (!event) throw new NotFoundException("Cobrança não encontrada.");
+    const company = await this.companies.findOne({
+      where: { id: event.companyId },
+    });
+    if (!company) throw new NotFoundException("Cobrança não encontrada.");
+    const dun = await this.settings.findOne({
+      where: { companyId: event.companyId },
+    });
+
+    // PIX: prioriza o configurado na régua; senão, cai no PIX da empresa (nota).
+    const pixKey =
+      dun?.paymentMethod === "PIX" && dun.pixKey ? dun.pixKey : company.pixKey;
+    const mpLink = dun?.paymentMethod === "MP_LINK" ? dun.mpLink : null;
+
+    const items = [...(event.items ?? [])]
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+      .map((i) => ({
+        description: i.description,
+        quantity: i.quantity,
+        unit: i.unit,
+        unitSalePrice: i.unitSalePrice,
+        lineTotal: i.lineTotal,
+      }));
+
+    return {
+      reference: event.id.slice(0, 8).toUpperCase(),
+      company: {
+        name: company.name,
+        document: company.document,
+        phone: company.phone,
+        email: company.email,
+        address: company.address,
+        logo: company.logo,
+      },
+      customerName: event.customer?.name ?? "Cliente",
+      date: event.date,
+      dueDate: event.dueDate ?? null,
+      soldValue: event.soldValue,
+      receivedValue: event.receivedValue,
+      amountDue: roundMoney(event.soldValue - event.receivedValue),
+      title: event.title,
+      items,
+      notes: event.notes,
+      pixKey: pixKey ?? null,
+      mpLink: mpLink ?? null,
     };
   }
 
@@ -134,6 +210,8 @@ export class DunningService {
           amount: rem.balanceDue,
           dueDate: rem.dueDate,
           offsetDays: rem.offsetDays,
+          link: cobrancaLink(rem.eventId),
+          optOut: true,
         },
         dto,
       );

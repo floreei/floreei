@@ -46,14 +46,19 @@ function previewMessage(
   extraLine: string,
 ): string {
   const lines = [
-    "Olá, Maria! 🌸",
+    "Olá, Maria! Tudo bem?",
     "",
-    `Sua compra na ${company || "sua floricultura"} de R$ 150,00 vence hoje (dd/mm/aaaa).`,
+    `Passando para lembrar que o saldo da sua compra na ${company || "sua floricultura"}, de R$ 150,00, vence hoje (dd/mm/aaaa).`,
+    "",
+    "Veja os detalhes e o comprovante aqui: https://app.floreei.com.br/c/…",
   ];
-  if (method === "PIX" && pixKey) lines.push("", `Pra facilitar, o PIX é: ${pixKey}`);
-  else if (method === "MP_LINK" && mpLink) lines.push("", `Você pode pagar por aqui: ${mpLink}`);
+  if (method === "PIX" && pixKey)
+    lines.push("", `Se preferir, o PIX (copia e cola) é: ${pixKey}`);
+  else if (method === "MP_LINK" && mpLink)
+    lines.push("", `Para pagar pelo Mercado Pago: ${mpLink}`);
   if (extraLine) lines.push("", extraLine);
-  lines.push("", "_Responda SAIR para não receber estes lembretes._");
+  lines.push("", "Qualquer dúvida, é só me chamar por aqui. Obrigado!");
+  lines.push("", "Responda SAIR para não receber estes lembretes.");
   return lines.join("\n");
 }
 

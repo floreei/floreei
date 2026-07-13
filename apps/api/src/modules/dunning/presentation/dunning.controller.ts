@@ -54,6 +54,13 @@ export class DunningController {
     return this.dunning.buildManualCobranca(eventId);
   }
 
+  /** Página pública da cobrança (fatura). Sem auth — o id UUID é a chave. */
+  @Get("public/:eventId")
+  @Public()
+  publicCobranca(@Param("eventId", ParseUUIDPipe) eventId: string) {
+    return this.dunning.buildPublicCobranca(eventId);
+  }
+
   /** Disparo diário da régua (Cloud Scheduler). Rota pública com token. */
   @Post("run")
   @Public()

@@ -6,6 +6,13 @@ export interface ReminderContent {
   amount: number;
   dueDate: string; // YYYY-MM-DD
   offsetDays: number;
+  /** Link da página pública da cobrança (fatura salvável em PDF). */
+  link?: string;
+  /**
+   * Inclui o rodapé de descadastro. Só faz sentido no disparo AUTOMÁTICO (canal
+   * oficial); no envio manual, quem manda é o próprio WhatsApp do lojista.
+   */
+  optOut?: boolean;
 }
 
 const brl = (n: number): string =>
@@ -16,36 +23,51 @@ const dateBR = (iso: string): string => {
   return `${d}/${m}/${y}`;
 };
 
-/** Monta o texto do lembrete a partir do passo e da config de pagamento. */
+/**
+ * Monta o texto do lembrete de cobrança. Sem emojis e com frases completas por
+ * linha de propósito: o campo pré-preenchido do WhatsApp Web não renderiza
+ * quebras (%0A) nem emojis fora do BMP, então a mensagem precisa ler bem mesmo
+ * "achatada" numa linha só. O visual caprichado mora na página pública (`link`).
+ */
 export function buildDunningMessage(
   r: ReminderContent,
   s: DunningSettings,
 ): string {
   const venc = dateBR(r.dueDate);
-  const lines: string[] = [`Olá, ${r.customerName}! 🌸`, ""];
+  const valor = brl(r.amount);
+  const lines: string[] = [`Olá, ${r.customerName}! Tudo bem?`, ""];
 
   if (r.offsetDays < 0) {
     lines.push(
-      `Passando pra lembrar da sua compra na ${r.companyName}: ${brl(r.amount)}, com vencimento em ${venc}.`,
+      `Passando para lembrar do saldo da sua compra na ${r.companyName}, de ${valor}, com vencimento em ${venc}.`,
     );
   } else if (r.offsetDays === 0) {
     lines.push(
-      `Sua compra na ${r.companyName} de ${brl(r.amount)} vence hoje (${venc}).`,
+      `Passando para lembrar que o saldo da sua compra na ${r.companyName}, de ${valor}, vence hoje (${venc}).`,
     );
   } else {
     lines.push(
-      `Sua compra na ${r.companyName} de ${brl(r.amount)} venceu em ${venc}. Consegue acertar?`,
+      `Passando para lembrar que o saldo da sua compra na ${r.companyName}, de ${valor}, venceu em ${venc}.`,
     );
   }
 
+  if (r.link) {
+    lines.push("", `Veja os detalhes e o comprovante aqui: ${r.link}`);
+  }
+
   if (s.paymentMethod === "PIX" && s.pixKey) {
-    lines.push("", `Pra facilitar, o PIX é: ${s.pixKey}`);
+    lines.push("", `Se preferir, o PIX (copia e cola) é: ${s.pixKey}`);
   } else if (s.paymentMethod === "MP_LINK" && s.mpLink) {
-    lines.push("", `Você pode pagar por aqui: ${s.mpLink}`);
+    lines.push("", `Para pagar pelo Mercado Pago: ${s.mpLink}`);
   }
 
   if (s.extraLine) lines.push("", s.extraLine);
 
-  lines.push("", "_Responda SAIR para não receber estes lembretes._");
+  lines.push("", "Qualquer dúvida, é só me chamar por aqui. Obrigado!");
+
+  if (r.optOut) {
+    lines.push("", "Responda SAIR para não receber estes lembretes.");
+  }
+
   return lines.join("\n");
 }

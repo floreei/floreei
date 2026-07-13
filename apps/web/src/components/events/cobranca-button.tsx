@@ -17,10 +17,14 @@ export function CobrancaButton({ eventId }: { eventId: string }) {
 
   const onClick = async () => {
     try {
-      const { phone, message } = await send.mutateAsync(eventId);
+      const { phone, message, link } = await send.mutateAsync(eventId);
       const href = whatsappHref(phone, message);
       if (!href) {
-        toast.error("Cliente sem WhatsApp cadastrado para receber a cobrança.");
+        // Sem WhatsApp: cai no link da cobrança para o dono enviar como quiser.
+        await navigator.clipboard?.writeText(link).catch(() => undefined);
+        toast.info("Cliente sem WhatsApp — link da cobrança copiado.", {
+          action: { label: "Abrir", onClick: () => window.open(link, "_blank") },
+        });
         return;
       }
       window.open(href, "_blank", "noopener,noreferrer");

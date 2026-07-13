@@ -144,6 +144,17 @@ describe("Régua de cobrança (e2e)", () => {
     expect(res.body.phone).toBe("5511955554444");
     expect(res.body.message).toContain("Carla");
     expect(res.body.message).toContain("90");
+    // O link da página pública entra na mensagem (e é devolvido à parte).
+    expect(res.body.link).toContain(`/c/${sale.body.id}`);
+    expect(res.body.message).toContain(res.body.link);
+    // Envio manual não leva o rodapé de descadastro.
+    expect(res.body.message).not.toContain("SAIR");
+
+    // Página pública (sem auth) devolve os dados da cobrança.
+    const pub = await http.get(`/api/dunning/public/${sale.body.id}`).expect(200);
+    expect(pub.body.customerName).toBe("Carla");
+    expect(pub.body.amountDue).toBe(90);
+    expect(pub.body.reference).toHaveLength(8);
 
     // Venda quitada → recusa.
     await http

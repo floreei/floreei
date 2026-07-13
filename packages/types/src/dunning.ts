@@ -55,6 +55,51 @@ export interface CobrancaMessage {
   /** Telefone do cliente (só dígitos, com DDI) ou null se não houver. */
   phone: string | null;
   message: string;
+  /** Link da página pública da cobrança (fatura salvável em PDF). */
+  link: string;
+}
+
+/** Uma linha de item na página pública da cobrança. */
+export interface PublicCobrancaItem {
+  description: string;
+  quantity: number;
+  /** Unidade do item (chave do enum Unit) — o front resolve o rótulo. */
+  unit: string;
+  unitSalePrice: number;
+  lineTotal: number;
+}
+
+/**
+ * Dados públicos de uma cobrança — o que a página `/c/[id]` mostra ao cliente.
+ * Nenhum dado sensível (custo, lucro, telefone) é exposto.
+ */
+export interface PublicCobranca {
+  /** Referência curta e legível da venda (ex.: "A1B2C3D4"). */
+  reference: string;
+  company: {
+    name: string;
+    document: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    logo: string | null;
+  };
+  customerName: string;
+  /** Data da venda (ISO). */
+  date: string;
+  /** Vencimento do saldo (ISO) ou null. */
+  dueDate: string | null;
+  soldValue: number;
+  receivedValue: number;
+  /** Saldo em aberto (soldValue - receivedValue). */
+  amountDue: number;
+  title: string;
+  items: PublicCobrancaItem[];
+  notes: string | null;
+  /** Chave PIX para o QR (config da régua ou, na falta, a da empresa). */
+  pixKey: string | null;
+  /** Link de pagamento do Mercado Pago, quando configurado na régua. */
+  mpLink: string | null;
 }
 
 export type DunningStatus = "SENT" | "FAILED" | "SKIPPED";
