@@ -229,6 +229,6 @@ class ExpensesController {
   ],
   controllers: [ExpensesController],
   providers: [ExpensesService, ExpenseRepository, ExpenseAttachmentRepository],
-  exports: [ExpenseRepository],
+  exports: [ExpensesService, ExpenseRepository],
 })
 export class ExpensesModule {}

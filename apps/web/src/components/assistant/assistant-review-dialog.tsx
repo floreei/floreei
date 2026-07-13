@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 import { useAssistantExecute } from "@/lib/api/assistant";
 import { unitLabels } from "@/lib/labels";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 /**
  * Resumo da ação proposta pela IA para o usuário aprovar. Campos-chave são
@@ -326,7 +326,7 @@ export function AssistantReviewDialog({
               ) : null}
             </Section>
           </div>
-        ) : (
+        ) : d.kind === "EDIT_PURCHASE" ? (
           <Section icon={<PackageCheck className="h-4 w-4" />} title={d.purchaseLabel}>
             <ul className="space-y-1.5 text-sm">
               {d.changes.delivered === true ? (
@@ -345,6 +345,8 @@ export function AssistantReviewDialog({
               {d.changes.notes ? <li>Observação: {d.changes.notes}</li> : null}
             </ul>
           </Section>
+        ) : (
+          <SimpleDraftSummary draft={d} />
         )}
 
         <DialogFooter>
@@ -385,4 +387,93 @@ function Section({
       {children}
     </div>
   );
+}
+
+/** Resumo (somente leitura) dos rascunhos simples — cadastros, estoque, financeiro. */
+function SimpleDraftSummary({ draft }: { draft: AssistantDraft }) {
+  const { icon, title, rows } = describeDraft(draft);
+  return (
+    <Section icon={icon} title={title}>
+      <dl className="space-y-1.5 text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-right font-medium">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  );
+}
+
+function describeDraft(d: AssistantDraft): {
+  icon: React.ReactNode;
+  title: string;
+  rows: Array<[string, string]>;
+} {
+  const check = <PackageCheck className="h-4 w-4" />;
+  const spark = <Sparkles className="h-4 w-4" />;
+  switch (d.kind) {
+    case "CREATE_CUSTOMER":
+      return {
+        icon: <UserPlus className="h-4 w-4" />,
+        title: "Novo cliente",
+        rows: [
+          ["Nome", d.name],
+          ...(d.whatsapp ? [["WhatsApp", d.whatsapp] as [string, string]] : []),
+          ["Canal", d.channel === "WHOLESALE" ? "Atacado" : "Varejo"],
+        ],
+      };
+    case "CREATE_PRODUCT":
+      return {
+        icon: spark,
+        title: "Novo produto",
+        rows: [
+          ["Nome", d.name],
+          ["Unidade", d.unit],
+          ["Preço de venda", formatCurrency(d.defaultSalePrice)],
+        ],
+      };
+    case "CREATE_ARRANGEMENT":
+      return {
+        icon: spark,
+        title: "Novo buquê",
+        rows: [
+          ["Nome", d.name],
+          ["Preço", formatCurrency(d.salePrice)],
+        ],
+      };
+    case "ADJUST_STOCK":
+      return {
+        icon: check,
+        title: "Ajuste de estoque",
+        rows: [
+          ["Produto", d.productName],
+          ["Novo saldo", String(d.newBalance)],
+        ],
+      };
+    case "CREATE_EXPENSE":
+      return {
+        icon: check,
+        title: "Nova despesa",
+        rows: [
+          ["Descrição", d.description],
+          ["Centro de custo", d.costCenter],
+          ["Valor", formatCurrency(d.amount)],
+          ["Vencimento", d.dueDate],
+        ],
+      };
+    case "REGISTER_PAYMENT":
+      return {
+        icon: check,
+        title: d.target === "EVENT" ? "Receber de cliente" : "Pagar fornecedor",
+        rows: [
+          [d.target === "EVENT" ? "Venda" : "Compra", d.label],
+          ["Valor", formatCurrency(d.amount)],
+          ["Data", d.date],
+        ],
+      };
+    default:
+      return { icon: spark, title: "Resumo", rows: [] };
+  }
 }

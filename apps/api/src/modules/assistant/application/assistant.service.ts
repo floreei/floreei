@@ -7,29 +7,47 @@ import {
   Logger,
 } from "@nestjs/common";
 import {
+  ADJUST_STOCK,
+  arrangementInputSchema,
+  CREATE_ARRANGEMENT,
+  CREATE_CUSTOMER,
+  CREATE_EXPENSE,
+  CREATE_PRODUCT,
   CREATE_PURCHASE,
   CREATE_SALE,
   customerInputSchema,
+  expenseInputSchema,
   paymentInputSchema,
   productInputSchema,
   purchaseInputSchema,
   quickSaleSchema,
+  REGISTER_PAYMENT,
+  stockAdjustSchema,
   supplierInputSchema,
+  type AdjustStockDraft,
   type AiMessage,
   type AssistantChatResponse,
   type AssistantDraft,
   type AssistantExecuteResult,
+  type CreateArrangementDraft,
+  type CreateCustomerDraft,
+  type CreateExpenseDraft,
+  type CreateProductDraft,
   type CreatePurchaseDraft,
   type CreateSaleDraft,
   type EditPurchaseDraft,
+  type RegisterPaymentDraft,
 } from "@sistema-flores/types";
+import { ArrangementsService } from "../../arrangements/application/arrangements.service";
 import { CategoryRepository } from "../../catalog/infrastructure/category.repository";
 import { ProductsService } from "../../catalog/application/products.service";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CustomersService } from "../../customers/application/customers.service";
 import { EventsService } from "../../events/application/events.service";
+import { ExpensesService } from "../../expenses/expenses.module";
 import { PaymentsService } from "../../finance/application/payments.service";
 import { PurchasesService } from "../../purchases/application/purchases.service";
+import { StockService } from "../../stock/application/stock.service";
 import { SuppliersService } from "../../suppliers/suppliers.module";
 import { AI_PROVIDER, type AiProvider } from "../ai/ai-provider";
 import { AssistantUsageService } from "./assistant-usage.service";
@@ -41,17 +59,18 @@ const DEFAULT_CATEGORY = "Diversos";
 const systemPrompt = () => `Você é o assistente do Floreei, um sistema para floriculturas.
 Hoje é ${new Date().toISOString().slice(0, 10)}.
 Ajude o lojista por conversa natural, do usuário leigo ao expert.
-O que você faz:
-- REGISTRAR/EDITAR compras (pedidos a fornecedor): propose_create_purchase / propose_edit_purchase.
-- REGISTRAR vendas (varejo ou atacado): propose_create_sale. Pode ser valor livre (amount+title) ou itens; cliente existente, novo, ou consumidor.
-- CONSULTAR (respostas diretas, sem aprovação): vendas/faturamento (sales_summary, find_sales), financeiro (finance_status) e estoque (stock_status).
+Ações de ESCRITA (sempre via propose_*, o usuário aprova):
+- Compras: propose_create_purchase / propose_edit_purchase.
+- Vendas (varejo/atacado): propose_create_sale (valor livre ou itens; cliente existente/novo/consumidor).
+- Cadastros: propose_create_customer, propose_create_product, propose_create_arrangement (buquê).
+- Estoque: propose_adjust_stock (newBalance = saldo FINAL; consulte o atual com stock_status e some/subtraia).
+- Financeiro: propose_create_expense (despesa a pagar); propose_register_payment (receber de cliente = target EVENT via find_sales; pagar fornecedor = target PURCHASE via find_purchases).
+CONSULTAS (resposta direta, sem aprovação): sales_summary, find_sales, finance_status, stock_status.
 Regras:
-- Fale em português do Brasil, com frases curtas e claras. Formate valores em R$.
-- Para consultas, chame a ferramenta certa e responda com os números (datas relativas como "essa semana"/"esse mês" você converte para AAAA-MM-DD).
-- Antes de propor, use as buscas (fornecedor/produto/cliente). Se houver mais de um parecido, PERGUNTE qual é; se não existir, ofereça cadastrar (inclua no rascunho).
-- Compra: pergunte se JÁ FOI ENTREGUE. Venda: pergunte se JÁ FOI PAGA (à vista) e se já foi ENTREGUE.
-- Assim que tiver o essencial, CHAME a ferramenta propose_* — não fique só resumindo em texto. Só escreve via propose_* (o usuário aprova). NUNCA afirme que gravou sem a aprovação.
-- Cadastrar cliente/produto avulso e ajustar estoque ainda não estão disponíveis como ação — se pedirem, avise.`;
+- Português do Brasil, frases curtas, valores em R$. Datas relativas ("essa semana") você converte para AAAA-MM-DD.
+- Antes de propor, use as buscas (search_suppliers/products/customers, find_sales/find_purchases). Se houver mais de um parecido, PERGUNTE qual é; se não existir, ofereça cadastrar.
+- Compra: pergunte se JÁ FOI ENTREGUE. Venda: pergunte se JÁ FOI PAGA e se já foi ENTREGUE.
+- Assim que tiver o essencial, CHAME a ferramenta propose_* — não fique só resumindo em texto. Só grava via propose_* aprovado. NUNCA afirme que gravou sem a aprovação.`;
 
 /**
  * Orquestra a conversa com o provedor de IA (tool use) e executa o rascunho
@@ -73,6 +92,9 @@ export class AssistantService {
     private readonly customersService: CustomersService,
     private readonly eventsService: EventsService,
     private readonly paymentsService: PaymentsService,
+    private readonly arrangementsService: ArrangementsService,
+    private readonly expensesService: ExpensesService,
+    private readonly stockService: StockService,
     private readonly categories: CategoryRepository,
   ) {}
 
@@ -167,9 +189,150 @@ export class AssistantService {
   }
 
   execute(draft: AssistantDraft): Promise<AssistantExecuteResult> {
-    if (draft.kind === CREATE_PURCHASE) return this.executeCreate(draft);
-    if (draft.kind === CREATE_SALE) return this.executeCreateSale(draft);
-    return this.executeEdit(draft);
+    switch (draft.kind) {
+      case CREATE_PURCHASE:
+        return this.executeCreate(draft);
+      case CREATE_SALE:
+        return this.executeCreateSale(draft);
+      case CREATE_CUSTOMER:
+        return this.executeCreateCustomer(draft);
+      case CREATE_PRODUCT:
+        return this.executeCreateProduct(draft);
+      case CREATE_ARRANGEMENT:
+        return this.executeCreateArrangement(draft);
+      case ADJUST_STOCK:
+        return this.executeAdjustStock(draft);
+      case CREATE_EXPENSE:
+        return this.executeCreateExpense(draft);
+      case REGISTER_PAYMENT:
+        return this.executeRegisterPayment(draft);
+      default:
+        return this.executeEdit(draft);
+    }
+  }
+
+  private async executeCreateCustomer(
+    draft: CreateCustomerDraft,
+  ): Promise<AssistantExecuteResult> {
+    const customer = await this.customersService.create(
+      customerInputSchema.parse({
+        name: draft.name,
+        whatsapp: draft.whatsapp,
+        phone: draft.phone,
+        channel: draft.channel,
+      }),
+    );
+    return {
+      recordId: customer.id,
+      href: `/clientes/${customer.id}`,
+      created: { supplier: false, products: 0, customer: true },
+      message: `Cliente ${customer.name} cadastrado.`,
+    };
+  }
+
+  private async executeCreateProduct(
+    draft: CreateProductDraft,
+  ): Promise<AssistantExecuteResult> {
+    const categoryId = await this.defaultCategoryId();
+    const product = await this.productsService.create(
+      productInputSchema.parse({
+        categoryId,
+        name: draft.name,
+        unit: draft.unit,
+        defaultSalePrice: draft.defaultSalePrice,
+        defaultPurchasePrice: draft.defaultPurchasePrice,
+      }),
+    );
+    return {
+      recordId: product.id,
+      href: `/produtos`,
+      created: { supplier: false, products: 1, customer: false },
+      message: `Produto ${product.name} cadastrado.`,
+    };
+  }
+
+  private async executeCreateArrangement(
+    draft: CreateArrangementDraft,
+  ): Promise<AssistantExecuteResult> {
+    const arrangement = await this.arrangementsService.create(
+      arrangementInputSchema.parse({
+        name: draft.name,
+        salePrice: draft.salePrice,
+        pricingMode: "FIXED",
+      }),
+    );
+    return {
+      recordId: arrangement.id,
+      href: `/buques`,
+      created: { supplier: false, products: 0, customer: false },
+      message: `Buquê ${arrangement.name} cadastrado.`,
+    };
+  }
+
+  private async executeAdjustStock(
+    draft: AdjustStockDraft,
+  ): Promise<AssistantExecuteResult> {
+    await this.stockService.adjustBalance(
+      stockAdjustSchema.parse({
+        productId: draft.productId,
+        balance: draft.newBalance,
+        notes: draft.notes,
+      }),
+    );
+    return {
+      recordId: draft.productId,
+      href: `/estoque`,
+      created: { supplier: false, products: 0, customer: false },
+      message: `Estoque de ${draft.productName} ajustado para ${draft.newBalance}.`,
+    };
+  }
+
+  private async executeCreateExpense(
+    draft: CreateExpenseDraft,
+  ): Promise<AssistantExecuteResult> {
+    const expense = await this.expensesService.create(
+      expenseInputSchema.parse({
+        description: draft.description,
+        costCenter: draft.costCenter,
+        amount: draft.amount,
+        dueDate: draft.dueDate,
+        notes: draft.notes,
+      }),
+    );
+    return {
+      recordId: expense.id,
+      href: `/financeiro`,
+      created: { supplier: false, products: 0, customer: false },
+      message: `Despesa "${draft.description}" registrada.`,
+    };
+  }
+
+  private async executeRegisterPayment(
+    draft: RegisterPaymentDraft,
+  ): Promise<AssistantExecuteResult> {
+    const allowed = ["PIX", "CASH", "CARD", "TRANSFER", "BOLETO", "OTHER"];
+    const method = allowed.includes(draft.method ?? "") ? draft.method : "PIX";
+    const payment = paymentInputSchema.parse({
+      amount: draft.amount,
+      method,
+      date: draft.date,
+    });
+    if (draft.target === "EVENT") {
+      await this.paymentsService.receiveForEvent(draft.targetId, payment);
+      return {
+        recordId: draft.targetId,
+        href: `/vendas/${draft.targetId}`,
+        created: { supplier: false, products: 0, customer: false },
+        message: "Recebimento registrado.",
+      };
+    }
+    await this.paymentsService.payForPurchase(draft.targetId, payment);
+    return {
+      recordId: draft.targetId,
+      href: `/compras/${draft.targetId}`,
+      created: { supplier: false, products: 0, customer: false },
+      message: "Pagamento registrado.",
+    };
   }
 
   private async executeCreate(

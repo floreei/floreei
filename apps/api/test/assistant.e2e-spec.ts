@@ -234,6 +234,114 @@ describe("Assistente de IA (e2e)", () => {
     expect(chat.body.reply).toContain("fornecedor");
   });
 
+  it("cadastra cliente e registra despesa", async () => {
+    ai.queue = [
+      tool("propose_create_customer", { name: "João Silva", whatsapp: "11999998888" }),
+    ];
+    const cChat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "cadastra o joão" }] })
+      .expect(201);
+    expect(cChat.body.draft.kind).toBe("CREATE_CUSTOMER");
+    const cExec = await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(cChat.body.draft)
+      .expect(201);
+    expect(cExec.body.created.customer).toBe(true);
+
+    ai.queue = [
+      tool("propose_create_expense", {
+        description: "Aluguel",
+        costCenter: "Fixo",
+        amount: 800,
+        dueDate: "2026-07-20",
+      }),
+    ];
+    const eChat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "registra despesa de aluguel 800" }] })
+      .expect(201);
+    expect(eChat.body.draft.kind).toBe("CREATE_EXPENSE");
+    const eExec = await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(eChat.body.draft)
+      .expect(201);
+    expect(eExec.body.message).toContain("Aluguel");
+  });
+
+  it("ajusta estoque e dá baixa (recebimento) de uma venda", async () => {
+    const cat = await http
+      .post("/api/categories")
+      .set(bearer(token))
+      .send({ name: "Rosas" })
+      .expect(201);
+    const prod = await http
+      .post("/api/products")
+      .set(bearer(token))
+      .send({ categoryId: cat.body.id, name: "Rosa Vermelha", unit: "HASTE" })
+      .expect(201);
+
+    ai.queue = [
+      tool("propose_adjust_stock", {
+        productId: prod.body.id,
+        productName: "Rosa Vermelha",
+        newBalance: 50,
+      }),
+    ];
+    const sChat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "coloca 50 rosas no estoque" }] })
+      .expect(201);
+    expect(sChat.body.draft.kind).toBe("ADJUST_STOCK");
+    await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(sChat.body.draft)
+      .expect(201);
+    const overview = await http.get("/api/stock/overview").set(bearer(token)).expect(200);
+    const level = overview.body.levels.find(
+      (l: { productId: string }) => l.productId === prod.body.id,
+    );
+    expect(level.onHand).toBe(50);
+
+    // Venda a prazo → baixa de recebimento.
+    const sale = await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({ amount: 100, channel: "RETAIL" })
+      .expect(201);
+    ai.queue = [
+      tool("propose_register_payment", {
+        target: "EVENT",
+        targetId: sale.body.id,
+        label: "Venda direta",
+        amount: 100,
+        date: "2026-07-13",
+      }),
+    ];
+    const pChat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "recebi 100 dessa venda" }] })
+      .expect(201);
+    expect(pChat.body.draft.kind).toBe("REGISTER_PAYMENT");
+    await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(pChat.body.draft)
+      .expect(201);
+    const after = await http
+      .get(`/api/events/${sale.body.id}`)
+      .set(bearer(token))
+      .expect(200);
+    expect(after.body.receivedValue).toBe(100);
+  });
+
   it("executa consultas de leitura (financeiro, vendas, estoque) sem erro", async () => {
     for (const [toolName, question] of [
       ["finance_status", "quanto tenho a receber?"],

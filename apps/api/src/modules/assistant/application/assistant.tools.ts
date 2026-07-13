@@ -1,9 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import {
+  ADJUST_STOCK,
   assistantDraftSchema,
+  CREATE_ARRANGEMENT,
+  CREATE_CUSTOMER,
+  CREATE_EXPENSE,
+  CREATE_PRODUCT,
   CREATE_PURCHASE,
   CREATE_SALE,
   EDIT_PURCHASE,
+  REGISTER_PAYMENT,
   type AiToolCall,
   type AssistantDraft,
 } from "@sistema-flores/types";
@@ -19,18 +25,20 @@ import { SupplierRepository } from "../../suppliers/infrastructure/supplier.repo
 import type { AiToolDef } from "../ai/ai-provider";
 
 /** Nomes das ferramentas de PROPOSTA (encerram o loop e viram rascunho). */
-export const PROPOSAL_TOOLS = [
-  "propose_create_purchase",
-  "propose_edit_purchase",
-  "propose_create_sale",
-];
-
 /** Mapa nome-da-ferramenta → tipo do rascunho. */
 const DRAFT_KIND: Record<string, string> = {
   propose_create_purchase: CREATE_PURCHASE,
   propose_edit_purchase: EDIT_PURCHASE,
   propose_create_sale: CREATE_SALE,
+  propose_create_customer: CREATE_CUSTOMER,
+  propose_create_product: CREATE_PRODUCT,
+  propose_create_arrangement: CREATE_ARRANGEMENT,
+  propose_adjust_stock: ADJUST_STOCK,
+  propose_create_expense: CREATE_EXPENSE,
+  propose_register_payment: REGISTER_PAYMENT,
 };
+
+export const PROPOSAL_TOOLS = Object.keys(DRAFT_KIND);
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -269,6 +277,94 @@ export class AssistantTools {
           required: ["customerName"],
         },
       },
+      {
+        name: "propose_create_customer",
+        description: "Propõe cadastrar um cliente novo para o usuário aprovar.",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            whatsapp: { type: "string" },
+            phone: { type: "string" },
+            channel: { type: "string", enum: ["RETAIL", "WHOLESALE"] },
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "propose_create_product",
+        description: "Propõe cadastrar um produto novo no catálogo.",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            unit: { type: "string" },
+            defaultSalePrice: { type: "number" },
+            defaultPurchasePrice: { type: "number" },
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "propose_create_arrangement",
+        description: "Propõe cadastrar um buquê (com preço de venda).",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            salePrice: { type: "number" },
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "propose_adjust_stock",
+        description:
+          "Propõe ajustar o estoque de um produto. `newBalance` é o saldo FINAL (consulte o atual com stock_status e some/subtraia).",
+        parameters: {
+          type: "object",
+          properties: {
+            productId: { type: "string" },
+            productName: { type: "string" },
+            unit: { type: "string" },
+            newBalance: { type: "number" },
+            notes: { type: "string" },
+          },
+          required: ["productId", "productName", "newBalance"],
+        },
+      },
+      {
+        name: "propose_create_expense",
+        description: "Propõe registrar uma despesa (conta a pagar).",
+        parameters: {
+          type: "object",
+          properties: {
+            description: { type: "string" },
+            costCenter: { type: "string", description: "centro de custo, ex.: Aluguel" },
+            amount: { type: "number" },
+            dueDate: { type: "string", description: "AAAA-MM-DD (vencimento)" },
+            notes: { type: "string" },
+          },
+          required: ["description", "amount", "dueDate"],
+        },
+      },
+      {
+        name: "propose_register_payment",
+        description:
+          "Propõe dar baixa: receber de um cliente (target EVENT, use find_sales) ou pagar um fornecedor (target PURCHASE, use find_purchases).",
+        parameters: {
+          type: "object",
+          properties: {
+            target: { type: "string", enum: ["EVENT", "PURCHASE"] },
+            targetId: { type: "string" },
+            label: { type: "string" },
+            amount: { type: "number" },
+            method: { type: "string", description: "PIX/CASH/CARD/…" },
+            date: { type: "string", description: "AAAA-MM-DD" },
+          },
+          required: ["target", "targetId", "label", "amount"],
+        },
+      },
     ];
   }
 
@@ -447,9 +543,15 @@ export class AssistantTools {
       ...(call.input as Record<string, unknown>),
       kind,
     };
-    if ((kind === CREATE_PURCHASE || kind === CREATE_SALE) && !raw.date) {
+    if (
+      (kind === CREATE_PURCHASE ||
+        kind === CREATE_SALE ||
+        kind === REGISTER_PAYMENT) &&
+      !raw.date
+    ) {
       raw.date = todayISO();
     }
+    if (kind === CREATE_EXPENSE && !raw.dueDate) raw.dueDate = todayISO();
     const result = assistantDraftSchema.safeParse(raw);
     if (!result.success) {
       const error = result.error.issues

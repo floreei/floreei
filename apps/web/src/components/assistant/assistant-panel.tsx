@@ -141,20 +141,21 @@ export function AssistantPanel({
                 <h2 className="font-serif text-xl font-semibold">Seu assistente</h2>
                 <p className="mt-1.5 max-w-[18rem] text-sm text-muted-foreground">
                   Peça por texto ou voz. Eu busco no seu sistema, confirmo com
-                  você e só então registro. Hoje eu cuido de{" "}
+                  você e só então registro —{" "}
                   <span className="font-medium text-foreground">
-                    compras e pedidos a fornecedor
+                    vendas, compras, cadastros, estoque e financeiro
                   </span>
                   .
                 </p>
 
                 <div className="mt-5 grid w-full max-w-xs gap-2 text-left">
                   <Capability icon={ShoppingBasket}>
-                    Registrar uma venda ou uma compra — crio cliente, fornecedor
-                    e produto se faltarem
+                    Registrar vendas e compras — crio cliente, fornecedor e
+                    produto se faltarem
                   </Capability>
                   <Capability icon={Truck}>
-                    Marcar como entregue ou mudar a data de um pedido
+                    Cadastrar cliente/produto/buquê, ajustar estoque, lançar
+                    despesa e dar baixa
                   </Capability>
                   <Capability icon={Search}>
                     Consultar vendas/faturamento, financeiro e estoque

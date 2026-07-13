@@ -160,10 +160,83 @@ export const createSaleDraftSchema = z.object({
 });
 export type CreateSaleDraft = z.infer<typeof createSaleDraftSchema>;
 
+// ── Cadastros e ajustes simples ────────────────────────────────────────────
+
+export const CREATE_CUSTOMER = "CREATE_CUSTOMER";
+export const CREATE_PRODUCT = "CREATE_PRODUCT";
+export const CREATE_ARRANGEMENT = "CREATE_ARRANGEMENT";
+export const ADJUST_STOCK = "ADJUST_STOCK";
+export const CREATE_EXPENSE = "CREATE_EXPENSE";
+export const REGISTER_PAYMENT = "REGISTER_PAYMENT";
+
+export const createCustomerDraftSchema = z.object({
+  kind: z.literal(CREATE_CUSTOMER),
+  name: z.string().trim().min(2, "Informe o nome").max(160),
+  whatsapp: z.string().trim().max(30).optional(),
+  phone: z.string().trim().max(30).optional(),
+  channel: salesChannelSchema.default("RETAIL"),
+});
+export type CreateCustomerDraft = z.infer<typeof createCustomerDraftSchema>;
+
+export const createProductDraftSchema = z.object({
+  kind: z.literal(CREATE_PRODUCT),
+  name: z.string().trim().min(2, "Informe o nome").max(160),
+  unit: productUnitSchema.default("UNIDADE"),
+  defaultSalePrice: moneySchema.default(0),
+  defaultPurchasePrice: moneySchema.default(0),
+});
+export type CreateProductDraft = z.infer<typeof createProductDraftSchema>;
+
+export const createArrangementDraftSchema = z.object({
+  kind: z.literal(CREATE_ARRANGEMENT),
+  name: z.string().trim().min(2, "Informe o nome").max(160),
+  salePrice: moneySchema.default(0),
+});
+export type CreateArrangementDraft = z.infer<typeof createArrangementDraftSchema>;
+
+export const adjustStockDraftSchema = z.object({
+  kind: z.literal(ADJUST_STOCK),
+  productId: idSchema,
+  productName: z.string().trim().min(1).max(200),
+  unit: z.string().optional(),
+  /** Novo saldo ABSOLUTO em estoque (a IA consulta o atual e soma/subtrai). */
+  newBalance: z.coerce.number().min(0),
+  notes: z.string().trim().max(500).optional(),
+});
+export type AdjustStockDraft = z.infer<typeof adjustStockDraftSchema>;
+
+export const createExpenseDraftSchema = z.object({
+  kind: z.literal(CREATE_EXPENSE),
+  description: z.string().trim().min(2, "Descreva a despesa").max(160),
+  costCenter: z.string().trim().min(1).max(80).default("Geral"),
+  amount: moneySchema,
+  dueDate: dateStringSchema,
+  notes: z.string().trim().max(500).optional(),
+});
+export type CreateExpenseDraft = z.infer<typeof createExpenseDraftSchema>;
+
+export const registerPaymentDraftSchema = z.object({
+  kind: z.literal(REGISTER_PAYMENT),
+  /** EVENT = recebimento de cliente; PURCHASE = pagamento a fornecedor. */
+  target: z.enum(["EVENT", "PURCHASE"]),
+  targetId: idSchema,
+  label: z.string().trim().min(1).max(200),
+  amount: moneySchema,
+  method: z.string().optional(),
+  date: dateStringSchema,
+});
+export type RegisterPaymentDraft = z.infer<typeof registerPaymentDraftSchema>;
+
 export const assistantDraftSchema = z.discriminatedUnion("kind", [
   createPurchaseDraftSchema,
   editPurchaseDraftSchema,
   createSaleDraftSchema,
+  createCustomerDraftSchema,
+  createProductDraftSchema,
+  createArrangementDraftSchema,
+  adjustStockDraftSchema,
+  createExpenseDraftSchema,
+  registerPaymentDraftSchema,
 ]);
 export type AssistantDraft = z.infer<typeof assistantDraftSchema>;
 
