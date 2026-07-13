@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AssistantUsageSummary,
   CompanyDetail,
   Feature,
   PlanOffer,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -344,6 +345,14 @@ export default function CompanyDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <AssistantQuotaCard
+          assistant={data.assistant}
+          pending={mutation.isPending}
+          onSave={(quota) =>
+            run("assistant-quota", "Cota de IA atualizada.", { quota })
+          }
+        />
         </div>
 
         {/* Métricas */}
@@ -681,5 +690,88 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-lg font-semibold tabular">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+/** Uso de IA do mês vs. cota, e edição do override por empresa (o "plus"). */
+function AssistantQuotaCard({
+  assistant,
+  onSave,
+  pending,
+}: {
+  assistant: AssistantUsageSummary;
+  onSave: (quota: number | null) => void;
+  pending: boolean;
+}) {
+  const initial = assistant.quotaOverride == null ? "" : String(assistant.quotaOverride);
+  const [value, setValue] = useState(initial);
+  useEffect(() => setValue(initial), [initial]);
+
+  const pct =
+    assistant.quota > 0
+      ? Math.min(100, Math.round((assistant.monthTokens / assistant.quota) * 100))
+      : 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Assistente de IA</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Uso do mês</span>
+            <span className="tabular">
+              {formatNumber(assistant.monthTokens)} /{" "}
+              {formatNumber(assistant.quota)} tokens
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full ${pct >= 100 ? "bg-destructive" : "bg-[hsl(var(--primary))]"}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Restam {formatNumber(assistant.remaining)} tokens · ~
+            {formatCurrency(assistant.estimatedCostBRL)} no mês
+          </p>
+        </div>
+
+        <div className="space-y-1 border-t border-border pt-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            Cota da empresa (override do plano)
+          </p>
+          <Input
+            type="number"
+            min={0}
+            step="1000"
+            inputMode="numeric"
+            value={value}
+            placeholder={`Padrão do plano: ${formatNumber(assistant.planQuota)}`}
+            onChange={(e) => setValue(e.target.value)}
+          />
+          <div className="flex gap-2 pt-1">
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() => onSave(value.trim() === "" ? null : Number(value))}
+            >
+              Salvar cota
+            </Button>
+            {assistant.quotaOverride != null ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => onSave(null)}
+              >
+                Usar a do plano
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

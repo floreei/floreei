@@ -52,4 +52,8 @@ export class PlanDefinitionEntity {
 
   @Column({ type: "jsonb", default: () => "'[]'" })
   features!: Feature[];
+
+  /** Cota mensal de tokens do assistente de IA incluída no plano. */
+  @Column({ name: "assistant_token_quota", type: "int", default: 0 })
+  assistantTokenQuota!: number;
 }

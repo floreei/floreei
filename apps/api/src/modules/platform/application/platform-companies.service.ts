@@ -27,6 +27,7 @@ import { Between, DataSource, In, Not, Repository } from "typeorm";
 import { FirebaseService } from "../../../common/firebase/firebase.service";
 import { BillingService } from "../../billing/application/billing.service";
 import { SubscriptionEntity } from "../../billing/infrastructure/subscription.entity";
+import { AssistantUsageService } from "../../assistant/application/assistant-usage.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
 
@@ -68,6 +69,7 @@ export class PlatformCompaniesService {
     private readonly subscriptions: Repository<SubscriptionEntity>,
     private readonly firebase: FirebaseService,
     private readonly billing: BillingService,
+    private readonly assistant: AssistantUsageService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -262,6 +264,7 @@ export class PlatformCompaniesService {
     const metrics = await this.companyMetrics(id);
     const team = await this.team(id);
     const subscription = await this.subscriptionInfo(id);
+    const assistant = await this.assistant.summary(id);
 
     return {
       id: company.id,
@@ -284,7 +287,17 @@ export class PlatformCompaniesService {
       subscription,
       metrics,
       team,
+      assistant,
     };
+  }
+
+  /** Define/limpa o override de cota de IA da empresa (null = volta ao do plano). */
+  async setAssistantQuota(id: string, quota: number | null): Promise<CompanyDetail> {
+    const company = await this.companies.findOne({ where: { id } });
+    if (!company) throw new NotFoundException("Empresa não encontrada.");
+    company.assistantTokenQuota = quota;
+    await this.companies.save(company);
+    return this.detail(id);
   }
 
   // -------------------------------------------------------------------------

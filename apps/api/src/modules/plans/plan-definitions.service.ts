@@ -61,6 +61,9 @@ export class PlanDefinitionsService {
     if (input.basePrice !== undefined) def.basePrice = input.basePrice;
     if (input.userPrice !== undefined) def.userPrice = input.userPrice;
     if (input.features !== undefined) def.features = input.features;
+    if (input.assistantTokenQuota !== undefined) {
+      def.assistantTokenQuota = input.assistantTokenQuota;
+    }
     const saved = await this.plans.save(def);
     this.invalidate();
     return saved;
@@ -74,6 +77,7 @@ export class PlanDefinitionsService {
       basePrice: def.basePrice,
       userPrice: def.userPrice,
       features: def.features,
+      assistantTokenQuota: def.assistantTokenQuota,
     };
   }
 

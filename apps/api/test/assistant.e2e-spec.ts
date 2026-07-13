@@ -148,6 +148,33 @@ describe("Assistente de IA (e2e)", () => {
     expect(after.body.status).toBe("RECEIVED");
   });
 
+  it("bloqueia (429) quando a cota de tokens do mês é atingida", async () => {
+    // Um turno gasta mais que a cota do trial (200k) → o próximo é barrado.
+    ai.queue = [
+      {
+        text: "Certo!",
+        usage: {
+          inputTokens: 0,
+          outputTokens: 250_000,
+          cacheReadTokens: 0,
+          cacheCreationTokens: 0,
+        },
+      },
+    ];
+    await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "oi" }] })
+      .expect(201);
+
+    ai.queue = [{ text: "de novo" }];
+    await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "oi de novo" }] })
+      .expect(429);
+  });
+
   it("faz uma pergunta quando a IA responde em texto (sem proposta)", async () => {
     ai.queue = [{ text: "Qual fornecedor você quer usar?" }];
     const chat = await http

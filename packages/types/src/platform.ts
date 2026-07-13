@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { AssistantUsageSummary } from "./assistant";
 import type { SubscriptionStatus } from "./billing";
 import type { Feature, FeatureOverrides, PlanTier } from "./entitlements";
 import { ALL_FEATURES, planTiers } from "./entitlements";
@@ -261,6 +262,8 @@ export interface CompanyDetail {
   subscription: CompanySubscriptionInfo | null;
   metrics: CompanyMetrics;
   team: PlatformCompanyUser[];
+  /** Uso e cota do assistente de IA (tokens/mês). */
+  assistant: AssistantUsageSummary;
 }
 
 /** Empresa como alvo de abordagem comercial (listas acionáveis do console). */

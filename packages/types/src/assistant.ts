@@ -139,3 +139,35 @@ export interface AssistantExecuteResult {
   created: { supplier: boolean; products: number };
   message: string;
 }
+
+// ── Medição de uso e cota (tokens/mês por empresa) ─────────────────────────
+
+/** Tokens consumidos numa chamada ao provedor (para medição por empresa). */
+export interface AiUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+
+/** Uso do mês corrente de uma empresa vs. a cota efetiva (console do gestor). */
+export interface AssistantUsageSummary {
+  /** Total de tokens consumidos no mês corrente. */
+  monthTokens: number;
+  /** Cota efetiva do mês (override da empresa, se houver; senão a do plano). */
+  quota: number;
+  /** Override manual da empresa (o "plus"); null = usa a cota do plano. */
+  quotaOverride: number | null;
+  /** Cota-padrão do plano vigente (ou do trial). */
+  planQuota: number;
+  /** Tokens restantes no mês (>= 0). */
+  remaining: number;
+  /** Custo estimado do mês em R$ (referência para margem). */
+  estimatedCostBRL: number;
+}
+
+/** Define/limpa o override de cota de uma empresa (null = volta ao do plano). */
+export const setAssistantQuotaSchema = z.object({
+  quota: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+});
+export type SetAssistantQuotaInput = z.infer<typeof setAssistantQuotaSchema>;

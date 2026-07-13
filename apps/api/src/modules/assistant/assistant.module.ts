@@ -1,12 +1,16 @@
 import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { CatalogModule } from "../catalog/catalog.module";
 import { PurchasesModule } from "../purchases/purchases.module";
 import { SuppliersModule } from "../suppliers/suppliers.module";
 import { AI_PROVIDER, NullAiProvider } from "./ai/ai-provider";
 import { AnthropicAiProvider } from "./ai/anthropic.provider";
 import { FakeAiProvider } from "./ai/fake.provider";
+import { AssistantUsageService } from "./application/assistant-usage.service";
 import { AssistantService } from "./application/assistant.service";
 import { AssistantTools } from "./application/assistant.tools";
+import { AssistantUsageEntity } from "./infrastructure/assistant-usage.entity";
 import { AssistantController } from "./presentation/assistant.controller";
 
 /**
@@ -15,10 +19,16 @@ import { AssistantController } from "./presentation/assistant.controller";
  * senão, `FakeAiProvider` (dev/testes) ou indisponível em produção.
  */
 @Module({
-  imports: [SuppliersModule, CatalogModule, PurchasesModule],
+  imports: [
+    TypeOrmModule.forFeature([AssistantUsageEntity, CompanyEntity]),
+    SuppliersModule,
+    CatalogModule,
+    PurchasesModule,
+  ],
   controllers: [AssistantController],
   providers: [
     AssistantService,
+    AssistantUsageService,
     AssistantTools,
     {
       provide: AI_PROVIDER,
@@ -30,5 +40,6 @@ import { AssistantController } from "./presentation/assistant.controller";
       },
     },
   ],
+  exports: [AssistantUsageService],
 })
 export class AssistantModule {}

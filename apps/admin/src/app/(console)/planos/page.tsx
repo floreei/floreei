@@ -66,6 +66,7 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
   const [tagline, setTagline] = useState(plan.tagline);
   const [basePrice, setBasePrice] = useState(String(plan.basePrice));
   const [userPrice, setUserPrice] = useState(String(plan.userPrice));
+  const [quota, setQuota] = useState(String(plan.assistantTokenQuota));
   const [features, setFeatures] = useState<Feature[]>(plan.features);
 
   // Ressincroniza o formulário quando o servidor devolve o plano atualizado.
@@ -74,6 +75,7 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
     setTagline(plan.tagline);
     setBasePrice(String(plan.basePrice));
     setUserPrice(String(plan.userPrice));
+    setQuota(String(plan.assistantTokenQuota));
     setFeatures(plan.features);
   }, [plan]);
 
@@ -102,6 +104,7 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
     tagline !== plan.tagline ||
     Number(basePrice) !== plan.basePrice ||
     Number(userPrice) !== plan.userPrice ||
+    Number(quota) !== plan.assistantTokenQuota ||
     features.slice().sort().join(",") !== plan.features.slice().sort().join(",");
 
   return (
@@ -155,6 +158,18 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
           </FieldRow>
         </div>
 
+        <FieldRow label="Cota de IA — tokens/mês incluídos">
+          <Input
+            type="number"
+            min={0}
+            step="1000"
+            inputMode="numeric"
+            value={quota}
+            disabled={!canEdit}
+            onChange={(e) => setQuota(e.target.value)}
+          />
+        </FieldRow>
+
         <div className="space-y-1.5 border-t border-border pt-3">
           <p className="text-xs font-medium text-muted-foreground">
             Recursos incluídos
@@ -186,6 +201,7 @@ function PlanCard({ plan, canEdit }: { plan: PlanOffer; canEdit: boolean }) {
                 tagline,
                 basePrice: Number(basePrice),
                 userPrice: Number(userPrice),
+                assistantTokenQuota: Number(quota),
                 features,
               })
             }

@@ -91,8 +91,15 @@ export class FakeAiProvider implements AiProvider {
   }
 }
 
+const FAKE_USAGE = {
+  inputTokens: 40,
+  outputTokens: 20,
+  cacheReadTokens: 0,
+  cacheCreationTokens: 0,
+};
+
 function call(name: string, input: unknown): AiCompleteResult {
-  return { toolCalls: [{ id: randomUUID(), name, input }] };
+  return { toolCalls: [{ id: randomUUID(), name, input }], usage: FAKE_USAGE };
 }
 
 function lastUserText(messages: AiMessage[]): string {

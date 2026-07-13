@@ -50,6 +50,7 @@ export class AnthropicAiProvider implements AiProvider {
         ],
         tools,
         messages: req.messages.map(toAnthropic),
+        ...(req.userId ? { metadata: { user_id: req.userId } } : {}),
       }),
     });
 
@@ -62,6 +63,12 @@ export class AnthropicAiProvider implements AiProvider {
         | { type: "text"; text: string }
         | { type: "tool_use"; id: string; name: string; input: unknown }
       >;
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_read_input_tokens?: number;
+        cache_creation_input_tokens?: number;
+      };
     };
 
     const text = data.content
@@ -79,6 +86,12 @@ export class AnthropicAiProvider implements AiProvider {
     return {
       text: text || undefined,
       toolCalls: toolCalls.length ? toolCalls : undefined,
+      usage: {
+        inputTokens: data.usage?.input_tokens ?? 0,
+        outputTokens: data.usage?.output_tokens ?? 0,
+        cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,
+        cacheCreationTokens: data.usage?.cache_creation_input_tokens ?? 0,
+      },
     };
   }
 }

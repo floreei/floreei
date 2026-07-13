@@ -1,4 +1,4 @@
-import type { AiMessage, AiToolCall } from "@sistema-flores/types";
+import type { AiMessage, AiToolCall, AiUsage } from "@sistema-flores/types";
 
 /** Token de injeção do provedor de IA (plugável — molde do EmailService). */
 export const AI_PROVIDER = "AI_PROVIDER";
@@ -14,12 +14,16 @@ export interface AiCompleteRequest {
   system: string;
   messages: AiMessage[];
   tools: AiToolDef[];
+  /** Id opaco da empresa → metadata.user_id (abuso), nunca PII. */
+  userId?: string;
 }
 
 /** Resultado de um passo do modelo: ou texto, ou chamadas de ferramenta. */
 export interface AiCompleteResult {
   text?: string;
   toolCalls?: AiToolCall[];
+  /** Tokens consumidos neste passo (para medição por empresa). */
+  usage?: AiUsage;
 }
 
 /**

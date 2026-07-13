@@ -127,6 +127,10 @@ export class CompanyEntity extends BaseEntity {
   tier!: PlanTier | null;
 
   /** Overrides de feature definidos no backoffice (feature → on/off). */
+  /** Override da cota de tokens do assistente (o "plus"); null = usa a do plano. */
+  @Column({ name: "assistant_token_quota", type: "int", nullable: true })
+  assistantTokenQuota!: number | null;
+
   @Column({ name: "feature_overrides", type: "jsonb", default: () => "'{}'" })
   featureOverrides!: FeatureOverrides;
 

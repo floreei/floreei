@@ -25,6 +25,8 @@ export interface PlanOffer {
   /** Preço por usuário ADICIONAL (R$/mês); o 1º já está na base. */
   userPrice: number;
   features: Feature[];
+  /** Cota mensal de tokens do assistente de IA incluída no plano. */
+  assistantTokenQuota: number;
 }
 
 /**
@@ -38,6 +40,7 @@ export const updatePlanDefinitionSchema = z.object({
   basePrice: z.coerce.number().min(0).max(100_000).optional(),
   userPrice: z.coerce.number().min(0).max(10_000).optional(),
   features: z.array(z.enum(ALL_FEATURES as [Feature, ...Feature[]])).optional(),
+  assistantTokenQuota: z.coerce.number().int().min(0).max(100_000_000).optional(),
 });
 export type UpdatePlanDefinitionInput = z.infer<typeof updatePlanDefinitionSchema>;
 

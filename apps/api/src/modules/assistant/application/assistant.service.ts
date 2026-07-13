@@ -1,4 +1,10 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from "@nestjs/common";
 import {
   CREATE_PURCHASE,
   productInputSchema,
@@ -13,9 +19,11 @@ import {
 } from "@sistema-flores/types";
 import { CategoryRepository } from "../../catalog/infrastructure/category.repository";
 import { ProductsService } from "../../catalog/application/products.service";
+import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { PurchasesService } from "../../purchases/application/purchases.service";
 import { SuppliersService } from "../../suppliers/suppliers.module";
 import { AI_PROVIDER, type AiProvider } from "../ai/ai-provider";
+import { AssistantUsageService } from "./assistant-usage.service";
 import { AssistantTools } from "./assistant.tools";
 
 const MAX_STEPS = 6;
@@ -42,6 +50,8 @@ export class AssistantService {
   constructor(
     @Inject(AI_PROVIDER) private readonly ai: AiProvider,
     private readonly tools: AssistantTools,
+    private readonly usage: AssistantUsageService,
+    private readonly tenant: TenantContextService,
     private readonly suppliersService: SuppliersService,
     private readonly productsService: ProductsService,
     private readonly purchasesService: PurchasesService,
@@ -49,6 +59,14 @@ export class AssistantService {
   ) {}
 
   async chat(messages: AiMessage[]): Promise<AssistantChatResponse> {
+    const companyId = this.tenant.getCompanyIdOrThrow();
+    if (!(await this.usage.withinQuota(companyId))) {
+      throw new HttpException(
+        "Você atingiu a cota de uso do assistente neste mês. Fale com o suporte para liberar mais.",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const working: AiMessage[] = [...messages];
     const toolDefs = this.tools.definitions();
 
@@ -57,7 +75,12 @@ export class AssistantService {
         system: systemPrompt(),
         messages: working,
         tools: toolDefs,
+        userId: companyId,
       });
+      if (result.usage) {
+        // Medição por empresa — best-effort, nunca derruba a conversa.
+        await this.usage.record(companyId, result.usage).catch(() => undefined);
+      }
 
       if (result.toolCalls?.length) {
         working.push({

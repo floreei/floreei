@@ -13,6 +13,7 @@ import {
 import {
   companiesQuerySchema,
   extendTrialSchema,
+  setAssistantQuotaSchema,
   setCompanyUserActiveSchema,
   invitePlatformAdminSchema,
   setTrialEndSchema,
@@ -44,6 +45,7 @@ class SetTrialEndDto extends createZodDto(setTrialEndSchema) {}
 class InviteAdminDto extends createZodDto(invitePlatformAdminSchema) {}
 class UpdateEntitlementsDto extends createZodDto(updateEntitlementsSchema) {}
 class SetCompanyUserActiveDto extends createZodDto(setCompanyUserActiveSchema) {}
+class SetAssistantQuotaDto extends createZodDto(setAssistantQuotaSchema) {}
 class UpdatePlanDto extends createZodDto(updatePlanDefinitionSchema) {}
 
 /**
@@ -124,6 +126,15 @@ export class PlatformController {
     @Body() dto: UpdateEntitlementsDto,
   ) {
     return this.companies.updateEntitlements(id, dto);
+  }
+
+  /** Define/limpa o override de cota de IA da empresa (o "plus"). */
+  @Post("companies/:id/assistant-quota")
+  setAssistantQuota(
+    @Param("id") id: string,
+    @Body() dto: SetAssistantQuotaDto,
+  ) {
+    return this.companies.setAssistantQuota(id, dto.quota);
   }
 
   /** Ativa/desativa o acesso de um membro da equipe da empresa. */

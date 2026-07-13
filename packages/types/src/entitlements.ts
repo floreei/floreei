@@ -80,7 +80,12 @@ export interface PlanTierDef {
   /** Preço mensal por usuário ADICIONAL (a partir do 2º). */
   userPrice: number;
   features: Feature[];
+  /** Cota mensal de tokens do assistente de IA incluída no plano. */
+  assistantTokenQuota: number;
 }
+
+/** Cota de tokens de IA no trial (libera tudo) — generosa para experimentar. */
+export const TRIAL_ASSISTANT_TOKEN_QUOTA = 200_000;
 
 /**
  * Definições-padrão dos planos. São a SEMENTE (migração) e o fallback — as
@@ -95,6 +100,7 @@ export const PLAN_TIERS: Record<PlanTier, PlanTierDef> = {
     basePrice: 79,
     userPrice: USER_PRICE,
     features: [FEATURES.SALES, FEATURES.QUOTES],
+    assistantTokenQuota: 100_000,
   },
   LOJA: {
     id: "LOJA",
@@ -110,6 +116,7 @@ export const PLAN_TIERS: Record<PlanTier, PlanTierDef> = {
       FEATURES.ARRANGEMENTS,
       FEATURES.FINANCE,
     ],
+    assistantTokenQuota: 300_000,
   },
   COMPLETO: {
     id: "COMPLETO",
@@ -118,6 +125,7 @@ export const PLAN_TIERS: Record<PlanTier, PlanTierDef> = {
     basePrice: 229,
     userPrice: USER_PRICE,
     features: [...ALL_FEATURES],
+    assistantTokenQuota: 1_000_000,
   },
 };
 
