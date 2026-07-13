@@ -12,11 +12,13 @@ function presets() {
   const today = toIso(now);
   const weekAgo = toIso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
   const monthStart = toIso(new Date(now.getFullYear(), now.getMonth(), 1));
+  // Fim do mês (não "hoje") — inclui registros com data futura ainda no mês.
+  const monthEnd = toIso(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   return [
     { label: "Todo período", from: "", to: "" },
     { label: "Hoje", from: today, to: today },
     { label: "7 dias", from: weekAgo, to: today },
-    { label: "Este mês", from: monthStart, to: today },
+    { label: "Este mês", from: monthStart, to: monthEnd },
   ];
 }
 

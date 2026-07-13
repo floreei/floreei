@@ -40,7 +40,10 @@ export function currentMonthRange(): { from: string; to: string } {
   const pad = (n: number) => String(n).padStart(2, "0");
   const y = now.getFullYear();
   const m = pad(now.getMonth() + 1);
-  return { from: `${y}-${m}-01`, to: `${y}-${m}-${pad(now.getDate())}` };
+  // Vai até o ÚLTIMO dia do mês (não "hoje") — inclui registros com data futura
+  // ainda dentro do mês (ex.: uma venda agendada para o dia 20).
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return { from: `${y}-${m}-01`, to: `${y}-${m}-${pad(lastDay)}` };
 }
 
 export function formatDate(value: string | null | undefined): string {

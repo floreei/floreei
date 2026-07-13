@@ -149,9 +149,15 @@ export default function InicioPage() {
         return { from: localISO(s), to: today };
       }
       case "month":
-        return { from: localISO(new Date(now.getFullYear(), now.getMonth(), 1)), to: today };
+        return {
+          from: localISO(new Date(now.getFullYear(), now.getMonth(), 1)),
+          to: localISO(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+        };
       case "year":
-        return { from: localISO(new Date(now.getFullYear(), 0, 1)), to: today };
+        return {
+          from: localISO(new Date(now.getFullYear(), 0, 1)),
+          to: localISO(new Date(now.getFullYear(), 11, 31)),
+        };
       case "custom":
         return { from: custom.from || today, to: custom.to || today };
     }

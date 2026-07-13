@@ -50,10 +50,12 @@ describe("todayLocalISO", () => {
 });
 
 describe("currentMonthRange", () => {
-  it("começa no dia 1 do mês atual e termina hoje", () => {
+  it("vai do dia 1 ao ÚLTIMO dia do mês atual", () => {
     const { from, to } = currentMonthRange();
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     expect(from).toMatch(/^\d{4}-\d{2}-01$/);
-    expect(to).toBe(todayLocalISO());
+    expect(to).toMatch(new RegExp(`^\\d{4}-\\d{2}-${String(lastDay).padStart(2, "0")}$`));
     expect(from.slice(0, 7)).toBe(to.slice(0, 7));
   });
 });

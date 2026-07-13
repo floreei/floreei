@@ -55,7 +55,8 @@ export default function CaixaPage() {
     if (period === "day") return { from: today, to: today };
     if (period === "month") {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { from: localISO(start), to: today };
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      return { from: localISO(start), to: localISO(end) };
     }
     const start = new Date(now);
     start.setDate(now.getDate() - 6);
