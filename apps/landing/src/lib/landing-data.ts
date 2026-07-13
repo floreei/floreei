@@ -13,6 +13,7 @@ export const FALLBACK_PLANS: PlanOffer[] = PLAN_TIER_LIST.map((t) => ({
   basePrice: t.basePrice,
   userPrice: t.userPrice,
   features: t.features,
+  assistantTokenQuota: t.assistantTokenQuota,
 }));
 
 // Uma única chamada por visita, compartilhada entre as seções (planos e
