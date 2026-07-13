@@ -46,6 +46,7 @@ import {
 import { AssistantHistoryService } from "./assistant-history.service";
 import { ArrangementsService } from "../../arrangements/application/arrangements.service";
 import { CategoryRepository } from "../../catalog/infrastructure/category.repository";
+import { ProductRepository } from "../../catalog/infrastructure/product.repository";
 import { ProductsService } from "../../catalog/application/products.service";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { CustomersService } from "../../customers/application/customers.service";
@@ -125,6 +126,7 @@ export class AssistantService {
     private readonly expensesService: ExpensesService,
     private readonly stockService: StockService,
     private readonly categories: CategoryRepository,
+    private readonly productRepo: ProductRepository,
   ) {}
 
   async chat(
@@ -581,6 +583,41 @@ export class AssistantService {
       }
     }
 
+    // Resolve cada item para um produto real: existente (id) → novo (índice) →
+    // por nome (acha ou cria). Nunca deixa um item sem produto (evita 500).
+    let quickItems:
+      | Array<{
+          productId?: string;
+          arrangementId?: string;
+          quantity: number;
+          saleUnit?: string;
+          unitSalePrice: number;
+        }>
+      | undefined;
+    if (sale.items?.length) {
+      quickItems = [];
+      for (const it of sale.items) {
+        let productId = it.productId ?? undefined;
+        if (!productId && it.newProductRef != null) {
+          productId = createdProductIds[it.newProductRef];
+        }
+        if (!productId && !it.arrangementId) {
+          productId = await this.resolveProductByName(
+            it.description,
+            it.unit,
+            it.unitSalePrice,
+          );
+        }
+        quickItems.push({
+          productId: productId ?? undefined,
+          arrangementId: it.arrangementId ?? undefined,
+          quantity: it.quantity,
+          saleUnit: it.unit,
+          unitSalePrice: it.unitSalePrice,
+        });
+      }
+    }
+
     const event = await this.eventsService.quickSale(
       quickSaleSchema.parse({
         customerId: customerId ?? undefined,
@@ -589,21 +626,8 @@ export class AssistantService {
         deliveryDate: sale.deliveryDate,
         dueDate: sale.paid ? undefined : sale.dueDate,
         delivered: sale.delivered,
-        ...(sale.items?.length
-          ? {
-              items: sale.items.map((it) => ({
-                productId:
-                  it.productId ??
-                  (it.newProductRef != null
-                    ? createdProductIds[it.newProductRef]
-                    : undefined) ??
-                  undefined,
-                arrangementId: it.arrangementId ?? undefined,
-                quantity: it.quantity,
-                saleUnit: it.unit,
-                unitSalePrice: it.unitSalePrice,
-              })),
-            }
+        ...(quickItems
+          ? { items: quickItems }
           : { amount: sale.amount, title: sale.title }),
       }),
     );
@@ -663,6 +687,29 @@ export class AssistantService {
     if (existing) return existing.id;
     const created = await this.categories.save(
       this.categories.create({ name: DEFAULT_CATEGORY }),
+    );
+    return created.id;
+  }
+
+  /** Acha um produto pelo nome (exato, case-insensitive) ou cria um novo. */
+  private async resolveProductByName(
+    name: string,
+    unit: string | undefined,
+    salePrice: number,
+  ): Promise<string> {
+    const existing = await this.productRepo
+      .qb("p")
+      .andWhere("p.name ILIKE :n", { n: name })
+      .getOne();
+    if (existing) return existing.id;
+    const categoryId = await this.defaultCategoryId();
+    const created = await this.productsService.create(
+      productInputSchema.parse({
+        categoryId,
+        name,
+        unit: unit ?? "UNIDADE",
+        defaultSalePrice: salePrice,
+      }),
     );
     return created.id;
   }

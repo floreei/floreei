@@ -106,6 +106,61 @@ describe("Assistente de IA (e2e)", () => {
     expect(purchase.body.items[0].productId).toBeTruthy(); // produto criado e vinculado
   });
 
+  it("venda com item sem produto resolvido (newProductRef sem newProducts) não dá 500", async () => {
+    const cat = await http
+      .post("/api/categories")
+      .set(bearer(token))
+      .send({ name: "Flores" })
+      .expect(201);
+    const prod = await http
+      .post("/api/products")
+      .set(bearer(token))
+      .send({
+        categoryId: cat.body.id,
+        name: "Hortênsia azul",
+        unit: "HASTE",
+        defaultSalePrice: 30,
+      })
+      .expect(201);
+
+    ai.queue = [
+      tool("propose_create_sale", {
+        channel: "WHOLESALE",
+        customerName: "Consumidor",
+        newProducts: [],
+        items: [
+          {
+            newProductRef: 0, // aponta para newProducts VAZIO (bug do modelo)
+            description: "Hortênsia azul",
+            quantity: 18,
+            unit: "HASTE",
+            unitSalePrice: 30,
+          },
+        ],
+        paid: false,
+        delivered: false,
+        date: "2026-07-17",
+      }),
+    ];
+    const chat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "vende 18 hortênsias azuis no atacado" }] })
+      .expect(201);
+    const exec = await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(chat.body.draft)
+      .expect(201);
+
+    const sale = await http
+      .get(`/api/events/${exec.body.recordId}`)
+      .set(bearer(token))
+      .expect(200);
+    expect(sale.body.soldValue).toBe(540); // 18 × 30 — resolveu o produto existente
+    expect(sale.body.items[0].productId).toBe(prod.body.id);
+  });
+
   it("registra VÁRIAS vendas de uma vez (lote, uma por cliente)", async () => {
     ai.queue = [
       tool("propose_create_sales_batch", {
