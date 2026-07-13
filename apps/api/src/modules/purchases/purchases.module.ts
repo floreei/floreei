@@ -113,6 +113,6 @@ class PurchasesController {
     PurchaseRepository,
     PurchaseAttachmentRepository,
   ],
-  exports: [PurchaseRepository],
+  exports: [PurchasesService, PurchaseRepository],
 })
 export class PurchasesModule {}

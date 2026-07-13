@@ -18,6 +18,6 @@ import { ProductsController } from "./presentation/products.controller";
     CategoryRepository,
     ProductRepository,
   ],
-  exports: [ProductRepository, CategoryRepository],
+  exports: [ProductsService, ProductRepository, CategoryRepository],
 })
 export class CatalogModule {}

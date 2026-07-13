@@ -8,6 +8,7 @@ import { FirebaseModule } from "./common/firebase/firebase.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthController } from "./health/health.controller";
 import { ArrangementsModule } from "./modules/arrangements/arrangements.module";
+import { AssistantModule } from "./modules/assistant/assistant.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { CatalogModule } from "./modules/catalog/catalog.module";
@@ -70,6 +71,7 @@ import { UsersModule } from "./modules/users/users.module";
     StorefrontModule,
     NcmModule,
     DunningModule,
+    AssistantModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

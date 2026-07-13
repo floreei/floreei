@@ -1,0 +1,34 @@
+import { Module } from "@nestjs/common";
+import { CatalogModule } from "../catalog/catalog.module";
+import { PurchasesModule } from "../purchases/purchases.module";
+import { SuppliersModule } from "../suppliers/suppliers.module";
+import { AI_PROVIDER, NullAiProvider } from "./ai/ai-provider";
+import { AnthropicAiProvider } from "./ai/anthropic.provider";
+import { FakeAiProvider } from "./ai/fake.provider";
+import { AssistantService } from "./application/assistant.service";
+import { AssistantTools } from "./application/assistant.tools";
+import { AssistantController } from "./presentation/assistant.controller";
+
+/**
+ * Assistente de IA (v1 — compras). Reusa os serviços de Fornecedores, Catálogo e
+ * Compras. Provedor de IA plugável: Anthropic quando há `ANTHROPIC_API_KEY`;
+ * senão, `FakeAiProvider` (dev/testes) ou indisponível em produção.
+ */
+@Module({
+  imports: [SuppliersModule, CatalogModule, PurchasesModule],
+  controllers: [AssistantController],
+  providers: [
+    AssistantService,
+    AssistantTools,
+    {
+      provide: AI_PROVIDER,
+      useFactory: () => {
+        const key = process.env.ANTHROPIC_API_KEY;
+        if (key) return new AnthropicAiProvider(key);
+        if (process.env.NODE_ENV === "production") return new NullAiProvider();
+        return new FakeAiProvider();
+      },
+    },
+  ],
+})
+export class AssistantModule {}

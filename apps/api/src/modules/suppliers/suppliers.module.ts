@@ -189,6 +189,6 @@ class SuppliersController {
   imports: [TypeOrmModule.forFeature([SupplierEntity, PurchaseEntity])],
   controllers: [SuppliersController],
   providers: [SuppliersService, SupplierRepository],
-  exports: [SupplierRepository],
+  exports: [SuppliersService, SupplierRepository],
 })
 export class SuppliersModule {}

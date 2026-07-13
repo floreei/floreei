@@ -2,6 +2,7 @@
 
 import { HelpCircle, LogOut, Search, Store } from "lucide-react";
 import { useState } from "react";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { useGuide } from "@/components/onboarding/guide";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -56,6 +57,7 @@ export function Topbar() {
       </button>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <AssistantLauncher />
         <Button
           variant="ghost"
           size="sm"
