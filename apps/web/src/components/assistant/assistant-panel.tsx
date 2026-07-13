@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { ApiError } from "@/lib/api/client";
 import { useAssistantChat } from "@/lib/api/assistant";
 import { useSpeech } from "@/lib/assistant/use-speech";
 import { cn } from "@/lib/utils";
@@ -63,11 +64,14 @@ export function AssistantPanel({
         setDraft(res.draft);
         setReviewOpen(true);
       }
-    } catch {
-      setBubbles((b) => [
-        ...b,
-        { role: "assistant", text: "Tive um problema agora. Pode tentar de novo?" },
-      ]);
+    } catch (err) {
+      const text =
+        err instanceof ApiError && err.status === 503
+          ? "O assistente ainda não está ligado nesta conta. Fale com o suporte para ativar."
+          : err instanceof ApiError && err.message
+            ? err.message
+            : "Tive um problema agora. Pode tentar de novo?";
+      setBubbles((b) => [...b, { role: "assistant", text }]);
     }
     scrollDown();
   };

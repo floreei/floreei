@@ -17,6 +17,13 @@ export class FakeAiProvider implements AiProvider {
     const used = toolNamesUsed(req.messages);
     const editing = isEditIntent(userText);
 
+    // Fora do escopo do v1 (vendas/faturamento/relatórios) — orienta.
+    if (!editing && !used.length && /(quanto|fatur|vend|relat[óo]ri)/.test(userText)) {
+      return {
+        text: "Por enquanto eu ajudo com compras e pedidos a fornecedor. Ex.: \"10 hortênsias para o fornecedor Flora\".",
+      };
+    }
+
     if (editing) {
       if (!used.includes("find_purchases")) {
         return call("find_purchases", {});
@@ -53,6 +60,14 @@ export class FakeAiProvider implements AiProvider {
 
     const supplier = suppliers[0];
     const product = products[0];
+
+    // Não deu para entender o item — pede um comando mais claro (não inventa).
+    if (!product && !productName) {
+      return {
+        text: "Me diga o item, a quantidade e o fornecedor. Ex.: \"10 hortênsias para o fornecedor Flora\".",
+      };
+    }
+
     const newProducts = product ? [] : [{ name: productName, unit: "UNIDADE" }];
 
     return call("propose_create_purchase", {
