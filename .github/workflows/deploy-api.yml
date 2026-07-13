@@ -41,7 +41,7 @@ jobs:
           service_account: ${{ vars.GCP_DEPLOY_SA }}
 
       - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Login do Docker no Artifact Registry
         run: gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
