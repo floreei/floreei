@@ -8,6 +8,7 @@ import type {
 import {
   Eraser,
   ExternalLink,
+  History,
   Mic,
   Search,
   Send,
@@ -24,6 +25,7 @@ import { ApiError } from "@/lib/api/client";
 import { useAssistantChat, useAssistantUsage } from "@/lib/api/assistant";
 import { useSpeech } from "@/lib/assistant/use-speech";
 import { cn } from "@/lib/utils";
+import { AssistantHistoryView } from "./assistant-history-view";
 import { AssistantMessage } from "./assistant-message";
 import { AssistantReviewDialog } from "./assistant-review-dialog";
 
@@ -54,6 +56,8 @@ export function AssistantPanel({
   const [input, setInput] = useState("");
   const [draft, setDraft] = useState<AssistantDraft | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [view, setView] = useState<"chat" | "history">("chat");
   const scrollRef = useRef<HTMLDivElement>(null);
   // Texto que já estava no input quando o microfone começou — a fala é
   // acrescentada por cima, ao vivo (o reconhecimento manda a frase inteira).
@@ -79,6 +83,8 @@ export function AssistantPanel({
     setInput("");
     setDraft(null);
     setReviewOpen(false);
+    setConversationId(null);
+    setView("chat");
   };
 
   const scrollDown = () =>
@@ -94,8 +100,9 @@ export function AssistantPanel({
     setBubbles((b) => [...b, { role: "user", text: clean }]);
     scrollDown();
     try {
-      const res = await chat.mutateAsync(nextMessages);
+      const res = await chat.mutateAsync({ messages: nextMessages, conversationId });
       setMessages(res.messages);
+      if (res.conversationId) setConversationId(res.conversationId);
       if (res.reply) setBubbles((b) => [...b, { role: "assistant", text: res.reply! }]);
       if (res.draft) {
         setDraft(res.draft);
@@ -130,18 +137,37 @@ export function AssistantPanel({
                 Peça por texto ou voz — ex.: pedidos a fornecedor
               </p>
             </div>
-            {bubbles.length > 0 ? (
+            <div className="ml-auto mr-7 flex items-center gap-1">
+              {view === "chat" && bubbles.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearChat}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                  Limpar
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={clearChat}
-                className="ml-auto mr-7 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                onClick={() => setView(view === "history" ? "chat" : "history")}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-muted",
+                  view === "history"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
               >
-                <Eraser className="h-3.5 w-3.5" />
-                Limpar
+                <History className="h-3.5 w-3.5" />
+                {view === "history" ? "Conversar" : "Histórico"}
               </button>
-            ) : null}
+            </div>
           </header>
 
+          {view === "history" ? (
+            <AssistantHistoryView onOpenChange={onOpenChange} />
+          ) : (
+          <>
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
             {bubbles.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center px-2 text-center">
@@ -286,12 +312,15 @@ export function AssistantPanel({
               </Button>
             </div>
           </div>
+          </>
+          )}
         </SheetContent>
       </Sheet>
 
       {draft ? (
         <AssistantReviewDialog
           draft={draft}
+          conversationId={conversationId}
           open={reviewOpen}
           onOpenChange={setReviewOpen}
           onDone={(result) => {

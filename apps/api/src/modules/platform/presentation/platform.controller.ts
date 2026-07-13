@@ -95,6 +95,12 @@ export class PlatformController {
     return this.companies.detail(id);
   }
 
+  /** Histórico de IA da empresa (ações executadas + conversas). */
+  @Get("companies/:id/assistant-log")
+  assistantLog(@Param("id") id: string) {
+    return this.companies.assistantLog(id);
+  }
+
   @Post("companies/:id/extend-trial")
   extendTrial(@Param("id") id: string, @Body() dto: ExtendTrialDto) {
     return this.companies.extendTrial(id, dto.days);

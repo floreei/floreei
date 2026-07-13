@@ -14,9 +14,13 @@ import { SuppliersModule } from "../suppliers/suppliers.module";
 import { AI_PROVIDER, NullAiProvider } from "./ai/ai-provider";
 import { AnthropicAiProvider } from "./ai/anthropic.provider";
 import { FakeAiProvider } from "./ai/fake.provider";
+import { AssistantHistoryService } from "./application/assistant-history.service";
 import { AssistantUsageService } from "./application/assistant-usage.service";
 import { AssistantService } from "./application/assistant.service";
 import { AssistantTools } from "./application/assistant.tools";
+import { AssistantActionEntity } from "./infrastructure/assistant-action.entity";
+import { AssistantConversationEntity } from "./infrastructure/assistant-conversation.entity";
+import { AssistantMessageEntity } from "./infrastructure/assistant-message.entity";
 import { AssistantUsageEntity } from "./infrastructure/assistant-usage.entity";
 import { AssistantController } from "./presentation/assistant.controller";
 
@@ -27,7 +31,13 @@ import { AssistantController } from "./presentation/assistant.controller";
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AssistantUsageEntity, CompanyEntity]),
+    TypeOrmModule.forFeature([
+      AssistantUsageEntity,
+      AssistantConversationEntity,
+      AssistantMessageEntity,
+      AssistantActionEntity,
+      CompanyEntity,
+    ]),
     SuppliersModule,
     CatalogModule,
     CustomersModule,
@@ -43,6 +53,7 @@ import { AssistantController } from "./presentation/assistant.controller";
   providers: [
     AssistantService,
     AssistantUsageService,
+    AssistantHistoryService,
     AssistantTools,
     {
       provide: AI_PROVIDER,
@@ -54,6 +65,6 @@ import { AssistantController } from "./presentation/assistant.controller";
       },
     },
   ],
-  exports: [AssistantUsageService],
+  exports: [AssistantUsageService, AssistantHistoryService],
 })
 export class AssistantModule {}

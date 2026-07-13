@@ -38,6 +38,11 @@ export class TenantContextService {
     return this.storage.getStore()?.companyId;
   }
 
+  /** Id do usuário autenticado no contexto atual (ou undefined). */
+  getUserId(): string | undefined {
+    return this.storage.getStore()?.userId || undefined;
+  }
+
   getCompanyIdOrThrow(): string {
     const companyId = this.getCompanyId();
     if (!companyId) {

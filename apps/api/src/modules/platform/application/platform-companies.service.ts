@@ -27,6 +27,7 @@ import { Between, DataSource, In, Not, Repository } from "typeorm";
 import { FirebaseService } from "../../../common/firebase/firebase.service";
 import { BillingService } from "../../billing/application/billing.service";
 import { SubscriptionEntity } from "../../billing/infrastructure/subscription.entity";
+import { AssistantHistoryService } from "../../assistant/application/assistant-history.service";
 import { AssistantUsageService } from "../../assistant/application/assistant-usage.service";
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 import { UserEntity } from "../../users/infrastructure/user.entity";
@@ -70,7 +71,13 @@ export class PlatformCompaniesService {
     private readonly firebase: FirebaseService,
     private readonly billing: BillingService,
     private readonly assistant: AssistantUsageService,
+    private readonly assistantHistory: AssistantHistoryService,
   ) {}
+
+  /** Histórico de IA da empresa (ações + conversas) para o console do gestor. */
+  assistantLog(id: string) {
+    return this.assistantHistory.log(id);
+  }
 
   // -------------------------------------------------------------------------
   // Leitura

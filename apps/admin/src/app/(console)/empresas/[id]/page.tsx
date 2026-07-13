@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AssistantLog,
   AssistantUsageSummary,
   CompanyDetail,
   Feature,
@@ -48,6 +49,13 @@ export default function CompanyDetailPage() {
   const { data: planDefs } = useQuery({
     queryKey: ["plans"],
     queryFn: () => api.get<PlanOffer[]>("/admin/plans"),
+    staleTime: 30_000,
+  });
+
+  // Histórico de IA (ações + conversas) da empresa.
+  const { data: aiLog } = useQuery({
+    queryKey: ["assistant-log", id],
+    queryFn: () => api.get<AssistantLog>(`/admin/companies/${id}/assistant-log`),
     staleTime: 30_000,
   });
 
@@ -353,6 +361,7 @@ export default function CompanyDetailPage() {
             run("assistant-quota", "Cota de IA atualizada.", { quota })
           }
         />
+        {aiLog ? <AiHistoryCard log={aiLog} /> : null}
         </div>
 
         {/* Métricas */}
@@ -694,6 +703,65 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 /** Uso de IA do mês vs. cota, e edição do override por empresa (o "plus"). */
+function AiHistoryCard({ log }: { log: AssistantLog }) {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Histórico de IA</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            Ações recentes
+          </p>
+          {log.actions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nada ainda.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {log.actions.slice(0, 8).map((a) => (
+                <li key={a.id} className="flex justify-between gap-3 text-sm">
+                  <span className="min-w-0 truncate">{a.summary}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular">
+                    {fmt(a.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="border-t border-border pt-3">
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            Conversas ({log.conversations.length})
+          </p>
+          {log.conversations.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma.</p>
+          ) : (
+            <ul className="space-y-1">
+              {log.conversations.slice(0, 6).map((c) => (
+                <li key={c.id} className="flex justify-between gap-3 text-sm">
+                  <span className="min-w-0 truncate text-muted-foreground">
+                    {c.title}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular">
+                    {fmt(c.updatedAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AssistantQuotaCard({
   assistant,
   onSave,

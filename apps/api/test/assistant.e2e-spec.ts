@@ -201,6 +201,51 @@ describe("Assistente de IA (e2e)", () => {
     expect(after.body.status).toBe("RECEIVED");
   });
 
+  it("guarda o histórico: conversa (transcript) e ação executada", async () => {
+    ai.queue = [{ text: "Qual fornecedor?" }];
+    const chat1 = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "quero comprar rosas" }] })
+      .expect(201);
+    const convId = chat1.body.conversationId;
+    expect(convId).toBeTruthy();
+
+    const convs = await http
+      .get("/api/assistant/conversations")
+      .set(bearer(token))
+      .expect(200);
+    expect(convs.body[0].title).toContain("rosas");
+
+    const conv = await http
+      .get(`/api/assistant/conversations/${convId}`)
+      .set(bearer(token))
+      .expect(200);
+    expect(conv.body.messages).toHaveLength(2); // usuário + assistente
+
+    // Executa uma ação ligada à conversa → entra na auditoria.
+    ai.queue = [tool("propose_create_customer", { name: "Bia" })];
+    const c2 = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "cadastra a Bia" }], conversationId: convId })
+      .expect(201);
+    await http
+      .post("/api/assistant/execute")
+      .query({ conversationId: convId })
+      .set(bearer(token))
+      .send(c2.body.draft)
+      .expect(201);
+
+    const history = await http
+      .get("/api/assistant/history")
+      .set(bearer(token))
+      .expect(200);
+    expect(history.body[0].kind).toBe("CREATE_CUSTOMER");
+    expect(history.body[0].href).toBeTruthy();
+    expect(history.body[0].conversationId).toBe(convId);
+  });
+
   it("expõe uso e cota do assistente ao próprio cliente", async () => {
     const res = await http.get("/api/assistant/usage").set(bearer(token)).expect(200);
     expect(res.body.quota).toBeGreaterThan(0);

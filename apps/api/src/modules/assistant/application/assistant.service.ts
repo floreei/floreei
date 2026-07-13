@@ -43,6 +43,7 @@ import {
   type EditPurchaseDraft,
   type RegisterPaymentDraft,
 } from "@sistema-flores/types";
+import { AssistantHistoryService } from "./assistant-history.service";
 import { ArrangementsService } from "../../arrangements/application/arrangements.service";
 import { CategoryRepository } from "../../catalog/infrastructure/category.repository";
 import { ProductsService } from "../../catalog/application/products.service";
@@ -61,6 +62,27 @@ import { AssistantTools } from "./assistant.tools";
 const MAX_STEPS = 6;
 const DEFAULT_CATEGORY = "Diversos";
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+/** Última fala de texto do usuário (para título/transcript). */
+function lastUserText(messages: AiMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user" && messages[i].text) return messages[i].text!;
+  }
+  return "";
+}
+
+const DRAFT_LABELS: Record<string, string> = {
+  CREATE_PURCHASE: "Propôs registrar uma compra.",
+  EDIT_PURCHASE: "Propôs alterar uma compra.",
+  CREATE_SALE: "Propôs registrar uma venda.",
+  CREATE_SALES_BATCH: "Propôs registrar várias vendas.",
+  CREATE_CUSTOMER: "Propôs cadastrar um cliente.",
+  CREATE_PRODUCT: "Propôs cadastrar um produto.",
+  CREATE_ARRANGEMENT: "Propôs cadastrar um buquê.",
+  ADJUST_STOCK: "Propôs ajustar o estoque.",
+  CREATE_EXPENSE: "Propôs registrar uma despesa.",
+  REGISTER_PAYMENT: "Propôs registrar um pagamento.",
+};
 
 const systemPrompt = () => `Você é o assistente do Floreei, um sistema para floriculturas.
 Hoje é ${new Date().toISOString().slice(0, 10)}.
@@ -91,6 +113,7 @@ export class AssistantService {
     @Inject(AI_PROVIDER) private readonly ai: AiProvider,
     private readonly tools: AssistantTools,
     private readonly usage: AssistantUsageService,
+    private readonly history: AssistantHistoryService,
     private readonly tenant: TenantContextService,
     private readonly suppliersService: SuppliersService,
     private readonly productsService: ProductsService,
@@ -104,7 +127,10 @@ export class AssistantService {
     private readonly categories: CategoryRepository,
   ) {}
 
-  async chat(messages: AiMessage[]): Promise<AssistantChatResponse> {
+  async chat(
+    messages: AiMessage[],
+    conversationId?: string | null,
+  ): Promise<AssistantChatResponse> {
     const companyId = this.tenant.getCompanyIdOrThrow();
     if (!(await this.usage.withinQuota(companyId))) {
       throw new HttpException(
@@ -113,6 +139,36 @@ export class AssistantService {
       );
     }
 
+    const response = await this.runTurns(companyId, messages);
+
+    // Persiste o transcript (best-effort — nunca derruba o chat).
+    try {
+      const userText = lastUserText(messages);
+      if (userText) {
+        const assistantText =
+          response.reply ??
+          (response.draft ? DRAFT_LABELS[response.draft.kind] ?? "" : "");
+        const convId = await this.history.ensureConversation(
+          companyId,
+          this.tenant.getUserId(),
+          conversationId,
+          userText,
+        );
+        await this.history.recordTurn(convId, companyId, userText, assistantText);
+        response.conversationId = convId;
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Falha ao gravar histórico: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return response;
+  }
+
+  private async runTurns(
+    companyId: string,
+    messages: AiMessage[],
+  ): Promise<AssistantChatResponse> {
     const working: AiMessage[] = [...messages];
     const toolDefs = this.tools.definitions();
 
@@ -199,7 +255,41 @@ export class AssistantService {
     return this.usage.summary(this.tenant.getCompanyIdOrThrow());
   }
 
-  execute(draft: AssistantDraft): Promise<AssistantExecuteResult> {
+  async execute(
+    draft: AssistantDraft,
+    conversationId?: string | null,
+  ): Promise<AssistantExecuteResult> {
+    const result = await this.runExecute(draft);
+    // Auditoria da ação executada (best-effort).
+    try {
+      await this.history.recordAction(
+        this.tenant.getCompanyIdOrThrow(),
+        this.tenant.getUserId(),
+        conversationId,
+        draft.kind,
+        result.message,
+        result.href,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Falha ao gravar ação: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return result;
+  }
+
+  /** Métodos de leitura do histórico (para o cliente e o gestor). */
+  listConversations(companyId?: string) {
+    return this.history.listConversations(companyId ?? this.tenant.getCompanyIdOrThrow());
+  }
+  getConversation(id: string, companyId?: string) {
+    return this.history.getConversation(companyId ?? this.tenant.getCompanyIdOrThrow(), id);
+  }
+  listActions(companyId?: string) {
+    return this.history.listActions(companyId ?? this.tenant.getCompanyIdOrThrow());
+  }
+
+  private runExecute(draft: AssistantDraft): Promise<AssistantExecuteResult> {
     switch (draft.kind) {
       case CREATE_PURCHASE:
         return this.executeCreate(draft);

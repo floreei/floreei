@@ -36,11 +36,13 @@ export function AssistantReviewDialog({
   open,
   onOpenChange,
   onDone,
+  conversationId,
 }: {
   draft: AssistantDraft;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDone: (result: AssistantExecuteResult) => void;
+  conversationId?: string | null;
 }) {
   const [d, setD] = useState<AssistantDraft>(draft);
   const execute = useAssistantExecute();
@@ -51,7 +53,7 @@ export function AssistantReviewDialog({
 
   const confirm = async () => {
     try {
-      const result = await execute.mutateAsync(d);
+      const result = await execute.mutateAsync({ draft: d, conversationId });
       toast.success(result.message);
       onOpenChange(false);
       onDone(result);

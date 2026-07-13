@@ -42,6 +42,8 @@ export type AiMessage = z.infer<typeof aiMessageSchema>;
 
 export const assistantChatRequestSchema = z.object({
   messages: z.array(aiMessageSchema).max(60),
+  /** Conversa em andamento (para persistir o histórico); ausente = nova. */
+  conversationId: idSchema.nullable().optional(),
 });
 export type AssistantChatRequest = z.infer<typeof assistantChatRequestSchema>;
 
@@ -273,6 +275,44 @@ export interface AssistantChatResponse {
   reply?: string;
   /** Proposta pronta para aprovação (abre o modal de resumo). */
   draft?: AssistantDraft;
+  /** Id da conversa (persistência do histórico); o cliente reenvia no próximo turno. */
+  conversationId?: string;
+}
+
+// ── Histórico (transcript + auditoria de ações) ────────────────────────────
+
+export interface AssistantMessageEntry {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  createdAt: string;
+}
+
+export interface AssistantConversationSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+export interface AssistantConversation {
+  id: string;
+  title: string;
+  messages: AssistantMessageEntry[];
+}
+
+export interface AssistantActionEntry {
+  id: string;
+  kind: string;
+  summary: string;
+  href: string;
+  conversationId: string | null;
+  createdAt: string;
+}
+
+/** Histórico consolidado (usado no console do gestor). */
+export interface AssistantLog {
+  actions: AssistantActionEntry[];
+  conversations: AssistantConversationSummary[];
 }
 
 export interface AssistantExecuteResult {
