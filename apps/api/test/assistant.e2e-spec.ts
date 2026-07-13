@@ -82,8 +82,12 @@ describe("Assistente de IA (e2e)", () => {
       .set(bearer(token))
       .send(chat.body.draft)
       .expect(201);
-    expect(exec.body.created).toEqual({ supplier: true, products: 1 });
-    expect(exec.body.href).toBe(`/compras/${exec.body.purchaseId}`);
+    expect(exec.body.created).toEqual({
+      supplier: true,
+      products: 1,
+      customer: false,
+    });
+    expect(exec.body.href).toBe(`/compras/${exec.body.recordId}`);
 
     // Fornecedor, produto e compra (recebida) persistidos.
     const suppliers = await http
@@ -94,7 +98,7 @@ describe("Assistente de IA (e2e)", () => {
     expect(suppliers.body.data.some((s: { name: string }) => s.name === "Flora Nova")).toBe(true);
 
     const purchase = await http
-      .get(`/api/purchases/${exec.body.purchaseId}`)
+      .get(`/api/purchases/${exec.body.recordId}`)
       .set(bearer(token))
       .expect(200);
     expect(purchase.body.status).toBe("RECEIVED");
@@ -173,6 +177,61 @@ describe("Assistente de IA (e2e)", () => {
       .set(bearer(token))
       .send({ messages: [{ role: "user", text: "oi de novo" }] })
       .expect(429);
+  });
+
+  it("registra uma venda (cliente novo, à vista) e executa", async () => {
+    ai.queue = [
+      tool("search_customers", { query: "Maria" }),
+      tool("propose_create_sale", {
+        channel: "RETAIL",
+        customerId: null,
+        newCustomer: { name: "Maria Flores" },
+        customerName: "Maria Flores",
+        amount: 150,
+        title: "3 buquês",
+        paid: true,
+        delivered: true,
+        date: "2026-07-13",
+      }),
+    ];
+
+    const chat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "vendi 3 buquês pra Maria por 150, já paga" }] })
+      .expect(201);
+    expect(chat.body.draft.kind).toBe("CREATE_SALE");
+
+    const exec = await http
+      .post("/api/assistant/execute")
+      .set(bearer(token))
+      .send(chat.body.draft)
+      .expect(201);
+    expect(exec.body.created.customer).toBe(true);
+    expect(exec.body.href).toBe(`/vendas/${exec.body.recordId}`);
+
+    const sale = await http
+      .get(`/api/events/${exec.body.recordId}`)
+      .set(bearer(token))
+      .expect(200);
+    expect(sale.body.soldValue).toBe(150);
+    expect(sale.body.receivedValue).toBe(150); // à vista → recebido
+  });
+
+  it("rascunho inválido volta ao modelo (não dá dead-end)", async () => {
+    // 1º passo: proposta inválida (sem fornecedor/itens). 2º: o modelo corrige
+    // com uma pergunta (texto). O usuário não vê erro de sistema.
+    ai.queue = [
+      tool("propose_create_purchase", { supplierName: "" }),
+      { text: "Faltou o fornecedor e os itens. Qual fornecedor e o que comprou?" },
+    ];
+    const chat = await http
+      .post("/api/assistant/chat")
+      .set(bearer(token))
+      .send({ messages: [{ role: "user", text: "registra uma compra" }] })
+      .expect(201);
+    expect(chat.body.draft).toBeUndefined();
+    expect(chat.body.reply).toContain("fornecedor");
   });
 
   it("executa consultas de leitura (financeiro, vendas, estoque) sem erro", async () => {

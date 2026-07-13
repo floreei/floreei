@@ -1,13 +1,15 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import {
   assistantDraftSchema,
   CREATE_PURCHASE,
+  CREATE_SALE,
   EDIT_PURCHASE,
   type AiToolCall,
   type AssistantDraft,
 } from "@sistema-flores/types";
 import { roundMoney } from "../../../common/money/money";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
+import { CustomerRepository } from "../../customers/infrastructure/customer.repository";
 import { EventsService } from "../../events/application/events.service";
 import { FinanceService } from "../../finance/application/finance.service";
 import { PurchasesService } from "../../purchases/application/purchases.service";
@@ -17,7 +19,18 @@ import { SupplierRepository } from "../../suppliers/infrastructure/supplier.repo
 import type { AiToolDef } from "../ai/ai-provider";
 
 /** Nomes das ferramentas de PROPOSTA (encerram o loop e viram rascunho). */
-export const PROPOSAL_TOOLS = ["propose_create_purchase", "propose_edit_purchase"];
+export const PROPOSAL_TOOLS = [
+  "propose_create_purchase",
+  "propose_edit_purchase",
+  "propose_create_sale",
+];
+
+/** Mapa nome-da-ferramenta → tipo do rascunho. */
+const DRAFT_KIND: Record<string, string> = {
+  propose_create_purchase: CREATE_PURCHASE,
+  propose_edit_purchase: EDIT_PURCHASE,
+  propose_create_sale: CREATE_SALE,
+};
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -32,6 +45,7 @@ export class AssistantTools {
     private readonly suppliers: SupplierRepository,
     private readonly products: ProductRepository,
     private readonly purchases: PurchasesService,
+    private readonly customers: CustomerRepository,
     private readonly events: EventsService,
     private readonly finance: FinanceService,
     private readonly reports: ReportsService,
@@ -67,6 +81,15 @@ export class AssistantTools {
       {
         name: "search_products",
         description: "Busca produtos no catálogo por nome.",
+        parameters: {
+          type: "object",
+          properties: { query: { type: "string" } },
+          required: ["query"],
+        },
+      },
+      {
+        name: "search_customers",
+        description: "Busca clientes por nome. Use antes de propor uma venda.",
         parameters: {
           type: "object",
           properties: { query: { type: "string" } },
@@ -204,6 +227,48 @@ export class AssistantTools {
           required: ["purchaseId", "purchaseLabel", "changes"],
         },
       },
+      {
+        name: "propose_create_sale",
+        description:
+          "Propõe registrar uma VENDA (varejo ou atacado) para o usuário aprovar. Informe cliente (existente, novo, ou consumidor), valor livre (amount+title) OU itens, se já foi paga e se já foi entregue.",
+        parameters: {
+          type: "object",
+          properties: {
+            channel: { type: "string", enum: ["RETAIL", "WHOLESALE"] },
+            customerId: { type: ["string", "null"] },
+            newCustomer: {
+              type: ["object", "null"],
+              properties: {
+                name: { type: "string" },
+                whatsapp: { type: "string" },
+              },
+            },
+            customerName: { type: "string", description: "'Consumidor' se sem cliente" },
+            amount: { type: "number", description: "valor livre da venda" },
+            title: { type: "string", description: "descrição do valor livre" },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  productId: { type: ["string", "null"] },
+                  arrangementId: { type: ["string", "null"] },
+                  description: { type: "string" },
+                  quantity: { type: "number" },
+                  unit: { type: "string" },
+                  unitSalePrice: { type: "number" },
+                },
+                required: ["description", "quantity"],
+              },
+            },
+            paid: { type: "boolean", description: "recebida agora (à vista)" },
+            delivered: { type: "boolean", description: "já entregue" },
+            date: { type: "string", description: "AAAA-MM-DD" },
+            dueDate: { type: "string", description: "vencimento se a prazo" },
+          },
+          required: ["customerName"],
+        },
+      },
     ];
   }
 
@@ -244,6 +309,22 @@ export class AssistantTools {
             name: p.name,
             unit: p.unit,
             currentUnitCost: p.currentUnitCost,
+            defaultSalePrice: p.defaultSalePrice,
+          })),
+        });
+      }
+      case "search_customers": {
+        const rows = await this.customers
+          .qb("c")
+          .andWhere("c.name ILIKE :q", { q: `%${String(input.query ?? "")}%` })
+          .orderBy("c.name", "ASC")
+          .limit(8)
+          .getMany();
+        return JSON.stringify({
+          customers: rows.map((c) => ({
+            id: c.id,
+            name: c.name,
+            whatsapp: c.whatsapp ?? c.phone,
           })),
         });
       }
@@ -354,20 +435,28 @@ export class AssistantTools {
     }
   }
 
-  /** Valida o rascunho proposto pelo modelo, com defaults úteis. */
-  parseDraft(call: AiToolCall): AssistantDraft {
-    const kind = call.name === "propose_edit_purchase" ? EDIT_PURCHASE : CREATE_PURCHASE;
+  /**
+   * Valida o rascunho proposto pelo modelo (com defaults úteis). Não lança: em
+   * caso de erro, devolve a mensagem do zod para o modelo se auto-corrigir.
+   */
+  tryParseDraft(
+    call: AiToolCall,
+  ): { ok: true; draft: AssistantDraft } | { ok: false; error: string } {
+    const kind = DRAFT_KIND[call.name] ?? CREATE_PURCHASE;
     const raw: Record<string, unknown> = {
       ...(call.input as Record<string, unknown>),
       kind,
     };
-    if (kind === CREATE_PURCHASE && !raw.date) raw.date = todayISO();
+    if ((kind === CREATE_PURCHASE || kind === CREATE_SALE) && !raw.date) {
+      raw.date = todayISO();
+    }
     const result = assistantDraftSchema.safeParse(raw);
     if (!result.success) {
-      throw new BadRequestException(
-        "Não consegui montar um resumo válido. Pode reformular o pedido?",
-      );
+      const error = result.error.issues
+        .map((i) => `${i.path.join(".") || "campo"}: ${i.message}`)
+        .join("; ");
+      return { ok: false, error };
     }
-    return result.data;
+    return { ok: true, draft: result.data };
   }
 }

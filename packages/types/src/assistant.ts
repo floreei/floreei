@@ -5,7 +5,7 @@ import {
   moneySchema,
   quantitySchema,
 } from "./common";
-import { productUnitSchema } from "./enums";
+import { productUnitSchema, salesChannelSchema } from "./enums";
 
 /**
  * Assistente de IA (v1 — compras). O histórico da conversa é agnóstico de
@@ -115,9 +115,55 @@ export const editPurchaseDraftSchema = z.object({
 });
 export type EditPurchaseDraft = z.infer<typeof editPurchaseDraftSchema>;
 
+// ── Venda (venda direta ou atacado) ───────────────────────────────────────
+
+export const CREATE_SALE = "CREATE_SALE";
+
+/** Cliente novo (mínimo) que o assistente sugere cadastrar na venda. */
+export const assistantNewCustomerSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome").max(160),
+  whatsapp: z.string().trim().max(30).optional(),
+});
+export type AssistantNewCustomer = z.infer<typeof assistantNewCustomerSchema>;
+
+/** Item de venda: buquê/produto existente ou só descrição + preço. */
+export const assistantSaleItemSchema = z.object({
+  productId: idSchema.nullable().optional(),
+  arrangementId: idSchema.nullable().optional(),
+  description: z.string().trim().min(1, "Descreva o item").max(200),
+  quantity: z.coerce.number().positive("Quantidade deve ser maior que zero"),
+  unit: productUnitSchema.optional(),
+  unitSalePrice: moneySchema.default(0),
+});
+export type AssistantSaleItem = z.infer<typeof assistantSaleItemSchema>;
+
+// Sem .refine no topo: a união discriminada exige ZodObject puro. A regra
+// "valor OU itens" é validada na execução.
+export const createSaleDraftSchema = z.object({
+  kind: z.literal(CREATE_SALE),
+  channel: salesChannelSchema.default("RETAIL"),
+  /** Cliente existente (id) ou novo (`newCustomer`); nenhum = consumidor. */
+  customerId: idSchema.nullable().optional(),
+  newCustomer: assistantNewCustomerSchema.nullable().optional(),
+  customerName: z.string().trim().min(1).max(160),
+  /** Valor livre (com título) OU itens. */
+  amount: moneySchema.optional(),
+  title: z.string().trim().max(180).optional(),
+  items: z.array(assistantSaleItemSchema).optional(),
+  /** Recebido agora (à vista) ou a prazo (fica em contas a receber). */
+  paid: z.boolean().default(false),
+  /** Já entregue (balcão) ou a entregar. */
+  delivered: z.boolean().default(false),
+  date: dateStringSchema,
+  /** Vencimento (só quando a prazo) — referência da cobrança. */
+  dueDate: dateStringSchema.optional(),
+});
+export type CreateSaleDraft = z.infer<typeof createSaleDraftSchema>;
+
 export const assistantDraftSchema = z.discriminatedUnion("kind", [
   createPurchaseDraftSchema,
   editPurchaseDraftSchema,
+  createSaleDraftSchema,
 ]);
 export type AssistantDraft = z.infer<typeof assistantDraftSchema>;
 
@@ -133,10 +179,11 @@ export interface AssistantChatResponse {
 }
 
 export interface AssistantExecuteResult {
-  purchaseId: string;
-  /** Link para a compra criada/editada (ex.: "/compras/abc"). */
+  /** Id do registro criado/editado (compra ou venda). */
+  recordId: string;
+  /** Link para o registro (ex.: "/compras/abc" ou "/vendas/abc"). */
   href: string;
-  created: { supplier: boolean; products: number };
+  created: { supplier: boolean; products: number; customer: boolean };
   message: string;
 }
 

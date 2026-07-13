@@ -29,8 +29,8 @@ interface Bubble {
 }
 
 const EXAMPLES = [
+  "Vendi 3 buquês para a Maria por R$ 150",
   "Pedido de 10 hortênsias para o fornecedor Holambra",
-  "Marca o último pedido como entregue",
   "Quanto faturei essa semana?",
   "O que está acabando no estoque?",
 ];
@@ -150,11 +150,11 @@ export function AssistantPanel({
 
                 <div className="mt-5 grid w-full max-w-xs gap-2 text-left">
                   <Capability icon={ShoppingBasket}>
-                    Registrar um pedido — crio fornecedor e produto se não
-                    existirem
+                    Registrar uma venda ou uma compra — crio cliente, fornecedor
+                    e produto se faltarem
                   </Capability>
                   <Capability icon={Truck}>
-                    Marcar como entregue ou mudar a data de uma compra
+                    Marcar como entregue ou mudar a data de um pedido
                   </Capability>
                   <Capability icon={Search}>
                     Consultar vendas/faturamento, financeiro e estoque

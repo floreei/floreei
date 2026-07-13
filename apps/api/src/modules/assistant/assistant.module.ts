@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { CatalogModule } from "../catalog/catalog.module";
+import { CustomersModule } from "../customers/customers.module";
 import { EventsModule } from "../events/events.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PurchasesModule } from "../purchases/purchases.module";
@@ -27,6 +28,7 @@ import { AssistantController } from "./presentation/assistant.controller";
     TypeOrmModule.forFeature([AssistantUsageEntity, CompanyEntity]),
     SuppliersModule,
     CatalogModule,
+    CustomersModule,
     PurchasesModule,
     EventsModule,
     FinanceModule,
