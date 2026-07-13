@@ -539,9 +539,13 @@ export class AssistantService {
       if (createdCustomer) customers += 1;
     }
     const n = draft.sales.length;
+    // Todas atacado → lista de atacado; senão, vendas (varejo cobre os dois).
+    const href = draft.sales.every((s) => s.channel === "WHOLESALE")
+      ? "/atacado"
+      : "/vendas";
     return {
       recordId: firstId,
-      href: `/vendas`,
+      href,
       created: { supplier: false, products: 0, customer: customers > 0 },
       message: `${n} ${n === 1 ? "venda registrada" : "vendas registradas"}.`,
     };

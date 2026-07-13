@@ -257,7 +257,7 @@ export function AssistantPanel({
                         className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
-                        Abrir a compra
+                        Abrir
                       </Link>
                     ) : null}
                   </div>

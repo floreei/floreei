@@ -166,7 +166,7 @@ describe("Assistente de IA (e2e)", () => {
       tool("propose_create_sales_batch", {
         sales: [
           {
-            channel: "RETAIL",
+            channel: "WHOLESALE",
             customerId: null,
             newCustomer: { name: "Wesley" },
             customerName: "Wesley",
@@ -205,6 +205,7 @@ describe("Assistente de IA (e2e)", () => {
       .send(chat.body.draft)
       .expect(201);
     expect(exec.body.message).toContain("2 vendas");
+    expect(exec.body.href).toBe("/atacado"); // lote todo atacado → lista de atacado
 
     const sales = await http.get("/api/events").set(bearer(token)).expect(200);
     expect(sales.body.total).toBeGreaterThanOrEqual(2);
