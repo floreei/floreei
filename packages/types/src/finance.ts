@@ -46,6 +46,8 @@ export interface OpenAccount {
   total: number;
   paid: number;
   balanceDue: number;
+  /** Chave Pix do fornecedor (só em contas a pagar de compras). */
+  pixKey?: string | null;
 }
 
 export interface FinanceSummary {

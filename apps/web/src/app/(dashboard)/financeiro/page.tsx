@@ -99,6 +99,7 @@ export default function FinancePage() {
           mode={baixa.mode}
           targetId={baixa.account.id}
           balanceDue={baixa.account.balanceDue}
+          payeePixKey={baixa.account.pixKey}
         />
       ) : null}
     </div>

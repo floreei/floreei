@@ -242,6 +242,7 @@ export default function PurchasesPage() {
           mode="pay"
           targetId={paying.id}
           balanceDue={paying.balanceDue}
+          payeePixKey={paying.supplier?.pixKey}
         />
       ) : null}
     </div>

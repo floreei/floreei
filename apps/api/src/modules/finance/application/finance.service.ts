@@ -94,6 +94,7 @@ export class FinanceService {
       total: purchase.total,
       paid: purchase.paidAmount,
       balanceDue: roundMoney(purchase.total - purchase.paidAmount),
+      pixKey: purchase.supplier?.pixKey ?? null,
     }));
 
     const expenseAccounts: OpenAccount[] = expenses.map((expense) => ({
