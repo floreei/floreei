@@ -327,23 +327,23 @@ function Capability({
   );
 }
 
-/** Barra de uso do assistente: tokens do mês vs. cota, com quanto ainda resta. */
+/** Barra de uso do assistente no mês, com quanto ainda está disponível (%). */
 function UsageBar({ usage }: { usage: AssistantUsageSummary }) {
-  const pct =
+  const usedPct =
     usage.quota > 0
       ? Math.min(100, Math.round((usage.monthTokens / usage.quota) * 100))
       : 0;
-  const low = usage.remaining <= 0 || pct >= 90;
-  const mid = !low && pct >= 70;
-  const fmt = (n: number) => n.toLocaleString("pt-BR");
+  const availablePct = Math.max(0, 100 - usedPct);
+  const low = usage.remaining <= 0 || usedPct >= 90;
+  const mid = !low && usedPct >= 70;
   return (
     <div className="mb-2">
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>Assistente — uso do mês</span>
         <span className={cn("tabular-nums", low && "font-medium text-destructive")}>
           {usage.remaining <= 0
-            ? "sem tokens este mês"
-            : `${fmt(usage.remaining)} de ${fmt(usage.quota)} restantes`}
+            ? "limite do mês atingido"
+            : `${availablePct}% disponível`}
         </span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -352,7 +352,7 @@ function UsageBar({ usage }: { usage: AssistantUsageSummary }) {
             "h-full transition-all",
             low ? "bg-destructive" : mid ? "bg-amber-500" : "bg-primary",
           )}
-          style={{ width: `${pct}%` }}
+          style={{ width: `${usedPct}%` }}
         />
       </div>
     </div>
