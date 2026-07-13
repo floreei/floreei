@@ -289,7 +289,7 @@ export function AssistantPanel({
                 </Button>
               ) : null}
               <Textarea
-                rows={1}
+                rows={3}
                 value={input}
                 placeholder={speech.listening ? "Ouvindo…" : "Escreva ou fale…"}
                 onChange={(e) => setInput(e.target.value)}
@@ -299,7 +299,7 @@ export function AssistantPanel({
                     void send(input);
                   }
                 }}
-                className="max-h-32 min-h-[2.5rem] flex-1 resize-none"
+                className="max-h-56 min-h-[5rem] flex-1 resize-none py-2.5 text-base leading-relaxed"
               />
               <Button
                 type="button"
