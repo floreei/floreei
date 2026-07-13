@@ -2,6 +2,7 @@
 
 import type { AiMessage, AssistantDraft } from "@sistema-flores/types";
 import {
+  Eraser,
   ExternalLink,
   Mic,
   Search,
@@ -67,6 +68,14 @@ export function AssistantPanel({
     }
   };
 
+  const clearChat = () => {
+    setMessages([]);
+    setBubbles([]);
+    setInput("");
+    setDraft(null);
+    setReviewOpen(false);
+  };
+
   const scrollDown = () =>
     requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -116,6 +125,16 @@ export function AssistantPanel({
                 Peça por texto ou voz — ex.: pedidos a fornecedor
               </p>
             </div>
+            {bubbles.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearChat}
+                className="ml-auto mr-7 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Eraser className="h-3.5 w-3.5" />
+                Limpar
+              </button>
+            ) : null}
           </header>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">

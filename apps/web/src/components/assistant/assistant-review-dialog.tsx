@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 import { useAssistantExecute } from "@/lib/api/assistant";
 import { unitLabels } from "@/lib/labels";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 /**
  * Resumo da ação proposta pela IA para o usuário aprovar. Campos-chave são
@@ -346,7 +346,7 @@ export function AssistantReviewDialog({
             </ul>
           </Section>
         ) : (
-          <SimpleDraftSummary draft={d} />
+          <SimpleDraftEditor draft={d} onChange={setD} />
         )}
 
         <DialogFooter>
@@ -389,91 +389,224 @@ function Section({
   );
 }
 
-/** Resumo (somente leitura) dos rascunhos simples — cadastros, estoque, financeiro. */
-function SimpleDraftSummary({ draft }: { draft: AssistantDraft }) {
-  const { icon, title, rows } = describeDraft(draft);
-  return (
-    <Section icon={icon} title={title}>
-      <dl className="space-y-1.5 text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="text-right font-medium">{value}</dd>
+const NATIVE_SELECT =
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+const PAYMENT_METHODS: Array<[string, string]> = [
+  ["PIX", "Pix"],
+  ["CASH", "Dinheiro"],
+  ["CARD", "Cartão"],
+  ["TRANSFER", "Transferência"],
+  ["BOLETO", "Boleto"],
+  ["OTHER", "Outro"],
+];
+
+/** Rascunhos simples (cadastros, estoque, financeiro) com campos editáveis. */
+function SimpleDraftEditor({
+  draft,
+  onChange,
+}: {
+  draft: AssistantDraft;
+  onChange: (d: AssistantDraft) => void;
+}) {
+  if (draft.kind === "CREATE_CUSTOMER") {
+    const d = draft;
+    return (
+      <Section icon={<UserPlus className="h-4 w-4" />} title="Novo cliente">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nome" htmlFor="sd-name">
+            <Input
+              id="sd-name"
+              value={d.name}
+              onChange={(e) => onChange({ ...d, name: e.target.value })}
+            />
+          </Field>
+          <Field label="WhatsApp" htmlFor="sd-wa">
+            <Input
+              id="sd-wa"
+              value={d.whatsapp ?? ""}
+              onChange={(e) => onChange({ ...d, whatsapp: e.target.value })}
+            />
+          </Field>
+        </div>
+      </Section>
+    );
+  }
+
+  if (draft.kind === "CREATE_PRODUCT") {
+    const d = draft;
+    return (
+      <Section icon={<Sparkles className="h-4 w-4" />} title="Novo produto">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nome" htmlFor="sd-pname">
+            <Input
+              id="sd-pname"
+              value={d.name}
+              onChange={(e) => onChange({ ...d, name: e.target.value })}
+            />
+          </Field>
+          <Field label="Unidade" htmlFor="sd-unit">
+            <select
+              id="sd-unit"
+              className={NATIVE_SELECT}
+              value={d.unit}
+              onChange={(e) =>
+                onChange({ ...d, unit: e.target.value as ProductUnit })
+              }
+            >
+              {Object.entries(unitLabels).map(([u, label]) => (
+                <option key={u} value={u}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Preço de venda" htmlFor="sd-price">
+            <CurrencyInput
+              id="sd-price"
+              value={d.defaultSalePrice}
+              onChange={(v) => onChange({ ...d, defaultSalePrice: v })}
+            />
+          </Field>
+          <Field label="Preço de compra" htmlFor="sd-pprice">
+            <CurrencyInput
+              id="sd-pprice"
+              value={d.defaultPurchasePrice}
+              onChange={(v) => onChange({ ...d, defaultPurchasePrice: v })}
+            />
+          </Field>
+        </div>
+      </Section>
+    );
+  }
+
+  if (draft.kind === "CREATE_ARRANGEMENT") {
+    const d = draft;
+    return (
+      <Section icon={<Sparkles className="h-4 w-4" />} title="Novo buquê">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nome" htmlFor="sd-aname">
+            <Input
+              id="sd-aname"
+              value={d.name}
+              onChange={(e) => onChange({ ...d, name: e.target.value })}
+            />
+          </Field>
+          <Field label="Preço" htmlFor="sd-aprice">
+            <CurrencyInput
+              id="sd-aprice"
+              value={d.salePrice}
+              onChange={(v) => onChange({ ...d, salePrice: v })}
+            />
+          </Field>
+        </div>
+      </Section>
+    );
+  }
+
+  if (draft.kind === "ADJUST_STOCK") {
+    const d = draft;
+    return (
+      <Section icon={<PackageCheck className="h-4 w-4" />} title="Ajuste de estoque">
+        <p className="mb-3 text-sm">
+          Produto: <span className="font-medium">{d.productName}</span>
+        </p>
+        <Field label="Novo saldo em estoque" htmlFor="sd-bal">
+          <Input
+            id="sd-bal"
+            type="number"
+            min={0}
+            value={d.newBalance}
+            onChange={(e) => onChange({ ...d, newBalance: Number(e.target.value) })}
+          />
+        </Field>
+      </Section>
+    );
+  }
+
+  if (draft.kind === "CREATE_EXPENSE") {
+    const d = draft;
+    return (
+      <Section icon={<PackageCheck className="h-4 w-4" />} title="Nova despesa">
+        <div className="space-y-3">
+          <Field label="Descrição" htmlFor="sd-desc">
+            <Input
+              id="sd-desc"
+              value={d.description}
+              onChange={(e) => onChange({ ...d, description: e.target.value })}
+            />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Centro de custo" htmlFor="sd-cc">
+              <Input
+                id="sd-cc"
+                value={d.costCenter}
+                onChange={(e) => onChange({ ...d, costCenter: e.target.value })}
+              />
+            </Field>
+            <Field label="Valor" htmlFor="sd-amount">
+              <CurrencyInput
+                id="sd-amount"
+                value={d.amount}
+                onChange={(v) => onChange({ ...d, amount: v })}
+              />
+            </Field>
+            <Field label="Vencimento" htmlFor="sd-due">
+              <Input
+                id="sd-due"
+                type="date"
+                value={d.dueDate}
+                onChange={(e) => onChange({ ...d, dueDate: e.target.value })}
+              />
+            </Field>
           </div>
-        ))}
-      </dl>
+        </div>
+      </Section>
+    );
+  }
+
+  if (draft.kind !== "REGISTER_PAYMENT") return null;
+  const d = draft;
+  return (
+    <Section
+      icon={<PackageCheck className="h-4 w-4" />}
+      title={d.target === "EVENT" ? "Receber de cliente" : "Pagar fornecedor"}
+    >
+      <p className="mb-3 text-sm">
+        {d.target === "EVENT" ? "Venda" : "Compra"}:{" "}
+        <span className="font-medium">{d.label}</span>
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Valor" htmlFor="sd-pamount">
+          <CurrencyInput
+            id="sd-pamount"
+            value={d.amount}
+            onChange={(v) => onChange({ ...d, amount: v })}
+          />
+        </Field>
+        <Field label="Forma" htmlFor="sd-method">
+          <select
+            id="sd-method"
+            className={NATIVE_SELECT}
+            value={d.method ?? "PIX"}
+            onChange={(e) => onChange({ ...d, method: e.target.value })}
+          >
+            {PAYMENT_METHODS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Data" htmlFor="sd-pdate">
+          <Input
+            id="sd-pdate"
+            type="date"
+            value={d.date}
+            onChange={(e) => onChange({ ...d, date: e.target.value })}
+          />
+        </Field>
+      </div>
     </Section>
   );
-}
-
-function describeDraft(d: AssistantDraft): {
-  icon: React.ReactNode;
-  title: string;
-  rows: Array<[string, string]>;
-} {
-  const check = <PackageCheck className="h-4 w-4" />;
-  const spark = <Sparkles className="h-4 w-4" />;
-  switch (d.kind) {
-    case "CREATE_CUSTOMER":
-      return {
-        icon: <UserPlus className="h-4 w-4" />,
-        title: "Novo cliente",
-        rows: [
-          ["Nome", d.name],
-          ...(d.whatsapp ? [["WhatsApp", d.whatsapp] as [string, string]] : []),
-          ["Canal", d.channel === "WHOLESALE" ? "Atacado" : "Varejo"],
-        ],
-      };
-    case "CREATE_PRODUCT":
-      return {
-        icon: spark,
-        title: "Novo produto",
-        rows: [
-          ["Nome", d.name],
-          ["Unidade", d.unit],
-          ["Preço de venda", formatCurrency(d.defaultSalePrice)],
-        ],
-      };
-    case "CREATE_ARRANGEMENT":
-      return {
-        icon: spark,
-        title: "Novo buquê",
-        rows: [
-          ["Nome", d.name],
-          ["Preço", formatCurrency(d.salePrice)],
-        ],
-      };
-    case "ADJUST_STOCK":
-      return {
-        icon: check,
-        title: "Ajuste de estoque",
-        rows: [
-          ["Produto", d.productName],
-          ["Novo saldo", String(d.newBalance)],
-        ],
-      };
-    case "CREATE_EXPENSE":
-      return {
-        icon: check,
-        title: "Nova despesa",
-        rows: [
-          ["Descrição", d.description],
-          ["Centro de custo", d.costCenter],
-          ["Valor", formatCurrency(d.amount)],
-          ["Vencimento", d.dueDate],
-        ],
-      };
-    case "REGISTER_PAYMENT":
-      return {
-        icon: check,
-        title: d.target === "EVENT" ? "Receber de cliente" : "Pagar fornecedor",
-        rows: [
-          [d.target === "EVENT" ? "Venda" : "Compra", d.label],
-          ["Valor", formatCurrency(d.amount)],
-          ["Data", d.date],
-        ],
-      };
-    default:
-      return { icon: spark, title: "Resumo", rows: [] };
-  }
 }
