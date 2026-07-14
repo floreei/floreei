@@ -47,18 +47,26 @@ async function run(): Promise<void> {
     console.log(`Empresa Floravie já existe: ${company.id}`);
   }
 
-  const firebase = new FirebaseService();
-  const fbUser = await firebase.auth().getUserByEmail(EMAIL);
-
   const existing = await users.findOne({
     where: { companyId: company.id, email: EMAIL },
   });
+  // Já vinculado: nada a fazer (evita bater no Firebase a cada start do container).
+  if (existing?.firebaseUid) {
+    // eslint-disable-next-line no-console
+    console.log(`Admin ${EMAIL} já é ADMIN da Floravie. Nada a fazer.`);
+    await dataSource.destroy();
+    return;
+  }
+
+  // Só aqui precisamos do Firebase (buscar o uid da conta que já existe).
+  const firebase = new FirebaseService();
+  const fbUser = await firebase.auth().getUserByEmail(EMAIL);
   if (existing) {
     existing.firebaseUid = fbUser.uid;
     existing.active = true;
     await users.save(existing);
     // eslint-disable-next-line no-console
-    console.log(`Admin ${EMAIL} já vinculado à Floravie (atualizado).`);
+    console.log(`Admin ${EMAIL} vinculado à Floravie (uid atualizado).`);
   } else {
     await users.save(
       users.create({

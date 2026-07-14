@@ -201,12 +201,22 @@ uma flag; o back não impõe cores (a empresa fica marcada `store_custom=true`).
 - Ao comprar o domínio próprio, é só adicionar o novo domínio nesse projeto e
   ajustar a env/CORS — nada mais muda.
 
-### 9.3 API — CORS e dados
+### 9.3 API — CORS e bootstrap da loja
 - Garanta `CORS_ORIGIN_SUFFIXES=.floreei.com.br` na API (libera `floravie.` e as
   demais lojas automaticamente). Ver §5.
-- Rode **uma vez** `pnpm --filter @sistema-flores/api connect:floravie` (cria a
-  empresa Floravie + vincula o e-mail admin) e publique os buquês reais no ERP
-  (foto, categoria buques/cestas, tamanhos). Depois é só a flag apontar pra API.
+- **Criar a empresa Floravie + vincular o admin** (`connect:floravie`, idempotente).
+  Duas formas — escolha uma:
+  - **Pela pipeline (recomendado, sem env na mão):** setar **`CONNECT_FLORAVIE=true`**
+    no serviço da API e deployar. O `docker-entrypoint.sh` roda o script **depois
+    das migrations**, no boot (não bloqueia a API se falhar). Depois de rodar uma
+    vez, pode **remover a env** (é idempotente e barato de qualquer forma).
+  - **Manual (da sua máquina, contra o Neon de prod):**
+    `... DATABASE_* FIREBASE_* pnpm --filter @sistema-flores/api connect:floravie`.
+  - ⚠️ **Pré-requisito:** vincular o admin usa `getUserByEmail` (Admin SDK) → exige a
+    **service account** (`FIREBASE_SERVICE_ACCOUNT_B64`, ver §4.1). Sem ela, a
+    empresa é criada mas o admin **não** é vinculado (o passo loga a falha e segue).
+    O e-mail padrão é `hugouraga61@gmail.com` (sobrescreva com `FLORAVIE_ADMIN_EMAIL`).
+- Publicar os buquês reais no ERP (foto, categoria buques/cestas, tamanhos).
 - **Firebase Authorized domains:** NÃO precisa — a Floravie é loja pública, sem
   login do ERP.
 
