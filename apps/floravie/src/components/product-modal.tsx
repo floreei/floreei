@@ -50,7 +50,7 @@ export function ProductModal() {
               <h2>{p.name}</h2>
               <div className="stars">
                 <Stars rating={p.rating} />{" "}
-                <span>
+                <span className="star-count">
                   ({p.reviews} {p.reviews === 1 ? "avaliação" : "avaliações"})
                 </span>
               </div>

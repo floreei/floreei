@@ -18,7 +18,8 @@ export function ProductCard({ product: p }: { product: Product }) {
       <div className="info">
         <h3>{p.name}</h3>
         <div className="stars">
-          <Stars rating={p.rating} /> <span>({p.reviews})</span>
+          <Stars rating={p.rating} />{" "}
+          <span className="star-count">({p.reviews})</span>
         </div>
         <div className="price-row">
           <span className="price">{money(p.price)}</span>

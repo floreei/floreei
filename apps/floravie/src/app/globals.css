@@ -138,7 +138,7 @@ section.block{padding:72px 0 26px}
 .card .info{padding:18px 20px 8px;display:flex;flex-direction:column;gap:6px;flex:1}
 .card h3{font-family:var(--font-display);font-size:1.22rem;font-weight:600;color:var(--green);line-height:1.25}
 .stars{font-size:.72rem;color:var(--gold);letter-spacing:.1em}
-.stars span{color:var(--green-soft);letter-spacing:0;margin-left:6px}
+.stars .star-count{color:var(--green-soft);letter-spacing:0;margin-left:6px}
 .price-row{display:flex;align-items:baseline;gap:8px;margin-top:auto;padding-top:8px}
 .price{font-size:1.18rem;font-weight:500;color:var(--ink)}
 .installments{font-size:.74rem;color:var(--green-soft)}
@@ -323,7 +323,11 @@ footer li a:hover{opacity:1;color:var(--rose)}
 .reviews-summary{display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--green-soft)}
 .reviews-summary .star-rating{font-size:1.05rem;letter-spacing:.1em}
 .reviews-summary b{color:var(--ink);font-weight:500;font-size:1.05rem}
-.review-list{display:flex;flex-direction:column;gap:12px}
+/* Mostra ~3 avaliações; o resto rola dentro da própria lista (evita esticar a
+   foto do produto no modal). */
+.review-list{display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto;padding-right:6px}
+.review-list::-webkit-scrollbar{width:6px}
+.review-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
 .review{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;background:var(--ivory)}
 .review-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
 .review-author{font-weight:500;color:var(--green);font-size:.92rem}
