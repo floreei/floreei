@@ -28,7 +28,7 @@
     "@nestjs/throttler": "^6",
     "@nestjs/typeorm": "^10.0.2",
     "@sistema-flores/types": "workspace:*",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "firebase-admin": "^12.7.0",
     "helmet": "^8.2.0",
     "nestjs-zod": "^3.0.0",
