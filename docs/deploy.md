@@ -208,12 +208,13 @@ uma flag; o back não impõe cores (a empresa fica marcada `store_custom=true`).
   Duas formas — escolha uma:
   - **Pela pipeline (recomendado, sem env na mão):** setar **`CONNECT_FLORAVIE=true`**
     no serviço da API e deployar. O `docker-entrypoint.sh` roda, **depois das
-    migrations**, o `connect:floravie` **e** o `register:floravie` (popula o
-    catálogo de buquês do mock) — no boot, sem bloquear a API se falhar. Depois de
-    rodar uma vez, pode **remover a env** (tudo idempotente).
+    migrations**, na ordem: `connect:floravie` → `register:floravie` (catálogo do
+    mock) → `seed:floravie-reviews` (avaliações, pro rating não ficar zerado) —
+    no boot, sem bloquear a API se falhar. Depois de rodar uma vez, pode **remover
+    a env** (tudo idempotente).
   - **Manual (da sua máquina, contra o Neon de prod):**
-    `... DATABASE_* FIREBASE_* pnpm --filter @sistema-flores/api connect:floravie`
-    e depois `... register:floravie` (catálogo).
+    `... DATABASE_* FIREBASE_* pnpm --filter @sistema-flores/api connect:floravie`,
+    depois `... register:floravie` (catálogo) e `... seed:floravie-reviews`.
   - ⚠️ **Pré-requisito:** vincular o admin usa `getUserByEmail` (Admin SDK) → exige a
     **service account** (`FIREBASE_SERVICE_ACCOUNT_B64`, ver §4.1). Sem ela, a
     empresa é criada mas o admin **não** é vinculado (o passo loga a falha e segue).

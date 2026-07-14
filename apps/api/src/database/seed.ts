@@ -2,9 +2,10 @@ import "reflect-metadata";
 import { firebaseWebApiKey } from "../common/firebase/firebase-options";
 import { FirebaseService } from "../common/firebase/firebase.service";
 import { calculateItem, calculateQuote } from "../modules/quotes/domain/quote-calculator";
-import { ArrangementEntity } from "../modules/arrangements/infrastructure/arrangement.entity";
-import { ReviewEntity } from "../modules/reviews/infrastructure/review.entity";
-import { registerFloravieCatalog } from "./floravie-catalog";
+import {
+  registerFloravieCatalog,
+  seedFloravieReviews,
+} from "./floravie-catalog";
 import { CategoryEntity } from "../modules/catalog/infrastructure/category.entity";
 import { ProductEntity } from "../modules/catalog/infrastructure/product.entity";
 import { CompanyEntity } from "../modules/companies/infrastructure/company.entity";
@@ -350,33 +351,8 @@ async function run(): Promise<void> {
   ]);
 
   // Catálogo da FLORAVIE (buquês do mock) publicado + avaliações semeadas.
-  const floravieArrangements = await registerFloravieCatalog(
-    dataSource,
-    floravieId,
-  );
-  const reviewRepo = dataSource.getRepository(ReviewEntity);
-  const buque = floravieArrangements[0]; // Buquê 12 Rosas Rosé
-  const cesta = floravieArrangements[6]; // Orquídea Phalaenopsis Lilás
-  const seedReviews: [ArrangementEntity, string, number, string][] = [
-    [buque, "Mariana S.", 5, "Chegou lindo e super fresco, minha mãe amou!"],
-    [buque, "Rafael T.", 5, "Entrega no mesmo dia, pontualíssimo. Recomendo."],
-    [buque, "Camila R.", 4, "Buquê bonito, só achei o cartão pequeno."],
-    [cesta, "João P.", 5, "Cesta caprichada, valeu cada centavo."],
-    [cesta, "Beatriz L.", 5, "Presente perfeito, todos elogiaram."],
-  ];
-  await reviewRepo.save(
-    seedReviews.map(([arr, authorName, rating, comment]) =>
-      reviewRepo.create({
-        companyId: floravieId,
-        arrangementId: arr.id,
-        authorName,
-        rating,
-        comment,
-        status: "APPROVED",
-        source: "SEED",
-      }),
-    ),
-  );
+  await registerFloravieCatalog(dataSource, floravieId);
+  await seedFloravieReviews(dataSource, floravieId);
 
   // eslint-disable-next-line no-console
   console.log(

@@ -19,6 +19,7 @@
     "db:seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
     "connect:floravie": "ts-node -r tsconfig-paths/register src/database/connect-floravie.ts",
     "register:floravie": "ts-node -r tsconfig-paths/register src/database/register-floravie-catalog.ts",
+    "seed:floravie-reviews": "ts-node -r tsconfig-paths/register src/database/seed-floravie-reviews.ts",
     "test:coverage": "jest --coverage --passWithNoTests"
   },
   "dependencies": {

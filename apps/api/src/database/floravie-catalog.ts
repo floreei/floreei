@@ -1,6 +1,7 @@
 import type { ArrangementSize, StoreCategory } from "@sistema-flores/types";
 import type { DataSource } from "typeorm";
 import { ArrangementEntity } from "../modules/arrangements/infrastructure/arrangement.entity";
+import { ReviewEntity } from "../modules/reviews/infrastructure/review.entity";
 
 interface FloravieBuque {
   name: string;
@@ -194,4 +195,69 @@ export async function registerFloravieCatalog(
     result.push(await repo.save(entity));
   }
   return result;
+}
+
+// ── Avaliações semeadas (credibilidade) ────────────────────────────────────
+// Nomes/comentários realistas; distribuídos deterministicamente por buquê.
+const REVIEW_AUTHORS = [
+  "Mariana S.", "Rafael T.", "Camila R.", "João P.", "Beatriz L.",
+  "Lucas M.", "Fernanda A.", "Paulo R.", "Aline C.", "Diego F.",
+  "Renata V.", "Tiago N.",
+];
+const REVIEW_COMMENTS = [
+  "Chegou lindo e super fresco, amei!",
+  "Entrega no mesmo dia, pontualíssimo.",
+  "Superou minhas expectativas.",
+  "Presente perfeito, todos elogiaram.",
+  "As flores duraram bastante, valeu cada centavo.",
+  "Atendimento nota 10, recomendo demais.",
+  "Comprei de novo, sempre caprichado.",
+  "Minha mãe amou, muito obrigada!",
+  "Embalagem impecável e cartão fofo.",
+  "Exatamente como na foto.",
+  "Qualidade excelente, virei cliente.",
+  "Rápido e caprichado, adorei.",
+];
+// Notas por buquê (média ~5 ou ~4), refletindo o rating do mock.
+const RATINGS_FIVE = [5, 5, 5, 5, 5, 4];
+const RATINGS_FOUR = [4, 5, 4, 3, 4, 5];
+// Buquês que no mock tinham 4 estrelas; o resto tinha 5.
+const FOUR_STAR = new Set(["Buquê Flores do Campo", "Cesta Vinho & Delícias"]);
+
+/**
+ * Semeia algumas avaliações APROVADas por buquê da Floravie, pra o rating não
+ * ficar zerado na vitrine. Idempotente: só semeia num buquê que ainda não tem
+ * avaliação `SEED`. Requer que o catálogo já exista (rode `register` antes).
+ */
+export async function seedFloravieReviews(
+  dataSource: DataSource,
+  companyId: string,
+): Promise<number> {
+  const arrRepo = dataSource.getRepository(ArrangementEntity);
+  const reviewRepo = dataSource.getRepository(ReviewEntity);
+  let created = 0;
+  for (let i = 0; i < FLORAVIE_BUQUES.length; i += 1) {
+    const b = FLORAVIE_BUQUES[i];
+    const arr = await arrRepo.findOne({ where: { companyId, name: b.name } });
+    if (!arr) continue;
+    const already = await reviewRepo.count({
+      where: { arrangementId: arr.id, source: "SEED" },
+    });
+    if (already > 0) continue;
+    const ratings = FOUR_STAR.has(b.name) ? RATINGS_FOUR : RATINGS_FIVE;
+    const rows = ratings.map((rating, j) =>
+      reviewRepo.create({
+        companyId,
+        arrangementId: arr.id,
+        authorName: REVIEW_AUTHORS[(i + j) % REVIEW_AUTHORS.length],
+        rating,
+        comment: REVIEW_COMMENTS[(i * 2 + j) % REVIEW_COMMENTS.length],
+        status: "APPROVED" as const,
+        source: "SEED" as const,
+      }),
+    );
+    await reviewRepo.save(rows);
+    created += rows.length;
+  }
+  return created;
 }

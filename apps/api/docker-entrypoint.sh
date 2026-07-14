@@ -14,6 +14,8 @@ if [ "$CONNECT_FLORAVIE" = "true" ]; then
   node dist/database/connect-floravie.js || echo "⚠ connect:floravie falhou — seguindo o boot da API."
   echo "→ Registrando o catálogo da Floravie (idempotente)..."
   node dist/database/register-floravie-catalog.js || echo "⚠ register:floravie falhou — seguindo o boot da API."
+  echo "→ Semeando avaliações da Floravie (idempotente)..."
+  node dist/database/seed-floravie-reviews.js || echo "⚠ seed:floravie-reviews falhou — seguindo o boot da API."
 fi
 
 echo "→ Iniciando API..."
