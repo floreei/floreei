@@ -23,6 +23,7 @@ export * from "./purchase";
 export * from "./quote";
 export * from "./quote-calculator";
 export * from "./report";
+export * from "./review";
 export * from "./search";
 export * from "./stock";
 export * from "./store";

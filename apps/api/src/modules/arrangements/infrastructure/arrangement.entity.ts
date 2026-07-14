@@ -1,4 +1,8 @@
-import type { ArrangementPricingMode } from "@sistema-flores/types";
+import type {
+  ArrangementPricingMode,
+  ArrangementSize,
+  StoreCategory,
+} from "@sistema-flores/types";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 import { decimalTransformer } from "../../../common/database/decimal.transformer";
 import { TenantOwnedEntity } from "../../../common/database/tenant-owned.entity";
@@ -57,6 +61,20 @@ export class ArrangementEntity extends TenantOwnedEntity {
   /** Publicado na loja online. */
   @Column({ name: "store_published", type: "boolean", default: false })
   storePublished!: boolean;
+
+  // ── Vitrine (loja online) — campos de marketing servidos ao storefront ──
+  @Column({ type: "text", nullable: true })
+  description!: string | null;
+
+  @Column({ type: "varchar", length: 40, nullable: true })
+  badge!: string | null;
+
+  @Column({ name: "store_category", type: "varchar", length: 40, nullable: true })
+  storeCategory!: StoreCategory | null;
+
+  /** Variações de tamanho na vitrine (rótulo + acréscimo de preço). */
+  @Column({ name: "store_sizes", type: "jsonb", default: () => "'[]'" })
+  storeSizes!: ArrangementSize[];
 
   @ManyToOne(() => CategoryEntity, { onDelete: "SET NULL", nullable: true })
   @JoinColumn({ name: "category_id" })

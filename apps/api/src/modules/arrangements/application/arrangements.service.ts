@@ -63,6 +63,10 @@ export class ArrangementsService {
       active: input.active,
       imageUrl: input.imageUrl ?? null,
       storePublished: input.storePublished,
+      description: input.description ?? null,
+      badge: input.badge ?? null,
+      storeCategory: input.storeCategory ?? null,
+      storeSizes: input.storeSizes,
       items: this.buildItems(input.items),
     });
     const saved = await this.arrangements.save(arrangement);
@@ -130,6 +134,10 @@ export class ArrangementsService {
       active: input.active,
       imageUrl: input.imageUrl ?? null,
       storePublished: input.storePublished,
+      description: input.description ?? null,
+      badge: input.badge ?? null,
+      storeCategory: input.storeCategory ?? null,
+      storeSizes: input.storeSizes,
     });
     return this.findOne(id);
   }

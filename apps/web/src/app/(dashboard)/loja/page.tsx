@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReviewsCard } from "@/components/store/reviews-card";
 import { ApiError } from "@/lib/api/client";
 import { useCompany, useStoreSettings, useUpdateStoreSettings } from "@/lib/api/company";
 
@@ -82,6 +83,7 @@ export default function StorePage() {
   const storeUrl = slug ? `https://${slug}.${BASE_DOMAIN}` : null;
 
   return (
+    <div className="space-y-6">
     <form
       className="space-y-6"
       onSubmit={form.handleSubmit(async (values) => {
@@ -199,7 +201,16 @@ export default function StorePage() {
         </CardContent>
       </Card>
 
-      {/* Aparência */}
+      {/* Aparência — oculta para lojas com storefront próprio (ex.: Floravie),
+          que trazem o design no próprio código. */}
+      {store?.custom ? (
+        <Card>
+          <CardContent className="py-5 text-sm text-muted-foreground">
+            Esta loja usa um <strong>design próprio</strong> — a aparência (cores,
+            layout) é definida no site dela, não por aqui.
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>Aparência</CardTitle>
@@ -241,6 +252,7 @@ export default function StorePage() {
           </Field>
         </CardContent>
       </Card>
+      )}
 
       {/* Pagamento */}
       <Card>
@@ -285,6 +297,9 @@ export default function StorePage() {
         </CardContent>
       </Card>
     </form>
+
+    <ReviewsCard />
+    </div>
   );
 }
 

@@ -66,3 +66,14 @@ export const publicUserSchema = z.object({
   pending: z.boolean().optional(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
+
+/**
+ * Uma das empresas às quais o e-mail autenticado tem acesso. Quando há mais de
+ * uma, o cliente mostra um seletor de conta no login e envia a escolha no header
+ * `x-company-id`.
+ */
+export interface AccountOption {
+  companyId: string;
+  companyName: string;
+  role: z.infer<typeof roleSchema>;
+}

@@ -7,6 +7,8 @@ import {
   isFractionalUnit,
   type Arrangement,
   type ArrangementPricingMode,
+  type ArrangementSize,
+  type StoreCategory,
 } from "@sistema-flores/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/shared/file-upload";
 import { ProductCombobox } from "@/components/catalog/product-combobox";
 import { ApiError } from "@/lib/api/client";
@@ -43,6 +46,10 @@ type FormValues = {
   active: boolean;
   imageUrl: string | null;
   storePublished: boolean;
+  description: string;
+  badge: string;
+  storeCategory: StoreCategory | null;
+  storeSizes: ArrangementSize[];
   items: ItemForm[];
   produce: number;
 };
@@ -65,6 +72,10 @@ function initialValues(a?: Arrangement | null): FormValues {
     active: a?.active ?? true,
     imageUrl: a?.imageUrl ?? null,
     storePublished: a?.storePublished ?? false,
+    description: a?.description ?? "",
+    badge: a?.badge ?? "",
+    storeCategory: a?.storeCategory ?? null,
+    storeSizes: a?.storeSizes ?? [],
     items: a?.items.length
       ? a.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
       : [{ ...emptyItem }],
@@ -98,6 +109,11 @@ export function ArrangementDialog({
     control: form.control,
     name: "items",
   });
+  const {
+    fields: sizeFields,
+    append: appendSize,
+    remove: removeSize,
+  } = useFieldArray({ control: form.control, name: "storeSizes" });
 
   const items = form.watch("items");
   const pricingMode = form.watch("pricingMode");
@@ -336,6 +352,96 @@ export function ArrangementDialog({
                 />
               )}
             />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Categoria na loja" htmlFor="a-storecat" optional>
+                <Controller
+                  control={form.control}
+                  name="storeCategory"
+                  render={({ field }) => (
+                    <select
+                      id="a-storecat"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={field.value ?? ""}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? null
+                            : (e.target.value as StoreCategory),
+                        )
+                      }
+                    >
+                      <option value="">—</option>
+                      <option value="buques">Buquês</option>
+                      <option value="cestas">Cestas</option>
+                    </select>
+                  )}
+                />
+              </Field>
+              <Field label="Selo de destaque" htmlFor="a-badge" optional hint='Ex.: "Mais vendido".'>
+                <Input id="a-badge" {...form.register("badge")} />
+              </Field>
+            </div>
+
+            <Field label="Descrição na loja" htmlFor="a-desc" optional>
+              <Textarea
+                id="a-desc"
+                rows={3}
+                placeholder="Texto que aparece na vitrine e no detalhe do produto."
+                {...form.register("description")}
+              />
+            </Field>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Variações de tamanho</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendSize({ label: "", priceDelta: 0 })}
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Ex.: Padrão (+R$ 0), Grande (+R$ 60). O acréscimo soma ao preço
+                base.
+              </p>
+              {sizeFields.map((row, index) => (
+                <div
+                  key={row.id}
+                  className="grid grid-cols-[1fr_120px_auto] items-center gap-2"
+                >
+                  <Input
+                    aria-label="Rótulo do tamanho"
+                    placeholder="Padrão"
+                    {...form.register(`storeSizes.${index}.label`)}
+                  />
+                  <Controller
+                    control={form.control}
+                    name={`storeSizes.${index}.priceDelta`}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        aria-label="Acréscimo"
+                        value={field.value ?? 0}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remover tamanho"
+                    onClick={() => removeSize(index)}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Preço / custo / margem ao vivo */}

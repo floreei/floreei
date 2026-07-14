@@ -1,5 +1,9 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
-import type { InviteInfo, PublicUser } from "@sistema-flores/types";
+import type {
+  AccountOption,
+  InviteInfo,
+  PublicUser,
+} from "@sistema-flores/types";
 import type { AuthUser } from "../../../common/auth/auth-user";
 import { CurrentUser } from "../../../common/auth/current-user.decorator";
 import { FirebaseToken } from "../../../common/auth/firebase-token.decorator";
@@ -32,6 +36,17 @@ export class AuthController {
   @Get("me")
   me(@CurrentUser() user: AuthUser): Promise<PublicUser> {
     return this.auth.me(user.id);
+  }
+
+  /**
+   * Empresas às quais o e-mail autenticado tem acesso. Verifica só o token do
+   * Firebase (sem exigir escolha de empresa) — alimenta o seletor de conta.
+   */
+  @Public()
+  @UseGuards(FirebaseTokenGuard)
+  @Get("accounts")
+  accounts(@FirebaseToken() firebase: FirebaseIdentity): Promise<AccountOption[]> {
+    return this.auth.accounts(firebase.uid);
   }
 
   /** Dados públicos de um convite (tela de aceite). Sem autenticação. */

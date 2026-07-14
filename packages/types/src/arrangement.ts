@@ -46,6 +46,17 @@ export function arrangementSalePrice(
   return roundMoney(opts.salePrice ?? 0);
 }
 
+/** Variação de tamanho na vitrine: rótulo + acréscimo de preço sobre a base. */
+export const arrangementSizeSchema = z.object({
+  label: z.string().trim().min(1).max(40),
+  priceDelta: z.coerce.number(),
+});
+export type ArrangementSize = z.infer<typeof arrangementSizeSchema>;
+
+/** Categoria de vitrine da loja online (agrupa os buquês na home). */
+export const storeCategorySchema = z.enum(["buques", "cestas"]);
+export type StoreCategory = z.infer<typeof storeCategorySchema>;
+
 /** Produto composto / buquê: nome, política de preço e a ficha técnica (receita). */
 export const arrangementInputSchema = z.object({
   categoryId: idSchema.nullable().optional(),
@@ -66,6 +77,21 @@ export const arrangementInputSchema = z.object({
     .or(z.literal("").transform(() => null)),
   /** Publicar este buquê na loja online. */
   storePublished: z.boolean().default(false),
+  // ── Vitrine (loja online): campos de marketing servidos ao storefront ──
+  description: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  badge: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  storeCategory: storeCategorySchema.nullable().optional(),
+  storeSizes: z.array(arrangementSizeSchema).default([]),
   items: z
     .array(arrangementItemInputSchema)
     .min(1, "Adicione ao menos um insumo à ficha técnica"),
@@ -115,6 +141,14 @@ export interface Arrangement {
   imageUrl: string | null;
   /** Publicado na loja online. */
   storePublished: boolean;
+  /** Descrição de vitrine (loja online). */
+  description: string | null;
+  /** Selo de destaque (ex.: "Mais vendido"). */
+  badge: string | null;
+  /** Categoria de vitrine (buques/cestas) — agrupa na home da loja. */
+  storeCategory: StoreCategory | null;
+  /** Variações de tamanho na vitrine (rótulo + acréscimo). */
+  storeSizes: ArrangementSize[];
   items: ArrangementItem[];
   /** Σ lineCost (materiais diretos). */
   cost: number;

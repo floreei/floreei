@@ -13,6 +13,8 @@ import type {
   StoreOrder,
   StoreOrderItem,
   StoreOrderQuery,
+  StoreReview,
+  StoreReviewInput,
 } from "@sistema-flores/types";
 import {
   FEATURES,
@@ -28,6 +30,7 @@ import type { CompanyEntity } from "../companies/infrastructure/company.entity";
 import { CustomerRepository } from "../customers/infrastructure/customer.repository";
 import { EventsService } from "../events/application/events.service";
 import { PlanDefinitionsService } from "../plans/plan-definitions.service";
+import { ReviewsService } from "../reviews/application/reviews.service";
 import { createPreference, getPayment } from "./mercadopago";
 import { StoreOrderRepository } from "./infrastructure/store-order.repository";
 import type { StoreOrderEntity } from "./infrastructure/store-order.entity";
@@ -42,6 +45,7 @@ export class StorefrontService {
     private readonly events: EventsService,
     private readonly tenant: TenantContextService,
     private readonly planDefs: PlanDefinitionsService,
+    private readonly reviews: ReviewsService,
   ) {}
 
   /** Empresa da loja ativa, resolvida pelo slug. 404 se inexistente/desligada. */
@@ -91,6 +95,8 @@ export class StorefrontService {
     const company = await this.enabledCompany(slug);
     return this.tenant.runForCompany(company.id, async () => {
       const rows = await this.arrangements.listPublished();
+      const aggregates = await this.reviews.aggregates();
+      const byArrangement = new Map(aggregates.map((a) => [a.arrangementId, a]));
       const byCategory = new Map<string, StoreCatalogCategory>();
       for (const a of rows) {
         const key = a.categoryId ?? "outros";
@@ -98,16 +104,48 @@ export class StorefrontService {
         const group =
           byCategory.get(key) ??
           ({ id: a.categoryId, name, items: [] } as StoreCatalogCategory);
+        const agg = byArrangement.get(a.id);
         group.items.push({
           id: a.id,
           name: a.name,
           imageUrl: a.imageUrl,
           price: a.salePrice,
+          description: a.description ?? null,
+          badge: a.badge ?? null,
+          storeCategory: a.storeCategory ?? null,
+          sizes: a.storeSizes ?? [],
+          rating: agg ? Math.round(agg.avg * 10) / 10 : 0,
+          reviews: agg?.count ?? 0,
         });
         byCategory.set(key, group);
       }
       return { categories: [...byCategory.values()] };
     });
+  }
+
+  /** Envio público de avaliação para um buquê publicado. */
+  async submitReview(
+    slug: string,
+    arrangementId: string,
+    input: StoreReviewInput,
+  ): Promise<StoreReview> {
+    const company = await this.enabledCompany(slug);
+    return this.tenant.runForCompany(company.id, async () => {
+      const arrangement =
+        await this.arrangements.findPublishedById(arrangementId);
+      if (!arrangement) {
+        throw new NotFoundException("Buquê não encontrado nesta loja.");
+      }
+      return this.reviews.submit(arrangementId, input);
+    });
+  }
+
+  /** Avaliações aprovadas de um buquê (loja pública). */
+  async reviewsFor(slug: string, arrangementId: string): Promise<StoreReview[]> {
+    const company = await this.enabledCompany(slug);
+    return this.tenant.runForCompany(company.id, () =>
+      this.reviews.listApproved(arrangementId),
+    );
   }
 
   async checkout(

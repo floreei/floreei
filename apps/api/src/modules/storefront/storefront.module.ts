@@ -4,6 +4,7 @@ import { ArrangementsModule } from "../arrangements/arrangements.module";
 import { CompanyModule } from "../companies/company.module";
 import { CustomersModule } from "../customers/customers.module";
 import { EventsModule } from "../events/events.module";
+import { ReviewsModule } from "../reviews/reviews.module";
 import { StoreOrderEntity } from "./infrastructure/store-order.entity";
 import { StoreOrderRepository } from "./infrastructure/store-order.repository";
 import { StoreOrdersController } from "./store-orders.controller";
@@ -17,6 +18,7 @@ import { StorefrontService } from "./storefront.service";
     ArrangementsModule,
     CustomersModule,
     EventsModule,
+    ReviewsModule,
   ],
   controllers: [StorefrontController, StoreOrdersController],
   providers: [StorefrontService, StoreOrderRepository],

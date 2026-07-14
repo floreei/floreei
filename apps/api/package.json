@@ -17,6 +17,7 @@
     "migration:run": "pnpm typeorm migration:run",
     "migration:revert": "pnpm typeorm migration:revert",
     "db:seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+    "connect:floravie": "ts-node -r tsconfig-paths/register src/database/connect-floravie.ts",
     "test:coverage": "jest --coverage --passWithNoTests"
   },
   "dependencies": {

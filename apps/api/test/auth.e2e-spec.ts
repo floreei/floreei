@@ -41,19 +41,49 @@ describe("Auth (e2e)", () => {
     expect(user.companyId).toBeDefined();
   });
 
-  it("recusa provisionar a mesma conta duas vezes", async () => {
-    const idToken = await firebaseSignUp(uniqueEmail("dup"), "Segredo123!");
-    const document = uniqueDocument();
-    await http
+  it("permite o mesmo e-mail em mais de uma empresa e exige escolher a conta", async () => {
+    const idToken = await firebaseSignUp(uniqueEmail("multi"), "Segredo123!");
+    const a = await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
-      .send({ companyName: "Bela Flor", name: "Ana", document })
+      .send({ companyName: "Empresa A", name: "Ana", document: uniqueDocument() })
       .expect(201);
-    await http
+    // Segundo cadastro com o MESMO token (uid) agora é permitido (multi-conta).
+    const b = await http
       .post("/api/auth/provision")
       .set(bearer(idToken))
-      .send({ companyName: "Bela Flor", name: "Ana", document: uniqueDocument() })
-      .expect(409);
+      .send({ companyName: "Empresa B", name: "Ana", document: uniqueDocument() })
+      .expect(201);
+
+    // Lista as duas contas do e-mail.
+    const accounts = await http
+      .get("/api/auth/accounts")
+      .set(bearer(idToken))
+      .expect(200);
+    expect(accounts.body).toHaveLength(2);
+    expect(
+      (accounts.body as { companyId: string }[]).map((x) => x.companyId).sort(),
+    ).toEqual([a.body.companyId, b.body.companyId].sort());
+
+    // Sem escolher a empresa e com >1 conta → 403 SELECT_ACCOUNT.
+    const noPick = await http.get("/api/auth/me").set(bearer(idToken));
+    expect(noPick.status).toBe(403);
+    expect(noPick.body.code).toBe("SELECT_ACCOUNT");
+
+    // Com a empresa escolhida no header → entra escopado nela.
+    const meA = await http
+      .get("/api/auth/me")
+      .set(bearer(idToken))
+      .set("x-company-id", a.body.companyId)
+      .expect(200);
+    expect(meA.body.companyId).toBe(a.body.companyId);
+
+    // Empresa sem vínculo → 401.
+    await http
+      .get("/api/auth/me")
+      .set(bearer(idToken))
+      .set("x-company-id", "00000000-0000-0000-0000-000000000000")
+      .expect(401);
   });
 
   it("valida o payload de provisionamento (nome curto → 400)", async () => {

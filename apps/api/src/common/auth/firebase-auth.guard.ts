@@ -29,7 +29,7 @@ const SEEN_THROTTLE_MS = 60 * 60 * 1000;
 
 /** Requisição HTTP com os campos que os guards de auth leem/escrevem. */
 export interface AuthRequest {
-  headers: { authorization?: string };
+  headers: { authorization?: string; "x-company-id"?: string };
   user?: AuthUser;
 }
 
@@ -89,9 +89,30 @@ export class FirebaseAuthGuard implements CanActivate {
     }
     const uid = decoded.uid;
 
-    const user = await this.users.findOne({ where: { firebaseUid: uid } });
-    if (!user || !user.active) {
+    // Multi-conta: um firebaseUid pode ter usuário em várias empresas. O cliente
+    // escolhe qual via header `x-company-id`; sem escolha e com mais de uma,
+    // pedimos a seleção (SELECT_ACCOUNT).
+    const memberships = await this.users.find({
+      where: { firebaseUid: uid, active: true },
+    });
+    if (memberships.length === 0) {
       throw new UnauthorizedException("Conta não encontrada.");
+    }
+    const selected = req.headers["x-company-id"];
+    let user: UserEntity | undefined;
+    if (selected) {
+      user = memberships.find((u) => u.companyId === selected);
+      if (!user) {
+        throw new UnauthorizedException("Você não tem acesso a esta empresa.");
+      }
+    } else if (memberships.length === 1) {
+      user = memberships[0];
+    } else {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: ACCESS_DENIED_CODES.SELECT_ACCOUNT,
+        message: "Escolha em qual empresa deseja entrar.",
+      });
     }
 
     // Rotas de billing continuam acessíveis com a empresa bloqueada (reassinar).

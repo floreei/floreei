@@ -23,6 +23,7 @@ import { DunningModule } from "./modules/dunning/dunning.module";
 import { NcmModule } from "./modules/ncm/ncm.module";
 import { PlansModule } from "./modules/plans/plans.module";
 import { PlatformModule } from "./modules/platform/platform.module";
+import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { StorefrontModule } from "./modules/storefront/storefront.module";
 import { PurchasesModule } from "./modules/purchases/purchases.module";
 import { QuotesModule } from "./modules/quotes/quotes.module";
@@ -72,6 +73,7 @@ import { UsersModule } from "./modules/users/users.module";
     NcmModule,
     DunningModule,
     AssistantModule,
+    ReviewsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

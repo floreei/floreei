@@ -7,12 +7,13 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
-import { storeCheckoutSchema } from "@sistema-flores/types";
+import { storeCheckoutSchema, storeReviewInputSchema } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { Public } from "../../common/auth/public.decorator";
 import { StorefrontService } from "./storefront.service";
 
 class StoreCheckoutDto extends createZodDto(storeCheckoutSchema) {}
+class StoreReviewDto extends createZodDto(storeReviewInputSchema) {}
 
 /**
  * API pública da loja (@Public pula a autenticação do ERP). O tenant é sempre
@@ -36,6 +37,20 @@ export class StorefrontController {
   @Post(":slug/checkout")
   checkout(@Param("slug") slug: string, @Body() dto: StoreCheckoutDto) {
     return this.service.checkout(slug, dto);
+  }
+
+  @Get(":slug/arrangements/:id/reviews")
+  reviews(@Param("slug") slug: string, @Param("id") id: string) {
+    return this.service.reviewsFor(slug, id);
+  }
+
+  @Post(":slug/arrangements/:id/reviews")
+  submitReview(
+    @Param("slug") slug: string,
+    @Param("id") id: string,
+    @Body() dto: StoreReviewDto,
+  ) {
+    return this.service.submitReview(slug, id, dto);
   }
 
   /** Webhook do Mercado Pago. `?company=` identifica o tenant. Sempre 200. */

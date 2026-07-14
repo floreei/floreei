@@ -4,9 +4,11 @@ import { TenantOwnedEntity } from "../../../common/database/tenant-owned.entity"
 import { CompanyEntity } from "../../companies/infrastructure/company.entity";
 
 /** Usuário do sistema, sempre vinculado a uma empresa (tenant). */
+// Unicidade POR EMPRESA: o mesmo e-mail/firebaseUid pode pertencer a várias
+// empresas (login multi-conta) — o vínculo é único dentro de cada empresa.
 @Entity({ name: "users" })
-@Index("uq_users_email", ["email"], { unique: true })
-@Index("uq_users_firebase_uid", ["firebaseUid"], {
+@Index("uq_users_company_email", ["companyId", "email"], { unique: true })
+@Index("uq_users_company_firebase_uid", ["companyId", "firebaseUid"], {
   unique: true,
   where: '"firebase_uid" IS NOT NULL',
 })

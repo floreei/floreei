@@ -7,6 +7,16 @@ export interface StoreCatalogItem {
   name: string;
   imageUrl: string | null;
   price: number;
+  description: string | null;
+  badge: string | null;
+  /** Categoria de vitrine (buques/cestas); null se não definida. */
+  storeCategory: string | null;
+  /** Variações de tamanho (rótulo + acréscimo de preço). */
+  sizes: { label: string; priceDelta: number }[];
+  /** Média das avaliações APROVADAS (0–5). 0 quando não há avaliações. */
+  rating: number;
+  /** Quantidade de avaliações aprovadas. */
+  reviews: number;
 }
 
 /** Categoria com seus itens publicados. */

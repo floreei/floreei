@@ -1,7 +1,17 @@
 "use client";
 
-import { HelpCircle, LogOut, Search, Store } from "lucide-react";
+import type { AccountOption } from "@sistema-flores/types";
+import {
+  ArrowLeftRight,
+  Building2,
+  Check,
+  HelpCircle,
+  LogOut,
+  Search,
+  Store,
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import { FocusChooser } from "@/components/onboarding/focus-chooser";
 import { useGuide } from "@/components/onboarding/guide";
@@ -35,11 +45,42 @@ function initials(name: string): string {
 }
 
 export function Topbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, loadAccounts, selectAccount } = useAuth();
   const { open } = useCommandPalette();
   const guide = useGuide();
   const { focus, choose } = useBusinessFocus();
   const [focusOpen, setFocusOpen] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [accounts, setAccounts] = useState<AccountOption[] | null>(null);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+
+  const openSwitch = async () => {
+    setSwitchOpen(true);
+    setAccounts(null);
+    try {
+      setAccounts(await loadAccounts());
+    } catch {
+      setAccounts([]);
+    }
+  };
+
+  const switchTo = async (companyId: string) => {
+    if (companyId === user?.companyId) {
+      setSwitchOpen(false);
+      return;
+    }
+    setSwitchingId(companyId);
+    try {
+      await selectAccount(companyId);
+      setSwitchOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível trocar.",
+      );
+    } finally {
+      setSwitchingId(null);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
@@ -92,6 +133,10 @@ export function Topbar() {
                 <Store className="h-4 w-4" />
                 Como você vende?
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={openSwitch}>
+                <ArrowLeftRight className="h-4 w-4" />
+                Trocar de conta
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive">
                 <LogOut className="h-4 w-4" />
@@ -121,6 +166,55 @@ export function Topbar() {
                 setFocusOpen(false);
               }}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={switchOpen} onOpenChange={setSwitchOpen}>
+        <DialogContent className="max-w-sm">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <DialogTitle className="font-serif text-xl">
+                Trocar de conta
+              </DialogTitle>
+              <DialogDescription>
+                Escolha a empresa que você quer acessar.
+              </DialogDescription>
+            </div>
+            <div className="space-y-2">
+              {accounts === null ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Carregando…
+                </p>
+              ) : accounts.length <= 1 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Você só tem esta conta.
+                </p>
+              ) : (
+                accounts.map((a) => {
+                  const current = a.companyId === user?.companyId;
+                  return (
+                    <button
+                      key={a.companyId}
+                      type="button"
+                      disabled={switchingId !== null}
+                      onClick={() => switchTo(a.companyId)}
+                      className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted disabled:opacity-60"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Building2 className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                        {a.companyName || "Empresa"}
+                      </span>
+                      {current ? (
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

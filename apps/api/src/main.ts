@@ -5,17 +5,19 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import helmet from "helmet";
 import { ZodValidationPipe } from "nestjs-zod";
 import { AppModule } from "./app.module";
+import { buildCorsOptions, parseCsv } from "./common/cors";
 
 async function bootstrap() {
-  // Em produção, restringe o CORS às origens do front (CORS_ORIGINS, csv).
-  // Sem a env (dev), libera geral.
-  const origins = (process.env.CORS_ORIGINS ?? "")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
+  // Em produção, restringe o CORS: origens exatas (CORS_ORIGINS) + subdomínios
+  // confiáveis por sufixo (CORS_ORIGIN_SUFFIXES, ex.: `.floreei.com.br`, que
+  // libera ERP, admin e todas as lojas por subdomínio). Sem env (dev), libera geral.
+  const cors = buildCorsOptions(
+    parseCsv(process.env.CORS_ORIGINS),
+    parseCsv(process.env.CORS_ORIGIN_SUFFIXES),
+  );
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    cors: origins.length > 0 ? { origin: origins } : true,
+    cors,
   });
   // Atrás do App Runner/proxy: confia no 1º hop para ler o IP real do cliente
   // (X-Forwarded-For). Sem isso, o rate limit e o HSTS usariam o IP do proxy.

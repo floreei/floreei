@@ -1,3 +1,4 @@
+import { getSelectedCompanyId } from "../auth/company";
 import { auth } from "../firebase";
 
 export const API_URL =
@@ -58,6 +59,9 @@ async function buildHeaders(
   if (!options.skipAuth && auth.currentUser) {
     // O SDK do Firebase renova o ID token automaticamente; forçamos só no retry.
     headers.Authorization = `Bearer ${await auth.currentUser.getIdToken(forceRefresh)}`;
+    // Login multi-conta: informa qual empresa foi escolhida (se houver).
+    const companyId = getSelectedCompanyId();
+    if (companyId) headers["x-company-id"] = companyId;
   }
   return headers;
 }

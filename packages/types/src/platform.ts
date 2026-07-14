@@ -37,6 +37,8 @@ export const ACCESS_DENIED_CODES = {
   EXPIRED: "TRIAL_EXPIRED",
   PAYMENT_OVERDUE: "PAYMENT_OVERDUE",
   EMAIL_NOT_VERIFIED: "EMAIL_NOT_VERIFIED",
+  /** E-mail pertence a mais de uma empresa: o cliente precisa escolher qual. */
+  SELECT_ACCOUNT: "SELECT_ACCOUNT",
 } as const;
 
 /** Estado de acesso de uma empresa — entrada do resolvedor de status. */

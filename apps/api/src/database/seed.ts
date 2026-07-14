@@ -2,6 +2,9 @@ import "reflect-metadata";
 import { firebaseWebApiKey } from "../common/firebase/firebase-options";
 import { FirebaseService } from "../common/firebase/firebase.service";
 import { calculateItem, calculateQuote } from "../modules/quotes/domain/quote-calculator";
+import { ArrangementItemEntity } from "../modules/arrangements/infrastructure/arrangement-item.entity";
+import { ArrangementEntity } from "../modules/arrangements/infrastructure/arrangement.entity";
+import { ReviewEntity } from "../modules/reviews/infrastructure/review.entity";
 import { CategoryEntity } from "../modules/catalog/infrastructure/category.entity";
 import { ProductEntity } from "../modules/catalog/infrastructure/product.entity";
 import { CompanyEntity } from "../modules/companies/infrastructure/company.entity";
@@ -100,6 +103,34 @@ async function run(): Promise<void> {
   await users.save(
     users.create({
       companyId,
+      name: "Administrador Demo",
+      email: DEMO_EMAIL,
+      firebaseUid,
+      role: "ADMIN",
+      active: true,
+    }),
+  );
+
+  // Segunda empresa: a Floravie, loja com storefront PRÓPRIO. O MESMO e-mail/uid
+  // é admin dela também → o login demo passa a mostrar o seletor de conta.
+  const seedNow = new Date();
+  const floravie = await dataSource.getRepository(CompanyEntity).save(
+    dataSource.getRepository(CompanyEntity).create({
+      name: "Floravie Ateliê",
+      document: "55815248000100",
+      plan: "TRIAL",
+      firstAccessAt: seedNow,
+      trialEndsAt: new Date(seedNow.getTime() + 3650 * 86_400_000),
+      lastSeenAt: seedNow,
+      storeEnabled: true,
+      storeSlug: "floravie",
+      storeCustom: true,
+    }),
+  );
+  const floravieId = floravie.id;
+  await users.save(
+    users.create({
+      companyId: floravieId,
       name: "Administrador Demo",
       email: DEMO_EMAIL,
       firebaseUid,
@@ -317,6 +348,95 @@ async function run(): Promise<void> {
       paid: false,
     }),
   ]);
+
+  // Buquês publicados na loja da FLORAVIE + avaliações semeadas (credibilidade).
+  const arrangementRepo = dataSource.getRepository(ArrangementEntity);
+  const reviewRepo = dataSource.getRepository(ReviewEntity);
+
+  // Produtos próprios da Floravie (a ficha técnica não cruza tenants).
+  const floravieCategory = await categoryRepo.save(
+    categoryRepo.create({ companyId: floravieId, name: "Flores" }),
+  );
+  const floravieProducts = new Map<string, ProductEntity>();
+  for (const [name, cost] of [
+    ["Rosa Vermelha", 4],
+    ["Eucalipto", 5],
+    ["Hortênsia Azul", 12.5],
+  ] as const) {
+    floravieProducts.set(
+      name,
+      await productRepo.save(
+        productRepo.create({
+          companyId: floravieId,
+          categoryId: floravieCategory.id,
+          name,
+          unit: "UNIDADE",
+          currentUnitCost: cost,
+          active: true,
+        }),
+      ),
+    );
+  }
+  const item = (name: string, quantity: number) =>
+    dataSource.getRepository(ArrangementItemEntity).create({
+      productId: floravieProducts.get(name)!.id,
+      quantity,
+    });
+
+  const buque = await arrangementRepo.save(
+    arrangementRepo.create({
+      companyId: floravieId,
+      name: "Buquê 12 Rosas Vermelhas",
+      pricingMode: "FIXED",
+      salePrice: 189.9,
+      active: true,
+      storePublished: true,
+      storeCategory: "buques",
+      badge: "Mais vendido",
+      description:
+        "Doze rosas vermelhas selecionadas na manhã da entrega, com folhagens frescas e laço de cetim.",
+      storeSizes: [
+        { label: "Padrão · 12 rosas", priceDelta: 0 },
+        { label: "Grande · 18 rosas", priceDelta: 60 },
+      ],
+      items: [item("Rosa Vermelha", 12), item("Eucalipto", 3)],
+    }),
+  );
+  const cesta = await arrangementRepo.save(
+    arrangementRepo.create({
+      companyId: floravieId,
+      name: "Cesta Café da Manhã",
+      pricingMode: "FIXED",
+      salePrice: 149.9,
+      active: true,
+      storePublished: true,
+      storeCategory: "cestas",
+      description: "Cesta com flores e delícias para começar o dia com carinho.",
+      storeSizes: [{ label: "Padrão", priceDelta: 0 }],
+      items: [item("Hortênsia Azul", 3)],
+    }),
+  );
+
+  const seedReviews: [ArrangementEntity, string, number, string][] = [
+    [buque, "Mariana S.", 5, "Chegou lindo e super fresco, minha mãe amou!"],
+    [buque, "Rafael T.", 5, "Entrega no mesmo dia, pontualíssimo. Recomendo."],
+    [buque, "Camila R.", 4, "Buquê bonito, só achei o cartão pequeno."],
+    [cesta, "João P.", 5, "Cesta caprichada, valeu cada centavo."],
+    [cesta, "Beatriz L.", 5, "Presente perfeito, todos elogiaram."],
+  ];
+  await reviewRepo.save(
+    seedReviews.map(([arr, authorName, rating, comment]) =>
+      reviewRepo.create({
+        companyId: floravieId,
+        arrangementId: arr.id,
+        authorName,
+        rating,
+        comment,
+        status: "APPROVED",
+        source: "SEED",
+      }),
+    ),
+  );
 
   // eslint-disable-next-line no-console
   console.log(

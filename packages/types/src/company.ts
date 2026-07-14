@@ -139,6 +139,8 @@ export interface StoreSettings {
   mercadoPagoPublicKey: string | null;
   /** true se o access token do Mercado Pago está configurado (nunca expõe o token). */
   mercadoPagoConnected: boolean;
+  /** Loja com storefront PRÓPRIO (ex.: Floravie) — ignora o template de cores. */
+  custom: boolean;
 }
 
 /** Dados públicos da vitrine (o que a loja mostra ao consumidor). */

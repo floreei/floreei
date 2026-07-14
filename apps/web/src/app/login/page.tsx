@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { AccountPicker } from "@/components/auth/account-picker";
 import { FinishSetupDialog } from "@/components/auth/finish-setup-dialog";
 import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog";
 import { GoogleIcon } from "@/components/auth/google-icon";
@@ -26,6 +27,8 @@ export default function LoginPage() {
     logout,
     pendingProvision,
     awaitingVerification,
+    accountSelection,
+    selectAccount,
     user,
     ready,
   } = useAuth();
@@ -47,6 +50,17 @@ export default function LoginPage() {
   // E-mail ainda não verificado: pede a verificação antes de qualquer coisa.
   if (ready && awaitingVerification) {
     return <VerifyEmailScreen email={awaitingVerification.email} />;
+  }
+
+  // E-mail em mais de uma empresa: escolhe qual antes de entrar.
+  if (ready && !user && accountSelection) {
+    return (
+      <AccountPicker
+        accounts={accountSelection}
+        onSelect={selectAccount}
+        onCancel={logout}
+      />
+    );
   }
 
   const handleGoogle = async () => {
@@ -127,21 +141,13 @@ export default function LoginPage() {
             </TabsList>
 
             <TabsContent value="login">
-              <LoginForm
-                onSubmit={async (values) => {
-                  await login(values);
-                  router.replace("/inicio");
-                }}
-              />
+              {/* Sem redirect manual: o efeito acima navega quando há `user`;
+                  se o e-mail tiver >1 conta, mostramos o seletor. */}
+              <LoginForm onSubmit={login} />
             </TabsContent>
 
             <TabsContent value="register">
-              <RegisterForm
-                onSubmit={async (values) => {
-                  await registerUser(values);
-                  router.replace("/inicio");
-                }}
-              />
+              <RegisterForm onSubmit={registerUser} />
             </TabsContent>
           </Tabs>
 

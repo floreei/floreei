@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
+  type AccountOption,
   documentDigits,
   type InviteInfo,
   type ProvisionInput,
@@ -131,17 +132,9 @@ export class AuthService {
     firebase: FirebaseIdentity,
     input: ProvisionInput,
   ): Promise<PublicUser> {
-    const already = await this.users.findOne({
-      where: { firebaseUid: firebase.uid },
-    });
-    if (already) {
-      throw new ConflictException("Esta conta já foi provisionada.");
-    }
-    if (await this.users.findOne({ where: { email: firebase.email } })) {
-      throw new ConflictException("Já existe uma conta com este e-mail.");
-    }
-    // Um cadastro por CNPJ/CPF: trava trial repetido do mesmo negócio (e-mail é
-    // grátis de criar; o documento não). Compara só os dígitos.
+    // Multi-conta: o mesmo e-mail/firebaseUid PODE abrir outra empresa, então
+    // não bloqueamos por e-mail/uid já existente. A dedup por CNPJ/CPF continua
+    // travando trial repetido do mesmo negócio (e-mail é grátis; documento não).
     const digits = documentDigits(input.document);
     const [dup] = (await this.dataSource.query(
       `SELECT 1 FROM companies WHERE regexp_replace(coalesce(document,''), '\\D', '', 'g') = $1 LIMIT 1`,
@@ -201,6 +194,25 @@ export class AuthService {
     return this.withCompanyInfo(toPublicUser(user));
   }
 
+  /** Empresas às quais o e-mail (firebaseUid) tem acesso — base do seletor de conta. */
+  async accounts(firebaseUid: string): Promise<AccountOption[]> {
+    const users = await this.users.find({
+      where: { firebaseUid, active: true },
+    });
+    const options: AccountOption[] = [];
+    for (const u of users) {
+      const company = await this.companies.findOne({
+        where: { id: u.companyId },
+      });
+      options.push({
+        companyId: u.companyId,
+        companyName: company?.name ?? "",
+        role: u.role,
+      });
+    }
+    return options;
+  }
+
   /** Dados públicos de um convite pendente (para a tela de aceite). */
   async inviteInfo(token: string): Promise<InviteInfo> {
     const user = await this.users.findOne({ where: { inviteToken: token } });
@@ -229,12 +241,22 @@ export class AuthService {
     if (!user || user.firebaseUid) {
       throw new NotFoundException("Convite inválido ou já utilizado.");
     }
-    const firebaseUser = await this.firebase.createAuthUser({
-      email: user.email,
-      password,
-      displayName: user.name,
-    });
-    user.firebaseUid = firebaseUser.uid;
+    // Multi-conta: se o e-mail já tem conta no Firebase (usa o Floreei em outra
+    // empresa), reutiliza o uid — a senha informada é ignorada (ele entra com a
+    // que já tem). Senão, cria a credencial com a senha escolhida.
+    let uid: string;
+    try {
+      uid = (await this.firebase.auth().getUserByEmail(user.email)).uid;
+    } catch {
+      uid = (
+        await this.firebase.createAuthUser({
+          email: user.email,
+          password,
+          displayName: user.name,
+        })
+      ).uid;
+    }
+    user.firebaseUid = uid;
     user.inviteToken = null;
     await this.users.save(user);
     return { email: user.email };

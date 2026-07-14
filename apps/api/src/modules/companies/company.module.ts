@@ -42,6 +42,7 @@ function toStore(c: CompanyEntity): StoreSettings {
     description: c.storeDescription,
     mercadoPagoPublicKey: c.mpPublicKey,
     mercadoPagoConnected: Boolean(c.mpAccessToken),
+    custom: c.storeCustom,
   };
 }
 

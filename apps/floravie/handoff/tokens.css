@@ -1,0 +1,58 @@
+/* Floravie Ateliê — Design Tokens
+   Fonte da verdade visual: reference/floravie-loja-completa.html
+   Não alterar valores sem aprovação. */
+
+:root {
+  /* Cores */
+  --ivory: #FBF8F2;        /* fundo geral */
+  --paper: #FFFFFF;        /* superfícies/cards */
+  --ink: #26332C;          /* texto principal */
+  --green: #2F4A3C;        /* primária */
+  --green-soft: #5F7A6B;   /* texto secundário */
+  --rose: #C98A93;         /* acento */
+  --rose-deep: #A6606C;    /* hover/destaque */
+  --rose-mist: #F4E4E4;    /* fundos suaves */
+  --gold: #B08D57;         /* eyebrows/premium */
+  --line: #E5DCD0;         /* bordas */
+
+  /* Auxiliares fixas */
+  --footer-bg: #1F2A24;
+  --footer-text: #C9CFC8;
+  --footer-logo: #F3EFE6;
+  --whatsapp: #25D366;
+  --error: #B03030;
+  --overlay: rgba(38, 51, 44, .5);
+
+  /* Forma & sombra */
+  --radius: 14px;
+  --radius-input: 10px;
+  --radius-pill: 999px;
+  --shadow: 0 10px 30px rgba(47, 74, 60, .10);
+  --shadow-hero: 0 24px 60px rgba(47, 74, 60, .22);
+
+  /* Tipografia */
+  --font-display: "Cormorant Garamond", Georgia, serif; /* 400/500/600 + italic */
+  --font-body: "Jost", system-ui, sans-serif;           /* 300/400/500/600 */
+
+  /* Escala tipográfica */
+  --fs-h1: clamp(2.4rem, 5vw, 3.9rem);
+  --fs-h2: clamp(1.7rem, 3vw, 2.4rem);
+  --fs-product-card: 1.22rem;
+  --fs-product-modal: 2rem;
+  --fs-eyebrow: .72rem;
+  --fs-nav: .78rem;
+  --fs-btn: .76rem;
+  --ls-eyebrow: .28em;
+  --ls-nav: .18em;
+  --ls-btn: .18em;
+
+  /* Layout */
+  --container: 1200px;
+  --container-pad: 24px;
+
+  /* Movimento */
+  --t-fast: .2s;
+  --t-card: .25s;
+  --t-drawer: .3s;
+  --t-img: .5s;
+}

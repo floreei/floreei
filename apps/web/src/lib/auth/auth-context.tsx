@@ -2,6 +2,7 @@
 
 import {
   ACCESS_DENIED_CODES,
+  type AccountOption,
   type LoginInput,
   type PublicUser,
   type RegisterInput,
@@ -27,6 +28,11 @@ import {
   useState,
 } from "react";
 import { ApiError, api } from "../api/client";
+import {
+  clearSelectedCompanyId,
+  getSelectedCompanyId,
+  setSelectedCompanyId,
+} from "./company";
 import { auth } from "../firebase";
 
 /** Firebase autenticado, mas ainda sem empresa/conta local (novo login social). */
@@ -52,6 +58,12 @@ interface AuthContextValue {
   pendingProvision: PendingProvision | null;
   blocked: BlockedAccess | null;
   awaitingVerification: AwaitingVerification | null;
+  /** Contas do e-mail quando há >1 e falta escolher — dispara o seletor no login. */
+  accountSelection: AccountOption[] | null;
+  /** Escolhe (ou troca) a empresa ativa e recarrega o perfil. */
+  selectAccount: (companyId: string) => Promise<void>;
+  /** Lista as empresas do e-mail autenticado (menu "trocar de conta"). */
+  loadAccounts: () => Promise<AccountOption[]>;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -111,6 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [blocked, setBlocked] = useState<BlockedAccess | null>(null);
   const [awaitingVerification, setAwaitingVerification] =
     useState<AwaitingVerification | null>(null);
+  const [accountSelection, setAccountSelection] = useState<
+    AccountOption[] | null
+  >(null);
   const router = useRouter();
   const queryClient = useQueryClient();
   // Evita marcar "pendingProvision" enquanto um provisionamento explícito roda.
@@ -122,14 +137,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     document: string;
   } | null>(null);
 
-  const refreshProfile = useCallback(async (): Promise<void> => {
+  const refreshProfile = useCallback(async (retried = false): Promise<void> => {
     try {
       setUser(await api.get<PublicUser>("/auth/me"));
       setPendingProvision(null);
       setBlocked(null);
       setAwaitingVerification(null);
+      setAccountSelection(null);
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        error.code === ACCESS_DENIED_CODES.SELECT_ACCOUNT
+      ) {
+        // E-mail em >1 empresa e sem escolha: mostra o seletor de conta.
+        setUser(null);
+        setAccountSelection(await api.get<AccountOption[]>("/auth/accounts"));
+      } else if (error instanceof ApiError && error.status === 401) {
+        // Empresa escolhida ficou inválida (ex.: sem vínculo): limpa e tenta 1x
+        // sem header — resolve p/ quem só tem 1 conta ou cai no seletor.
+        if (getSelectedCompanyId() && !retried) {
+          clearSelectedCompanyId();
+          return refreshProfile(true);
+        }
         // 401 = autenticado no Firebase mas ainda sem conta local.
         setUser(null);
         const fb = auth.currentUser;
@@ -285,12 +315,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refreshProfile],
   );
 
+  const selectAccount = useCallback(
+    async (companyId: string) => {
+      setSelectedCompanyId(companyId);
+      queryClient.clear();
+      setAccountSelection(null);
+      await refreshProfile();
+    },
+    [queryClient, refreshProfile],
+  );
+
+  const loadAccounts = useCallback(
+    () => api.get<AccountOption[]>("/auth/accounts"),
+    [],
+  );
+
   const logout = useCallback(async () => {
     await signOut(auth);
     setUser(null);
     setPendingProvision(null);
     setBlocked(null);
     setAwaitingVerification(null);
+    setAccountSelection(null);
+    clearSelectedCompanyId();
     pendingRegistration.current = null;
     queryClient.clear();
     router.push("/login");
@@ -318,6 +365,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pendingProvision,
         blocked,
         awaitingVerification,
+        accountSelection,
+        selectAccount,
+        loadAccounts,
         login,
         register,
         loginWithGoogle,

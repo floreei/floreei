@@ -81,6 +81,10 @@ export class CompanyEntity extends BaseEntity {
   @Column({ name: "mp_public_key", type: "varchar", length: 200, nullable: true })
   mpPublicKey!: string | null;
 
+  /** Loja com storefront PRÓPRIO (ex.: Floravie) — ignora o template de cores. */
+  @Column({ name: "store_custom", type: "boolean", default: false })
+  storeCustom!: boolean;
+
   // ── Fiscal (emissão de nota) ─────────────────────────────────────────────
   /** Inscrição Estadual (ou "ISENTO"). */
   @Column({ name: "state_registration", type: "varchar", length: 20, nullable: true })

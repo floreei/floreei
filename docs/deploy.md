@@ -7,6 +7,8 @@ Monorepo, deploy independente por app (multi-cloud). Visão geral:
 | `apps/landing` (estática) | **Cloudflare Pages** | `output: "export"` → serve `out/`; auto-deploy (git nativo) |
 | `apps/web` (ERP) | **Vercel** | Root Directory `apps/web`; auto-deploy (git nativo) |
 | `apps/admin` (console) | **Vercel** | Root Directory `apps/admin`; auto-deploy (git nativo) |
+| `apps/loja` (storefront padrão) | **Vercel** | Root Directory `apps/loja`; domínio **wildcard** `*.floreei.com.br` (resolve a loja por slug) |
+| `apps/floravie` (loja c/ design próprio) | **Vercel** | Root Directory `apps/floravie`; subdomínio **específico** `floravie.floreei.com.br` (vence o wildcard) — ver §9 |
 | `apps/api` (NestJS) | **AWS App Runner** | imagem Docker no ECR; deploy via GitHub Actions (OIDC) |
 | Postgres | **Neon** (serverless) | endpoint público TLS; migrar p/ RDS/Aurora depois |
 | Auth + Storage | **Firebase** (Google) | inalterado; a API só fala HTTPS |
@@ -122,6 +124,9 @@ FIREBASE_API_KEY=<apiKey pública>
 FIREBASE_SERVICE_ACCOUNT_B64=<base64 do service-account.json>   # ver 4.1
 PLATFORM_OWNER_EMAILS=voce@floreei.com
 CORS_ORIGINS=https://app.floreei.com.br,https://admin.floreei.com.br
+# Libera QUALQUER subdomínio confiável (ERP, admin, Floravie e TODA loja por slug)
+# sem listar uma a uma. O ponto inicial evita casar "evilfloreei.com.br".
+CORS_ORIGIN_SUFFIXES=.floreei.com.br
 # E-mail transacional (Resend). Sem RESEND_API_KEY, os avisos viram no-op logado.
 RESEND_API_KEY=<secret>
 EMAIL_FROM=Floreei <nao-responda@send.floreei.com.br>  # SUBDOMÍNIO verificado no Resend
@@ -167,3 +172,43 @@ pg_restore -d "postgresql://<rds-conn>" --no-owner floreei.dump
 Guia dedicado em [`docs/loja.md`](./loja.md): configurar loja (slug, cores,
 Mercado Pago), publicar buquês, deploy do `apps/loja` na Vercel com domínio
 **wildcard `*.floreei.com.br`**, e o fluxo de teste ponta a ponta.
+
+## 9. Floravie — loja com storefront PRÓPRIO (`apps/floravie`)
+A Floravie é uma **loja do ERP com design exclusivo** (não usa o template do
+`apps/loja`). Ela consome só os **dados** da API (catálogo + avaliações) atrás de
+uma flag; o back não impõe cores (a empresa fica marcada `store_custom=true`).
+
+**Enquanto não houver domínio próprio, sobe como subdomínio: `floravie.floreei.com.br`.**
+
+### 9.1 Projeto na Vercel
+- Novo projeto importando o repo, **Root Directory `apps/floravie`**, Ignored
+  Build Step `npx turbo-ignore`. Auto-deploy no push (como web/admin/loja).
+- **Env:**
+  ```
+  NEXT_PUBLIC_FLORAVIE_USE_MOCK=false        # false = consome a API (true = mock)
+  NEXT_PUBLIC_API_URL=https://api.floreei.com.br/api
+  NEXT_PUBLIC_FLORAVIE_STORE_SLUG=floravie
+  ```
+
+### 9.2 Domínio (subdomínio específico vence o wildcard)
+- No **projeto Floravie** (Vercel), adicione o domínio **`floravie.floreei.com.br`**.
+  Um domínio específico tem **precedência** sobre o wildcard `*.floreei.com.br`
+  do `apps/loja` — então `floravie.` cai na Floravie e todos os outros slugs
+  continuam no storefront padrão.
+- **DNS:** se o wildcard `*.floreei.com.br` já aponta para a Vercel, o host
+  `floravie` já resolve; basta a atribuição do domínio no projeto. Caso contrário,
+  crie um **CNAME `floravie` → `cname.vercel-dns.com`**.
+- Ao comprar o domínio próprio, é só adicionar o novo domínio nesse projeto e
+  ajustar a env/CORS — nada mais muda.
+
+### 9.3 API — CORS e dados
+- Garanta `CORS_ORIGIN_SUFFIXES=.floreei.com.br` na API (libera `floravie.` e as
+  demais lojas automaticamente). Ver §5.
+- Rode **uma vez** `pnpm --filter @sistema-flores/api connect:floravie` (cria a
+  empresa Floravie + vincula o e-mail admin) e publique os buquês reais no ERP
+  (foto, categoria buques/cestas, tamanhos). Depois é só a flag apontar pra API.
+- **Firebase Authorized domains:** NÃO precisa — a Floravie é loja pública, sem
+  login do ERP.
+
+> **Nota:** o `docs/deploy.md` cita "App Runner", mas a API hoje roda em **Cloud
+> Run (us-east1)**; a estratégia de CORS/subdomínio é a mesma.
