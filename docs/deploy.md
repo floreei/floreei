@@ -207,16 +207,20 @@ uma flag; o back não impõe cores (a empresa fica marcada `store_custom=true`).
 - **Criar a empresa Floravie + vincular o admin** (`connect:floravie`, idempotente).
   Duas formas — escolha uma:
   - **Pela pipeline (recomendado, sem env na mão):** setar **`CONNECT_FLORAVIE=true`**
-    no serviço da API e deployar. O `docker-entrypoint.sh` roda o script **depois
-    das migrations**, no boot (não bloqueia a API se falhar). Depois de rodar uma
-    vez, pode **remover a env** (é idempotente e barato de qualquer forma).
+    no serviço da API e deployar. O `docker-entrypoint.sh` roda, **depois das
+    migrations**, o `connect:floravie` **e** o `register:floravie` (popula o
+    catálogo de buquês do mock) — no boot, sem bloquear a API se falhar. Depois de
+    rodar uma vez, pode **remover a env** (tudo idempotente).
   - **Manual (da sua máquina, contra o Neon de prod):**
-    `... DATABASE_* FIREBASE_* pnpm --filter @sistema-flores/api connect:floravie`.
+    `... DATABASE_* FIREBASE_* pnpm --filter @sistema-flores/api connect:floravie`
+    e depois `... register:floravie` (catálogo).
   - ⚠️ **Pré-requisito:** vincular o admin usa `getUserByEmail` (Admin SDK) → exige a
     **service account** (`FIREBASE_SERVICE_ACCOUNT_B64`, ver §4.1). Sem ela, a
     empresa é criada mas o admin **não** é vinculado (o passo loga a falha e segue).
     O e-mail padrão é `hugouraga61@gmail.com` (sobrescreva com `FLORAVIE_ADMIN_EMAIL`).
-- Publicar os buquês reais no ERP (foto, categoria buques/cestas, tamanhos).
+- O `register:floravie` já publica os 12 buquês do mock (nome, preço, imagem,
+  descrição, selo, categoria, tamanhos). As imagens são `/images/...` servidas
+  pelo próprio site da Floravie; depois é só trocar por fotos reais no ERP.
 - **Firebase Authorized domains:** NÃO precisa — a Floravie é loja pública, sem
   login do ERP.
 

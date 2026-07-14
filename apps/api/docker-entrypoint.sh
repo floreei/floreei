@@ -12,6 +12,8 @@ node node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js
 if [ "$CONNECT_FLORAVIE" = "true" ]; then
   echo "→ Conectando a Floravie (idempotente)..."
   node dist/database/connect-floravie.js || echo "⚠ connect:floravie falhou — seguindo o boot da API."
+  echo "→ Registrando o catálogo da Floravie (idempotente)..."
+  node dist/database/register-floravie-catalog.js || echo "⚠ register:floravie falhou — seguindo o boot da API."
 fi
 
 echo "→ Iniciando API..."
