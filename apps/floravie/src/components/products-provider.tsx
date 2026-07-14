@@ -1,22 +1,11 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
-import { USE_MOCK } from "@/lib/config";
-import { loadProducts } from "@/lib/data-source";
-import { PRODUCTS } from "@/lib/products";
 import type { Product } from "@/lib/types";
 
 type ProductsContextValue = {
   products: Product[];
-  loading: boolean;
   productById: (id: string) => Product | undefined;
 };
 
@@ -30,7 +19,7 @@ function useProductsContext() {
   return ctx;
 }
 
-/** Lista de produtos (mock ou API, conforme a flag). */
+/** Lista de produtos (vinda do servidor: mock ou catálogo cacheado da API). */
 export function useProducts(): Product[] {
   return useProductsContext().products;
 }
@@ -41,42 +30,26 @@ export function useProductLookup(): (id: string) => Product | undefined {
 }
 
 /**
- * Carrega o catálogo uma vez e o expõe pelo contexto no shape `Product`. Com a
- * flag ligada é síncrono (mock, sem flicker); desligada, busca a API no mount.
- * O front (rails, modal, sacola, checkout) não muda — só troca a origem.
+ * Recebe os produtos já resolvidos no **servidor** (`app/page.tsx`) e os expõe
+ * pelo contexto. Não faz fetch no cliente — assim o catálogo é buscado uma vez,
+ * no servidor, com cache de longa duração + invalidação por tag (não bate no
+ * banco a cada visita). O front (rails, modal, sacola, checkout) não muda.
  */
-export function ProductsProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(
-    USE_MOCK ? PRODUCTS : [],
-  );
-  const [loading, setLoading] = useState(!USE_MOCK);
-
-  useEffect(() => {
-    if (USE_MOCK) return;
-    let active = true;
-    loadProducts()
-      .then((p) => {
-        if (active) setProducts(p);
-      })
-      .catch(() => {
-        // Sem catálogo da API, mantém a lista vazia; o front degrada sem quebrar.
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
+export function ProductsProvider({
+  children,
+  initialProducts,
+}: {
+  children: ReactNode;
+  initialProducts: Product[];
+}) {
   const productById = useCallback(
-    (id: string) => products.find((p) => p.id === id),
-    [products],
+    (id: string) => initialProducts.find((p) => p.id === id),
+    [initialProducts],
   );
 
   const value = useMemo(
-    () => ({ products, loading, productById }),
-    [products, loading, productById],
+    () => ({ products: initialProducts, productById }),
+    [initialProducts, productById],
   );
 
   return (

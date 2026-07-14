@@ -16,8 +16,16 @@ import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import { StoreProvider } from "./store-provider";
 import { WhatsAppFloat } from "./whatsapp-float";
+import type { Branding, Product } from "@/lib/types";
 
-export function AppShell() {
+export function AppShell({
+  initialProducts,
+  branding,
+}: {
+  initialProducts: Product[];
+  branding: Branding | null;
+}) {
+  const hasProducts = initialProducts.length > 0;
   const [toastMsg, setToastMsg] = useState("Adicionado à sacola 🌷");
   const [toastShow, setToastShow] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -31,29 +39,42 @@ export function AppShell() {
   }, []);
 
   return (
-    <ProductsProvider>
+    <ProductsProvider initialProducts={initialProducts}>
     <StoreProvider onToast={showToast}>
       <SiteHeader />
       <Hero />
       <Benefits />
-      <ProductRail
-        id="buques"
-        eyebrow="Os queridinhos"
-        title="Buquês do Ateliê"
-        cat="buques"
-      />
+      {hasProducts ? (
+        <ProductRail
+          id="buques"
+          eyebrow="Os queridinhos"
+          title="Buquês do Ateliê"
+          cat="buques"
+        />
+      ) : (
+        <section className="block" id="buques">
+          <div className="wrap">
+            <div className="catalog-empty">
+              <h2>Nossa vitrine está sendo preparada 🌷</h2>
+              <p>Em breve, buquês e arranjos fresquinhos aqui. Volte logo!</p>
+            </div>
+          </div>
+        </section>
+      )}
       <Occasions />
-      <ProductRail
-        id="cestas"
-        eyebrow="Para a casa e para presentear"
-        title="Arranjos, Vasos & Cestas"
-        cat="cestas"
-      />
+      {hasProducts && (
+        <ProductRail
+          id="cestas"
+          eyebrow="Para a casa e para presentear"
+          title="Arranjos, Vasos & Cestas"
+          cat="cestas"
+        />
+      )}
       <About />
       <Cities />
       <Newsletter />
-      <SiteFooter />
-      <WhatsAppFloat />
+      <SiteFooter whatsapp={branding?.whatsapp ?? null} />
+      <WhatsAppFloat whatsapp={branding?.whatsapp ?? null} />
 
       {/* Overlays */}
       <ProductModal />

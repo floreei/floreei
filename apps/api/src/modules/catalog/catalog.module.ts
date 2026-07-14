@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { StoreRevalidationModule } from "../storefront/store-revalidation.module";
 import { CategoriesService } from "./application/categories.service";
 import { ProductsService } from "./application/products.service";
 import { CategoryEntity } from "./infrastructure/category.entity";
@@ -10,7 +11,10 @@ import { CategoriesController } from "./presentation/categories.controller";
 import { ProductsController } from "./presentation/products.controller";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CategoryEntity, ProductEntity])],
+  imports: [
+    TypeOrmModule.forFeature([CategoryEntity, ProductEntity]),
+    StoreRevalidationModule,
+  ],
   controllers: [CategoriesController, ProductsController],
   providers: [
     CategoriesService,

@@ -10,3 +10,8 @@ export const API_URL =
 /** Slug da loja da Floravie no ERP (usado no endpoint público do storefront). */
 export const STORE_SLUG =
   process.env.NEXT_PUBLIC_FLORAVIE_STORE_SLUG ?? "floravie";
+
+// Tags do Next Data Cache — DEVEM casar com as que o backend envia ao purgar
+// (ver apps/api/.../store-revalidation.service.ts).
+export const catalogTag = (slug: string) => `floravie-catalog:${slug}`;
+export const brandingTag = (slug: string) => `floravie-branding:${slug}`;

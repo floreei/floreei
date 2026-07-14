@@ -3,6 +3,7 @@
 import { money } from "@/lib/money";
 import type { Product } from "@/lib/types";
 import { FallbackImage } from "./fallback-image";
+import { Stars } from "./stars";
 import { useStore } from "./store-provider";
 
 export function ProductCard({ product: p }: { product: Product }) {
@@ -17,7 +18,7 @@ export function ProductCard({ product: p }: { product: Product }) {
       <div className="info">
         <h3>{p.name}</h3>
         <div className="stars">
-          {p.rating} <span>({p.reviews})</span>
+          <Stars rating={p.rating} /> <span>({p.reviews})</span>
         </div>
         <div className="price-row">
           <span className="price">{money(p.price)}</span>

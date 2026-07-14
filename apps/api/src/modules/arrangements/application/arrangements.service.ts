@@ -16,6 +16,7 @@ import { Repository } from "typeorm";
 import { CategoryRepository } from "../../catalog/infrastructure/category.repository";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
 import { StockService } from "../../stock/application/stock.service";
+import { StoreRevalidationService } from "../../storefront/store-revalidation.service";
 import { ArrangementItemEntity } from "../infrastructure/arrangement-item.entity";
 import { ArrangementRepository } from "../infrastructure/arrangement.repository";
 import { toArrangement } from "./arrangement.mapper";
@@ -32,6 +33,7 @@ export class ArrangementsService {
     private readonly products: ProductRepository,
     private readonly categories: CategoryRepository,
     private readonly stock: StockService,
+    private readonly revalidation: StoreRevalidationService,
     @InjectRepository(ArrangementItemEntity)
     private readonly items: Repository<ArrangementItemEntity>,
   ) {}
@@ -73,6 +75,7 @@ export class ArrangementsService {
     if (input.produce && input.produce > 0) {
       await this.produce(saved.id, input.produce);
     }
+    await this.revalidation.revalidateCurrentTenant();
     return this.findOne(saved.id);
   }
 
@@ -139,11 +142,13 @@ export class ArrangementsService {
       storeCategory: input.storeCategory ?? null,
       storeSizes: input.storeSizes,
     });
+    await this.revalidation.revalidateCurrentTenant();
     return this.findOne(id);
   }
 
-  remove(id: string): Promise<void> {
-    return this.arrangements.deleteById(id);
+  async remove(id: string): Promise<void> {
+    await this.arrangements.deleteById(id);
+    await this.revalidation.revalidateCurrentTenant();
   }
 
   /** Garante que categoria e insumos pertencem ao tenant. */

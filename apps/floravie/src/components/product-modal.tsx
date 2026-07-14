@@ -2,7 +2,9 @@
 
 import { money } from "@/lib/money";
 import { FallbackImage } from "./fallback-image";
+import { ProductReviews } from "./product-reviews";
 import { useProductLookup } from "./products-provider";
+import { Stars } from "./stars";
 import { useStore } from "./store-provider";
 
 export function ProductModal() {
@@ -35,7 +37,7 @@ export function ProductModal() {
         <button className="close-x" onClick={closeProduct} aria-label="Fechar">
           ✕
         </button>
-        {p && (
+        {productOpen && p && (
           <div className="pd">
             <div className="pd-img">
               {p.badge && <span className="badge">{p.badge}</span>}
@@ -47,7 +49,10 @@ export function ProductModal() {
               </span>
               <h2>{p.name}</h2>
               <div className="stars">
-                {p.rating} <span>({p.reviews} avaliações)</span>
+                <Stars rating={p.rating} />{" "}
+                <span>
+                  ({p.reviews} {p.reviews === 1 ? "avaliação" : "avaliações"})
+                </span>
               </div>
               <div className="pd-price">
                 {money(price * pdSel.qty)}
@@ -108,6 +113,11 @@ export function ProductModal() {
                 </span>
                 <span>🌱 Flores frescas do dia</span>
               </div>
+              <ProductReviews
+                productId={p.id}
+                rating={p.rating}
+                reviews={p.reviews}
+              />
             </div>
           </div>
         )}

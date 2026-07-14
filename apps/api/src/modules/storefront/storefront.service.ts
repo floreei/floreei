@@ -170,12 +170,17 @@ export class StorefrontService {
             "Um dos itens não está mais disponível.",
           );
         }
+        // Aplica o acréscimo do tamanho escolhido (validado pela lista do buquê,
+        // nunca pelo valor vindo do cliente).
+        const size =
+          it.sizeIndex != null ? arr.storeSizes?.[it.sizeIndex] : undefined;
+        const unitPrice = roundMoney(arr.salePrice + (size?.priceDelta ?? 0));
         items.push({
           arrangementId: arr.id,
-          name: arr.name,
+          name: size ? `${arr.name} (${size.label})` : arr.name,
           quantity: it.quantity,
-          unitPrice: arr.salePrice,
-          lineTotal: roundMoney(arr.salePrice * it.quantity),
+          unitPrice,
+          lineTotal: roundMoney(unitPrice * it.quantity),
         });
       }
       const total = roundMoney(items.reduce((s, i) => s + i.lineTotal, 0));

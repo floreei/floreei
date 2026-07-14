@@ -17,6 +17,9 @@ export function ProductRail({ id, eyebrow, title, cat }: Props) {
   const products = useProducts();
   const items = products.filter((p) => p.cat === cat);
 
+  // Esconde a vitrine inteira se a categoria não tem produtos (modo API).
+  if (items.length === 0) return null;
+
   const slide = (dir: number) => {
     const rail = railRef.current;
     if (!rail) return;

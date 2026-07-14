@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
+import { API_URL, STORE_SLUG, USE_MOCK } from "@/lib/config";
 import { FRETE, FRETE_GRATIS } from "@/lib/constants";
 import type { CartItem, Order } from "@/lib/types";
 import { useProductLookup } from "./products-provider";
@@ -196,9 +197,65 @@ export function StoreProvider({
     startCheckout();
   }, [cart.length, onToast, startCheckout]);
   const closeCheckout = useCallback(() => setCheckoutOpen(false), []);
-  const confirmOrder = useCallback(() => {
-    setSuccessNum("FLV-" + Math.floor(1000 + Math.random() * 9000));
-  }, []);
+  const confirmOrder = useCallback(async () => {
+    // Modo mock: mantém a tela de sucesso local do protótipo (sem API/pagamento).
+    if (USE_MOCK) {
+      setSuccessNum("FLV-" + Math.floor(1000 + Math.random() * 9000));
+      return;
+    }
+    // Modo real: cria o pedido no ERP e redireciona ao Mercado Pago. Os campos de
+    // entrega/mensagem/remetente que o schema do checkout não tem vão em `notes`.
+    const dataTxt =
+      order.data === "hoje"
+        ? "Hoje"
+        : order.data === "amanha"
+          ? "Amanhã"
+          : order.dataAg || "Agendar";
+    const notes = [
+      `Entrega: ${dataTxt}`,
+      `Período: ${order.periodo === "manha" ? "Manhã (8h–12h)" : "Tarde (13h–18h)"}`,
+      order.msg ? `Mensagem do cartão: "${order.msg}"` : "",
+      order.anon
+        ? "Enviar como admirador(a) secreto(a)"
+        : order.de
+          ? `De: ${order.de}`
+          : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const payload = {
+      customer: {
+        name: order.dest,
+        phone: order.fone,
+        address: `${order.end}, ${order.cidade}`,
+      },
+      notes,
+      items: cart.map((c) => ({
+        arrangementId: c.id,
+        quantity: c.qty,
+        sizeIndex: c.sizeIdx,
+      })),
+    };
+    try {
+      const res = await fetch(`${API_URL}/store/${STORE_SLUG}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        onToast("Não foi possível finalizar o pedido. Tente novamente. 🌸");
+        return;
+      }
+      const data = (await res.json()) as { paymentUrl?: string };
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+      onToast("Pagamento indisponível no momento. 🌸");
+    } catch {
+      onToast("Falha de conexão ao finalizar. Tente novamente. 🌸");
+    }
+  }, [order, cart, onToast]);
 
   // ── Toast (expõe para componentes que não usam onToast direto) ──
   const showToast = useCallback((msg: string) => onToast(msg), [onToast]);

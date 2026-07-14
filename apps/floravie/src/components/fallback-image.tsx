@@ -18,7 +18,7 @@ type Props = {
 export function FallbackImage({ src, alt, className, style, loading = "lazy" }: Props) {
   const [failed, setFailed] = useState(false);
 
-  if (failed) {
+  if (failed || !src) {
     return (
       <span
         aria-hidden="true"

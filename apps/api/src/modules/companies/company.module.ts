@@ -26,6 +26,8 @@ import { Repository } from "typeorm";
 import { Roles } from "../../common/auth/roles.decorator";
 import { encryptSecret } from "../../common/crypto/store-crypto";
 import { TenantContextService } from "../../common/tenant/tenant-context.service";
+import { StoreRevalidationModule } from "../storefront/store-revalidation.module";
+import { StoreRevalidationService } from "../storefront/store-revalidation.service";
 import { CompanyEntity } from "./infrastructure/company.entity";
 
 class CompanySettingsDto extends createZodDto(companySettingsSchema) {}
@@ -88,6 +90,7 @@ export class CompanyService {
     @InjectRepository(CompanyEntity)
     private readonly companies: Repository<CompanyEntity>,
     private readonly tenant: TenantContextService,
+    private readonly revalidation: StoreRevalidationService,
   ) {}
 
   private async current(): Promise<CompanyEntity> {
@@ -111,7 +114,9 @@ export class CompanyService {
     company.address = input.address ?? null;
     company.pixKey = input.pixKey ?? null;
     company.logo = input.logo ?? null;
-    return toSettings(await this.companies.save(company));
+    const saved = await this.companies.save(company);
+    await this.revalidation.revalidateSlug(saved.storeSlug);
+    return toSettings(saved);
   }
 
   async getStore(): Promise<StoreSettings> {
@@ -149,7 +154,9 @@ export class CompanyService {
     if (input.mercadoPagoAccessToken) {
       company.mpAccessToken = encryptSecret(input.mercadoPagoAccessToken);
     }
-    return toStore(await this.companies.save(company));
+    const saved = await this.companies.save(company);
+    await this.revalidation.revalidateSlug(saved.storeSlug);
+    return toStore(saved);
   }
 
   async getFiscal(): Promise<CompanyFiscalSettings> {
@@ -241,7 +248,7 @@ class CompanyController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CompanyEntity])],
+  imports: [TypeOrmModule.forFeature([CompanyEntity]), StoreRevalidationModule],
   controllers: [CompanyController],
   providers: [CompanyService],
   exports: [CompanyService],

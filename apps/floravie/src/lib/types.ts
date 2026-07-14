@@ -9,10 +9,26 @@ export type Product = {
   price: number;
   img: string;
   badge: string | null;
-  rating: string;
+  /** Nota média (0–5) — renderizada como estrelas fracionadas. */
+  rating: number;
   reviews: number;
   desc: string;
   sizes: ProductSize[];
+};
+
+/** Avaliação pública de um produto (espelha StoreReview da API). */
+export type Review = {
+  id: string;
+  authorName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
+
+/** Dados de contato/branding da loja vindos da API (identidade visual fixa). */
+export type Branding = {
+  name: string;
+  whatsapp: string | null;
 };
 
 export type CartItem = { id: string; sizeIdx: number; qty: number };

@@ -11,7 +11,7 @@ export const PRODUCTS: Product[] = [
     price: 189.9,
     img: "/images/prod-rosas-rose.jpg",
     badge: "Mais vendido",
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 482,
     desc: "Doze rosas em tons de rosé, selecionadas na manhã da entrega e finalizadas com folhagens frescas, papel artesanal e laço de cetim. Acompanha cartão escrito à mão.",
     sizes: [
@@ -27,7 +27,7 @@ export const PRODUCTS: Product[] = [
     price: 159.9,
     img: "/images/prod-girassois.jpg",
     badge: null,
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 316,
     desc: "Girassóis vibrantes embrulhados em papel kraft com toque rústico. A escolha certa para levar luz e bom humor a qualquer dia.",
     sizes: [
@@ -42,7 +42,7 @@ export const PRODUCTS: Product[] = [
     price: 139.9,
     img: "/images/prod-flores-campo.jpg",
     badge: "Novo",
-    rating: "★★★★☆",
+    rating: 4.3,
     reviews: 97,
     desc: "Mistura despretensiosa de flores da estação em cores variadas, com aquele charme de colheita recém-feita.",
     sizes: [
@@ -57,7 +57,7 @@ export const PRODUCTS: Product[] = [
     price: 174.9,
     img: "/images/prod-jardim-tropical.jpg",
     badge: null,
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 204,
     desc: "Cores intensas e texturas marcantes inspiradas nos jardins do Nordeste. Um presente impossível de passar despercebido.",
     sizes: [
@@ -72,7 +72,7 @@ export const PRODUCTS: Product[] = [
     price: 199.9,
     img: "/images/prod-serenidade-branca.jpg",
     badge: null,
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 158,
     desc: "Flores brancas e rosadas em composição delicada, perfeitas para agradecer, acolher ou celebrar recomeços.",
     sizes: [
@@ -87,7 +87,7 @@ export const PRODUCTS: Product[] = [
     price: 149.9,
     img: "/images/prod-surpresa-florista.jpg",
     badge: null,
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 341,
     desc: "Deixe a criação por nossa conta: a florista monta um buquê exclusivo com as flores mais bonitas do dia. Sempre uma surpresa, sempre lindo.",
     sizes: [
@@ -103,7 +103,7 @@ export const PRODUCTS: Product[] = [
     price: 219.9,
     img: "/images/prod-orquidea-lilas.jpg",
     badge: "Dura +30 dias",
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 721,
     desc: "Orquídea Phalaenopsis em vaso de vidro, com hastes floridas que duram semanas. Acompanha guia de cuidados.",
     sizes: [
@@ -118,7 +118,7 @@ export const PRODUCTS: Product[] = [
     price: 249.9,
     img: "/images/prod-arranjo-jardim-rose.jpg",
     badge: null,
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 263,
     desc: "Arranjo de mesa em tons de rosa montado em vaso de vidro, pronto para decorar sem precisar de nada além de água fresca.",
     sizes: [{ l: "Único", d: 0 }],
@@ -130,7 +130,7 @@ export const PRODUCTS: Product[] = [
     price: 289.9,
     img: "/images/prod-cesta-bom-dia.jpg",
     badge: "Café da manhã",
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 389,
     desc: "Café da manhã completo: pães, frutas, suco, geleia e bolo caseiro, decorado com flores frescas do ateliê.",
     sizes: [
@@ -145,7 +145,7 @@ export const PRODUCTS: Product[] = [
     price: 329.9,
     img: "/images/prod-cesta-vinho.jpg",
     badge: null,
-    rating: "★★★★☆",
+    rating: 4.3,
     reviews: 142,
     desc: "Vinho tinto selecionado acompanhado de pães artesanais, queijos e antepastos. Para brindar bons momentos.",
     sizes: [{ l: "Única", d: 0 }],
@@ -157,7 +157,7 @@ export const PRODUCTS: Product[] = [
     price: 99.9,
     img: "/images/prod-urso-pelucia.jpg",
     badge: "Fofura",
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 518,
     desc: "Urso de pelúcia macio com laço, o companheiro perfeito para acompanhar flores ou presentear sozinho.",
     sizes: [
@@ -172,7 +172,7 @@ export const PRODUCTS: Product[] = [
     price: 209.9,
     img: "/images/prod-cesta-vime.jpg",
     badge: null,
-    rating: "★★★★★",
+    rating: 4.9,
     reviews: 176,
     desc: "Flores frescas arranjadas em cesta de vime, uma peça que vira decoração assim que chega.",
     sizes: [

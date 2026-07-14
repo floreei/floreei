@@ -1,4 +1,4 @@
-export function SiteFooter() {
+export function SiteFooter({ whatsapp }: { whatsapp: string | null }) {
   return (
     <footer className="site">
       <div className="wrap">
@@ -56,7 +56,7 @@ export function SiteFooter() {
           <div>
             <h4>Contato</h4>
             <ul className="foot-contact">
-              <li>WhatsApp: (81) 9 0000-0000</li>
+              <li>WhatsApp: {whatsapp || "(81) 9 0000-0000"}</li>
               <li>contato@floravieatelie.com.br</li>
               <li>Seg a Sáb · 8h às 18h</li>
               <li>Recife · PE</li>

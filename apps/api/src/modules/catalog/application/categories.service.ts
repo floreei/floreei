@@ -4,6 +4,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import type { CategoryInput } from "@sistema-flores/types";
+import { StoreRevalidationService } from "../../storefront/store-revalidation.service";
 import { CategoryEntity } from "../infrastructure/category.entity";
 import { CategoryRepository } from "../infrastructure/category.repository";
 import { ProductRepository } from "../infrastructure/product.repository";
@@ -13,6 +14,7 @@ export class CategoriesService {
   constructor(
     private readonly categories: CategoryRepository,
     private readonly products: ProductRepository,
+    private readonly revalidation: StoreRevalidationService,
   ) {}
 
   list() {
@@ -25,7 +27,9 @@ export class CategoriesService {
 
   async create(input: CategoryInput): Promise<CategoryEntity> {
     await this.ensureNameAvailable(input.name);
-    return this.categories.save(this.categories.create(input));
+    const saved = await this.categories.save(this.categories.create(input));
+    await this.revalidation.revalidateCurrentTenant();
+    return saved;
   }
 
   async update(id: string, input: CategoryInput): Promise<CategoryEntity> {
@@ -34,7 +38,9 @@ export class CategoriesService {
       await this.ensureNameAvailable(input.name);
     }
     category.name = input.name;
-    return this.categories.save(category);
+    const saved = await this.categories.save(category);
+    await this.revalidation.revalidateCurrentTenant();
+    return saved;
   }
 
   async remove(id: string): Promise<void> {
@@ -45,6 +51,7 @@ export class CategoriesService {
       );
     }
     await this.categories.deleteById(id);
+    await this.revalidation.revalidateCurrentTenant();
   }
 
   private async ensureNameAvailable(name: string): Promise<void> {

@@ -22,6 +22,7 @@ import { PurchaseItemEntity } from "../modules/purchases/infrastructure/purchase
 import { PurchaseEntity } from "../modules/purchases/infrastructure/purchase.entity";
 import { QuoteItemEntity } from "../modules/quotes/infrastructure/quote-item.entity";
 import { QuoteEntity } from "../modules/quotes/infrastructure/quote.entity";
+import { ReviewEntity } from "../modules/reviews/infrastructure/review.entity";
 import { StockMovementEntity } from "../modules/stock/infrastructure/stock-movement.entity";
 import { StoreOrderEntity } from "../modules/storefront/infrastructure/store-order.entity";
 import { SupplierEntity } from "../modules/suppliers/infrastructure/supplier.entity";
@@ -52,6 +53,7 @@ export const entities = [
   PlatformAdminEntity,
   PlatformNotificationEntity,
   StoreOrderEntity,
+  ReviewEntity,
   SubscriptionEntity,
   PlanDefinitionEntity,
   InvoiceEntity,

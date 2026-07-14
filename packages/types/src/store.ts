@@ -35,6 +35,9 @@ export interface StoreCatalog {
 export const storeCheckoutItemSchema = z.object({
   arrangementId: idSchema,
   quantity: z.coerce.number().int().positive().max(99),
+  /** Índice do tamanho escolhido em `storeSizes` do buquê (acréscimo de preço
+   * é validado/aplicado no servidor). Ausente = tamanho padrão (sem acréscimo). */
+  sizeIndex: z.coerce.number().int().min(0).optional(),
 });
 
 /** Dados do checkout: cliente + itens do carrinho. */
