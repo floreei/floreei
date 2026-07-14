@@ -18,6 +18,10 @@ const SLUG = "floravie";
 
 async function run(): Promise<void> {
   await dataSource.initialize();
+  // Garante o schema em dia (idempotente) — o script depende de colunas novas
+  // como `store_custom`. Em prod as migrations já rodaram no start; aqui não faz
+  // nada de novo. Em dev, aplica as pendentes antes de consultar.
+  await dataSource.runMigrations();
   const companies = dataSource.getRepository(CompanyEntity);
   const users = dataSource.getRepository(UserEntity);
 
