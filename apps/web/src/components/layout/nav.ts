@@ -23,6 +23,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { PLANS_ENABLED } from "@/lib/billing/plans-config";
 
 export interface NavItem {
   label: string;
@@ -131,7 +132,17 @@ export const navGroups: NavGroup[] = [
       },
       { label: "Empresa", href: "/empresa", icon: Building2, adminOnly: true },
       { label: "Equipe", href: "/equipe", icon: UsersRound, adminOnly: true },
-      { label: "Plano", href: "/plano", icon: CreditCard, adminOnly: true },
+      // Módulo de planos em fase de planejamento — só aparece com PLANS_ENABLED.
+      ...(PLANS_ENABLED
+        ? [
+            {
+              label: "Plano",
+              href: "/plano",
+              icon: CreditCard,
+              adminOnly: true,
+            } as NavItem,
+          ]
+        : []),
     ],
   },
 ];

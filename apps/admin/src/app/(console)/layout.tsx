@@ -18,13 +18,17 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
 import { useAdminAuth } from "@/lib/auth/auth-context";
+import { SHOW_PLANS } from "@/lib/plans-flag";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
   { href: "/empresas", label: "Empresas", icon: Building2 },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
-  { href: "/planos", label: "Planos", icon: CreditCard },
+  // Módulo de planos oculto por padrão (flag SHOW_PLANS).
+  ...(SHOW_PLANS
+    ? [{ href: "/planos", label: "Planos", icon: CreditCard }]
+    : []),
   { href: "/gestores", label: "Gestores", icon: ShieldCheck },
 ];
 

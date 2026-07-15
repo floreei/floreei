@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api/client";
 import { useAdminAuth } from "@/lib/auth/auth-context";
+import { SHOW_PLANS } from "@/lib/plans-flag";
 import { formatCurrency } from "@/lib/utils";
 
 /**
@@ -23,6 +24,23 @@ import { formatCurrency } from "@/lib/utils";
  * contas e entra na próxima cobrança dos assinantes atuais.
  */
 export default function PlanosPage() {
+  // Módulo oculto por padrão enquanto os planos estão em planejamento.
+  if (!SHOW_PLANS) {
+    return (
+      <div className="mx-auto max-w-lg py-20 text-center">
+        <h1 className="text-xl font-semibold">Módulo de planos oculto</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          O produto de planos está em fase de planejamento. Ative a flag{" "}
+          <code>SHOW_PLANS</code> em <code>src/lib/plans-flag.ts</code> para
+          exibir e gerenciar os planos por aqui.
+        </p>
+      </div>
+    );
+  }
+  return <PlanosPageContent />;
+}
+
+function PlanosPageContent() {
   const { session } = useAdminAuth();
   const canEdit = session?.role === "OWNER";
 

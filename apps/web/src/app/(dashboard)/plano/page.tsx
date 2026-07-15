@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/billing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { FEATURE_INFO } from "@/lib/billing/features";
+import { PLANS_ENABLED } from "@/lib/billing/plans-config";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const SUBSCRIPTION_STATUS_LABEL: Record<string, string> = {
@@ -36,7 +37,37 @@ const SUBSCRIPTION_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
+/** Aviso enquanto o módulo de planos está em fase de planejamento. */
+function PlanningNotice() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Plano"
+        description="Gerencie a assinatura da sua empresa."
+      />
+      <Card className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+          <AlertTriangle className="h-7 w-7" />
+        </span>
+        <h2 className="font-serif text-xl font-semibold">
+          Em fase de planejamento
+        </h2>
+        <p className="max-w-md text-sm text-muted-foreground">
+          Estamos finalizando os detalhes dos planos e da cobrança. Em breve
+          você poderá assinar e gerenciar seu plano por aqui.
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+// Módulo real preservado abaixo — reativado quando PLANS_ENABLED voltar a true.
 export default function PlanoPage() {
+  if (!PLANS_ENABLED) return <PlanningNotice />;
+  return <PlanoPageContent />;
+}
+
+function PlanoPageContent() {
   const { user } = useAuth();
   const { data: plans, isLoading: loadingPlans } = useBillingPlans();
   const { data: billing, isLoading: loadingBilling } = useBillingSubscription();

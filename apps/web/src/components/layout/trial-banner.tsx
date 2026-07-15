@@ -4,6 +4,7 @@ import { Clock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { PLANS_ENABLED } from "@/lib/billing/plans-config";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,6 +14,8 @@ import { cn } from "@/lib/utils";
  */
 export function TrialBanner() {
   const { user } = useAuth();
+  // Sem módulo de planos ativo não há upgrade a oferecer — some a faixa.
+  if (!PLANS_ENABLED) return null;
   const access = user?.access;
   if (!access || access.status !== "TRIAL") return null;
 

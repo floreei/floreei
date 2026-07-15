@@ -23,6 +23,7 @@ import {
 import type { BlockedAccess } from "@/lib/auth/auth-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { FEATURE_INFO } from "@/lib/billing/features";
+import { PLANS_ENABLED } from "@/lib/billing/plans-config";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const WHATSAPP_URL = "https://wa.me/?text=Preciso%20de%20ajuda%20com%20o%20Floreei";
@@ -74,16 +75,29 @@ export function AccessBlocked({ blocked }: { blocked: BlockedAccess }) {
               : "Seu período gratuito terminou"}
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground">
-            {overdue
-              ? "Não conseguimos cobrar a sua assinatura. Reative seu plano para voltar a usar o Floreei — leva um minuto."
-              : "Para continuar usando o Floreei, escolha um plano e faça o upgrade. O primeiro usuário já está incluso; cada usuário adicional custa R$ 16,00 por mês."}
+            {!PLANS_ENABLED
+              ? "Os planos ainda estão em fase de planejamento. Fale com a gente pelo WhatsApp para liberar o seu acesso — a gente resolve rapidinho."
+              : overdue
+                ? "Não conseguimos cobrar a sua assinatura. Reative seu plano para voltar a usar o Floreei — leva um minuto."
+                : "Para continuar usando o Floreei, escolha um plano e faça o upgrade. O primeiro usuário já está incluso; cada usuário adicional custa R$ 16,00 por mês."}
           </p>
         </div>
 
-        <PendingCheckoutNotice />
-        {!overdue ? <TrialRecap /> : null}
-
-        <PlanPicker cta={overdue ? "Reativar plano" : "Fazer upgrade"} />
+        {PLANS_ENABLED ? (
+          <>
+            <PendingCheckoutNotice />
+            {!overdue ? <TrialRecap /> : null}
+            <PlanPicker cta={overdue ? "Reativar plano" : "Fazer upgrade"} />
+          </>
+        ) : (
+          <div className="flex justify-center">
+            <Button asChild size="lg">
+              <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">
+                Falar com a gente
+              </a>
+            </Button>
+          </div>
+        )}
 
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm text-muted-foreground">

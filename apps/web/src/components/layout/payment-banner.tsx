@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { PLANS_ENABLED } from "@/lib/billing/plans-config";
 
 /**
  * Faixa fixa no topo enquanto há pagamento da assinatura pendente (dentro da
@@ -11,6 +12,8 @@ import { useAuth } from "@/lib/auth/auth-context";
  */
 export function PaymentBanner() {
   const { user } = useAuth();
+  // Módulo de planos em planejamento → sem cobrança a regularizar aqui.
+  if (!PLANS_ENABLED) return null;
   const access = user?.access;
   if (!access || access.graceDaysLeft === null) return null;
 
