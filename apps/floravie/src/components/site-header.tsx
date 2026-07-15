@@ -1,75 +1,71 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useStore } from "./store-provider";
 import { BagIcon, HeartIcon, SearchIcon } from "./icons";
 
-type Cat = { label: string; href: string; drop?: { label: string; href: string }[] };
+type Drop = { label: string; href: string };
+type Cat = { label: string; href: string; drop?: Drop[] };
 
+// Submenus levam à categoria já filtrada; alguns pré-preenchem a busca (q=).
 const CATS: Cat[] = [
   {
     label: "Buquês",
-    href: "#buques",
+    href: "/catalogo?cat=buques",
     drop: [
-      { label: "Buquês de Rosas", href: "#buques" },
-      { label: "Buquês de Girassóis", href: "#buques" },
-      { label: "Buquês de Lírios", href: "#buques" },
-      { label: "Buquês de Flores do Campo", href: "#buques" },
-      { label: "Buquês de Tulipas", href: "#buques" },
-      { label: "Buquês Mistos do Ateliê", href: "#buques" },
+      { label: "Buquês de Rosas", href: "/catalogo?cat=buques&q=rosas" },
+      { label: "Buquês de Girassóis", href: "/catalogo?cat=buques&q=girass" },
+      { label: "Flores do Campo", href: "/catalogo?cat=buques&q=campo" },
+      { label: "Jardim Tropical", href: "/catalogo?cat=buques&q=tropical" },
+      { label: "Serenidade Branca", href: "/catalogo?cat=buques&q=branca" },
+      { label: "Todos os buquês", href: "/catalogo?cat=buques" },
     ],
   },
   {
     label: "Arranjos",
-    href: "#cestas",
+    href: "/catalogo?cat=arranjos",
     drop: [
-      { label: "Arranjos de Mesa", href: "#cestas" },
-      { label: "Arranjos em Caixa", href: "#cestas" },
-      { label: "Arranjos de Lírios", href: "#cestas" },
-      { label: "Arranjos Tropicais", href: "#cestas" },
-      { label: "Arranjos Corporativos", href: "#cestas" },
+      { label: "Arranjos de Mesa", href: "/catalogo?cat=arranjos" },
+      { label: "Arranjos em Caixa", href: "/catalogo?cat=arranjos" },
+      { label: "Todos os arranjos", href: "/catalogo?cat=arranjos" },
     ],
   },
   {
     label: "Flores em Vaso",
-    href: "#cestas",
+    href: "/catalogo?cat=vasos",
     drop: [
-      { label: "Orquídeas", href: "#cestas" },
-      { label: "Violetas", href: "#cestas" },
-      { label: "Antúrios", href: "#cestas" },
-      { label: "Suculentas & Verdes", href: "#cestas" },
-      { label: "Kalanchoê (Flor da Fortuna)", href: "#cestas" },
+      { label: "Orquídeas", href: "/catalogo?cat=vasos&q=orqu" },
+      { label: "Plantas & Verdes", href: "/catalogo?cat=vasos" },
+      { label: "Todas as flores em vaso", href: "/catalogo?cat=vasos" },
     ],
   },
   {
     label: "Cestas de Presente",
-    href: "#cestas",
+    href: "/catalogo?cat=cestas",
     drop: [
-      { label: "Café da Manhã", href: "#cestas" },
-      { label: "Chocolates & Doces", href: "#cestas" },
-      { label: "Vinhos & Queijos", href: "#cestas" },
-      { label: "Flores & Pelúcia", href: "#cestas" },
-      { label: "Cestas Especiais", href: "#cestas" },
+      { label: "Café da Manhã", href: "/catalogo?cat=cestas&q=bom%20dia" },
+      { label: "Vinhos & Delícias", href: "/catalogo?cat=cestas&q=vinho" },
+      { label: "Flores & Pelúcia", href: "/catalogo?cat=cestas&q=pel" },
+      { label: "Todas as cestas", href: "/catalogo?cat=cestas" },
     ],
   },
-  {
-    label: "Ocasiões",
-    href: "#ocasioes",
-    drop: [
-      { label: "Aniversário", href: "#ocasioes" },
-      { label: "Amor & Romance", href: "#ocasioes" },
-      { label: "Agradecimento", href: "#ocasioes" },
-      { label: "Maternidade", href: "#ocasioes" },
-      { label: "Melhoras", href: "#ocasioes" },
-      { label: "Condolências", href: "#ocasioes" },
-    ],
-  },
-  { label: "Onde entregamos", href: "#cidades" },
+  { label: "Ocasiões", href: "/#ocasioes" },
+  { label: "Onde entregamos", href: "/#cidades" },
 ];
 
 export function SiteHeader() {
   const { cartQty, openCart } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const onSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const input = e.currentTarget.querySelector("input");
+    const value = input ? (input as HTMLInputElement).value.trim() : "";
+    router.push(value ? `/catalogo?q=${encodeURIComponent(value)}` : "/catalogo");
+  };
 
   return (
     <>
@@ -80,9 +76,9 @@ export function SiteHeader() {
             Entrega no mesmo dia em Recife e região · Pedidos até 16h
           </span>
           <div className="topbar-links">
-            <a href="#">Minha conta</a>
-            <a href="#">Acompanhar pedido</a>
-            <a href="#">Ajuda</a>
+            <Link href="/catalogo">Ver catálogo</Link>
+            <Link href="/#cidades">Onde entregamos</Link>
+            <Link href="/#ocasioes">Ocasiões</Link>
           </div>
         </div>
       </div>
@@ -99,19 +95,16 @@ export function SiteHeader() {
             <span></span>
             <span></span>
           </button>
-          <a href="#" className="logo" aria-label="Floravie Ateliê — página inicial">
+          <Link href="/" className="logo" aria-label="Floravie Ateliê — página inicial">
             <span className="name">
               Flora<em>vie</em>
             </span>
             <span className="tag">Ateliê Floral</span>
-          </a>
-          <form
-            className="search"
-            role="search"
-            onSubmit={(e) => e.preventDefault()}
-          >
+          </Link>
+          <form className="search" role="search" onSubmit={onSearch}>
             <input
               type="search"
+              name="q"
               placeholder="Buscar buquês, arranjos, cestas…"
               aria-label="Buscar produtos"
             />
@@ -120,10 +113,10 @@ export function SiteHeader() {
             </button>
           </form>
           <div className="header-actions">
-            <button className="h-action" type="button">
+            <Link href="/catalogo" className="h-action">
               <HeartIcon />
-              Favoritos
-            </button>
+              Catálogo
+            </Link>
             <button className="h-action" type="button" onClick={openCart}>
               <BagIcon />
               Sacola
@@ -139,12 +132,12 @@ export function SiteHeader() {
           <ul>
             {CATS.map((cat) => (
               <li className="cat" key={cat.label}>
-                <a href={cat.href}>{cat.label}</a>
+                <Link href={cat.href}>{cat.label}</Link>
                 {cat.drop && (
                   <ul className="drop">
                     {cat.drop.map((d) => (
                       <li key={d.label}>
-                        <a href={d.href}>{d.label}</a>
+                        <Link href={d.href}>{d.label}</Link>
                       </li>
                     ))}
                   </ul>

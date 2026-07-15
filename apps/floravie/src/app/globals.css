@@ -323,11 +323,7 @@ footer li a:hover{opacity:1;color:var(--rose)}
 .reviews-summary{display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--green-soft)}
 .reviews-summary .star-rating{font-size:1.05rem;letter-spacing:.1em}
 .reviews-summary b{color:var(--ink);font-weight:500;font-size:1.05rem}
-/* Mostra ~3 avaliações; o resto rola dentro da própria lista (evita esticar a
-   foto do produto no modal). */
-.review-list{display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto;padding-right:6px}
-.review-list::-webkit-scrollbar{width:6px}
-.review-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+.review-list{display:flex;flex-direction:column;gap:12px}
 .review{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;background:var(--ivory)}
 .review-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
 .review-author{font-weight:500;color:var(--green);font-size:.92rem}
@@ -344,6 +340,42 @@ footer li a:hover{opacity:1;color:var(--rose)}
 .review-form input:focus,.review-form textarea:focus{outline:2px solid var(--rose);border-color:transparent}
 .review-form textarea{resize:vertical;min-height:70px}
 .review-form .btn{align-self:flex-start;flex:0 0 auto;padding:12px 30px}
+
+/* Link "Ver avaliações" no modal de produto (abre o modal dedicado). */
+.pd-reviews-link{align-self:flex-start;color:var(--rose-deep);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--rose);padding-bottom:3px;margin-top:2px;transition:.2s;background:none}
+.pd-reviews-link:hover{color:var(--green)}
+
+/* ── Modal dedicado de avaliações (por cima do modal de produto) ── */
+.reviews-overlay{z-index:100}
+.reviews-sheet{max-width:560px}
+.reviews-modal-body{padding:40px 40px 36px;display:flex;flex-direction:column;gap:12px}
+.reviews-modal-title{font-family:var(--font-display);font-size:2rem;font-weight:600;color:var(--green);line-height:1.15}
+.reviews-modal-body .reviews{border-top:none;margin-top:0;padding-top:6px}
+@media(max-width:560px){.reviews-modal-body{padding:28px 22px}}
+
+/* ── Grid de produtos (vitrines da home + catálogo) ── */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
+@media(max-width:520px){.product-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}}
+
+/* ── Página de catálogo ── */
+.catalog{padding:44px 0 80px}
+.catalog-head{margin-bottom:24px}
+.catalog-head h1{font-size:clamp(1.9rem,3.5vw,2.6rem);margin-top:6px}
+.filter-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.filter-controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:18px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.filter-search{flex:1;min-width:200px;border:1px solid var(--line);border-radius:999px;padding:11px 20px;background:var(--ivory);font-size:.9rem;color:var(--ink)}
+.filter-search:focus{outline:2px solid var(--rose);border-color:transparent}
+.price-filter,.sort-filter{display:flex;align-items:center;gap:10px;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;color:var(--green-soft);font-weight:500}
+.price-filter span{white-space:nowrap;min-width:104px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink)}
+.price-filter input[type=range]{accent-color:var(--green);cursor:pointer}
+.sort-filter select{border:1px solid var(--line);border-radius:999px;padding:9px 16px;background:var(--paper);font-size:.85rem;color:var(--ink);text-transform:none;letter-spacing:0}
+.catalog-count{font-size:.85rem;color:var(--green-soft);margin-bottom:18px}
+.pagination{display:flex;justify-content:center;gap:8px;margin-top:44px}
+.page-btn{min-width:40px;height:40px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--green);font-size:.9rem;font-weight:500;display:grid;place-items:center;transition:.2s}
+.page-btn:hover:not(:disabled){border-color:var(--rose);color:var(--rose-deep);background:var(--rose-mist)}
+.page-btn.sel{background:var(--green);color:#fff;border-color:var(--green)}
+.page-btn:disabled{opacity:.4;cursor:default}
+@media(max-width:560px){.filter-controls{gap:12px}.price-filter,.sort-filter{width:100%}.filter-search{width:100%;flex:none}}
 
 /* ── Estado vazio do catálogo (modo API sem produtos) ── */
 .catalog-empty{text-align:center;padding:70px 24px;color:var(--green-soft)}

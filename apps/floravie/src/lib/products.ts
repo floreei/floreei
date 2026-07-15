@@ -98,7 +98,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: "o1",
-    cat: "cestas",
+    cat: "vasos",
     name: "Orquídea Phalaenopsis Lilás",
     price: 219.9,
     img: "/images/prod-orquidea-lilas.jpg",
@@ -113,7 +113,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: "a1",
-    cat: "cestas",
+    cat: "arranjos",
     name: "Arranjo Jardim Rosé",
     price: 249.9,
     img: "/images/prod-arranjo-jardim-rose.jpg",

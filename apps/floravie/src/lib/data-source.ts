@@ -1,5 +1,13 @@
-import { API_URL, brandingTag, catalogTag, STORE_SLUG } from "./config";
-import type { Branding, Product } from "./types";
+import { API_URL, brandingTag, catalogTag, STORE_SLUG, USE_MOCK } from "./config";
+import { PRODUCTS } from "./products";
+import { CATEGORY_ORDER, type Branding, type Product, type StoreCat } from "./types";
+
+/** storeCategory (string livre da API) → categoria conhecida do front. */
+function toCat(sc: string | null): StoreCat {
+  return (CATEGORY_ORDER as string[]).includes(sc ?? "")
+    ? (sc as StoreCat)
+    : "buques";
+}
 
 /** Forma (parcial) do catálogo público da API do Floreei — tipada localmente
  * para não acoplar a Floravie ao pacote de tipos do ERP. */
@@ -22,7 +30,7 @@ interface ApiCatalog {
 export function toProduct(item: ApiCatalogItem): Product {
   return {
     id: item.id,
-    cat: item.storeCategory === "cestas" ? "cestas" : "buques",
+    cat: toCat(item.storeCategory),
     name: item.name,
     price: item.price,
     // Sem imagem → string vazia; o FallbackImage mostra o degradê + flor SVG.
@@ -73,4 +81,25 @@ export async function fetchBranding(): Promise<Branding | null> {
   if (!res.ok) return null;
   const b = (await res.json()) as ApiBranding;
   return { name: b.name, whatsapp: b.whatsapp };
+}
+
+/**
+ * Fonte única para as páginas do storefront (home e catálogo). Com USE_MOCK usa
+ * o catálogo local; caso contrário busca catálogo + branding da API (cacheados
+ * por tag). Degrada para lista vazia se a API falhar. Chamar só no servidor.
+ */
+export async function loadStorefrontData(): Promise<{
+  products: Product[];
+  branding: Branding | null;
+}> {
+  if (USE_MOCK) return { products: PRODUCTS, branding: null };
+  try {
+    const [products, branding] = await Promise.all([
+      fetchCatalogProducts(),
+      fetchBranding(),
+    ]);
+    return { products, branding };
+  } catch {
+    return { products: [], branding: null };
+  }
 }

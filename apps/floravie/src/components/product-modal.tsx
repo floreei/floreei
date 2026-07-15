@@ -1,8 +1,8 @@
 "use client";
 
+import { CATEGORY_LABELS } from "@/lib/types";
 import { money } from "@/lib/money";
 import { FallbackImage } from "./fallback-image";
-import { ProductReviews } from "./product-reviews";
 import { useProductLookup } from "./products-provider";
 import { Stars } from "./stars";
 import { useStore } from "./store-provider";
@@ -17,6 +17,7 @@ export function ProductModal() {
     addToCart,
     openCart,
     startCheckout,
+    openReviews,
   } = useStore();
 
   const productById = useProductLookup();
@@ -44,9 +45,7 @@ export function ProductModal() {
               <FallbackImage src={p.img} alt={p.name} />
             </div>
             <div className="pd-info">
-              <span className="eyebrow">
-                {p.cat === "buques" ? "Buquês do Ateliê" : "Arranjos, Vasos & Cestas"}
-              </span>
+              <span className="eyebrow">{CATEGORY_LABELS[p.cat]}</span>
               <h2>{p.name}</h2>
               <div className="stars">
                 <Stars rating={p.rating} />{" "}
@@ -113,11 +112,14 @@ export function ProductModal() {
                 </span>
                 <span>🌱 Flores frescas do dia</span>
               </div>
-              <ProductReviews
-                productId={p.id}
-                rating={p.rating}
-                reviews={p.reviews}
-              />
+              <button
+                type="button"
+                className="pd-reviews-link"
+                onClick={openReviews}
+              >
+                Ver {p.reviews}{" "}
+                {p.reviews === 1 ? "avaliação" : "avaliações"} →
+              </button>
             </div>
           </div>
         )}

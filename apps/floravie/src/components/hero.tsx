@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { FallbackImage } from "./fallback-image";
 import { CheckNoteIcon, PinIcon } from "./icons";
 
 export function Hero() {
+  const router = useRouter();
   return (
     <section className="hero">
       <div className="wrap">
@@ -20,9 +22,7 @@ export function Hero() {
             className="delivery"
             onSubmit={(e) => {
               e.preventDefault();
-              document
-                .getElementById("buques")
-                ?.scrollIntoView({ behavior: "smooth" });
+              router.push("/catalogo");
             }}
           >
             <PinIcon />

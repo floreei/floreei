@@ -1,10 +1,35 @@
 // Modelos de dados do storefront (DESIGN-SPEC §6).
 
+/** Categorias de vitrine (casa com storeCategory da API). */
+export type StoreCat = "buques" | "arranjos" | "vasos" | "cestas";
+
+/** Rótulos e ordem de exibição das categorias. */
+export const CATEGORY_LABELS: Record<StoreCat, string> = {
+  buques: "Buquês",
+  arranjos: "Arranjos",
+  vasos: "Flores em Vaso",
+  cestas: "Cestas de Presente",
+};
+export const CATEGORY_ORDER: StoreCat[] = [
+  "buques",
+  "arranjos",
+  "vasos",
+  "cestas",
+];
+
+/** Eyebrow (subtítulo curto) de cada categoria, usado nas vitrines. */
+export const CATEGORY_EYEBROWS: Record<StoreCat, string> = {
+  buques: "Os queridinhos",
+  arranjos: "Para decorar e presentear",
+  vasos: "Duram muito mais",
+  cestas: "Para surpreender",
+};
+
 export type ProductSize = { l: string; d: number };
 
 export type Product = {
   id: string;
-  cat: "buques" | "cestas";
+  cat: StoreCat;
   name: string;
   price: number;
   img: string;

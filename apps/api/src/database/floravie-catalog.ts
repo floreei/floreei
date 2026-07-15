@@ -96,7 +96,7 @@ export const FLORAVIE_BUQUES: FloravieBuque[] = [
   },
   {
     name: "Orquídea Phalaenopsis Lilás",
-    cat: "cestas",
+    cat: "vasos",
     price: 219.9,
     img: "/images/prod-orquidea-lilas.jpg",
     badge: "Dura +30 dias",
@@ -108,7 +108,7 @@ export const FLORAVIE_BUQUES: FloravieBuque[] = [
   },
   {
     name: "Arranjo Jardim Rosé",
-    cat: "cestas",
+    cat: "arranjos",
     price: 249.9,
     img: "/images/prod-arranjo-jardim-rose.jpg",
     badge: null,

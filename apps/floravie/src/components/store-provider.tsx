@@ -45,6 +45,10 @@ type StoreContextValue = {
   pdSel: PdSel;
   openProduct: (id: string) => void;
   closeProduct: () => void;
+  // Modal de avaliações (abre por cima do modal de produto)
+  reviewsOpen: boolean;
+  openReviews: () => void;
+  closeReviews: () => void;
   setSize: (i: number) => void;
   setQty: (d: number) => void;
   addToCart: () => void;
@@ -91,6 +95,7 @@ export function StoreProvider({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pdSel, setPdSel] = useState<PdSel>({ id: null, sizeIdx: 0, qty: 1 });
   const [productOpen, setProductOpen] = useState(false);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [coStep, setCoStep] = useState(1);
@@ -129,6 +134,8 @@ export function StoreProvider({
     setProductOpen(true);
   }, []);
   const closeProduct = useCallback(() => setProductOpen(false), []);
+  const openReviews = useCallback(() => setReviewsOpen(true), []);
+  const closeReviews = useCallback(() => setReviewsOpen(false), []);
   const setSize = useCallback((i: number) => setPdSel((s) => ({ ...s, sizeIdx: i })), []);
   const setQty = useCallback(
     (d: number) => setPdSel((s) => ({ ...s, qty: Math.max(1, Math.min(9, s.qty + d)) })),
@@ -261,7 +268,8 @@ export function StoreProvider({
   const showToast = useCallback((msg: string) => onToast(msg), [onToast]);
 
   // ── Scroll lock do body (equivale ao body.locked da referência) ──
-  const anyOverlayOpen = productOpen || cartOpen || checkoutOpen;
+  const anyOverlayOpen =
+    productOpen || reviewsOpen || cartOpen || checkoutOpen;
   useEffect(() => {
     document.body.classList.toggle("locked", anyOverlayOpen);
     return () => {
@@ -270,11 +278,28 @@ export function StoreProvider({
   }, [anyOverlayOpen]);
 
   // ── Fechar com Esc (produto, checkout, sacola) ──
-  const latest = useRef({ closeProduct, closeCheckout, closeCart });
-  latest.current = { closeProduct, closeCheckout, closeCart };
+  const latest = useRef({
+    reviewsOpen,
+    closeProduct,
+    closeReviews,
+    closeCheckout,
+    closeCart,
+  });
+  latest.current = {
+    reviewsOpen,
+    closeProduct,
+    closeReviews,
+    closeCheckout,
+    closeCart,
+  };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // Esc fecha primeiro o modal de avaliações (que fica por cima).
+        if (latest.current.reviewsOpen) {
+          latest.current.closeReviews();
+          return;
+        }
         latest.current.closeProduct();
         latest.current.closeCheckout();
         latest.current.closeCart();
@@ -294,6 +319,9 @@ export function StoreProvider({
     pdSel,
     openProduct,
     closeProduct,
+    reviewsOpen,
+    openReviews,
+    closeReviews,
     setSize,
     setQty,
     addToCart,

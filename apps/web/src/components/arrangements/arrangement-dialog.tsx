@@ -373,7 +373,9 @@ export function ArrangementDialog({
                     >
                       <option value="">—</option>
                       <option value="buques">Buquês</option>
-                      <option value="cestas">Cestas</option>
+                      <option value="arranjos">Arranjos</option>
+                      <option value="vasos">Flores em Vaso</option>
+                      <option value="cestas">Cestas de Presente</option>
                     </select>
                   )}
                 />

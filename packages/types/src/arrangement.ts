@@ -53,9 +53,22 @@ export const arrangementSizeSchema = z.object({
 });
 export type ArrangementSize = z.infer<typeof arrangementSizeSchema>;
 
-/** Categoria de vitrine da loja online (agrupa os buquês na home). */
-export const storeCategorySchema = z.enum(["buques", "cestas"]);
+/** Categoria de vitrine da loja online (agrupa/filtra os produtos no catálogo). */
+export const storeCategorySchema = z.enum([
+  "buques",
+  "arranjos",
+  "vasos",
+  "cestas",
+]);
 export type StoreCategory = z.infer<typeof storeCategorySchema>;
+
+/** Rótulos legíveis das categorias de vitrine (pt-BR). */
+export const STORE_CATEGORY_LABELS: Record<StoreCategory, string> = {
+  buques: "Buquês",
+  arranjos: "Arranjos",
+  vasos: "Flores em Vaso",
+  cestas: "Cestas de Presente",
+};
 
 /** Produto composto / buquê: nome, política de preço e a ficha técnica (receita). */
 export const arrangementInputSchema = z.object({
