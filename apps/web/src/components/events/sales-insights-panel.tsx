@@ -4,14 +4,25 @@ import type {
   AtRiskCustomer,
   IdleItem,
   PartyRanking,
-  SalesChannel,
+  PendingDeliveries,
   SoldItemRanking,
 } from "@sistema-flores/types";
-import { Flower, Package, TrendingDown, TrendingUp, Users } from "lucide-react";
+import {
+  Flower,
+  Package,
+  TrendingDown,
+  TrendingUp,
+  Truck,
+  Users,
+} from "lucide-react";
 import { RankingList, type RankRow } from "@/components/reports/ranking-list";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSalesInsights } from "@/lib/api/events";
+import {
+  useSalesInsights,
+  type SalesInsightsFilters,
+} from "@/lib/api/events";
+import { unitLabels } from "@/lib/labels";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 function itemRows(items: SoldItemRanking[]): RankRow[] {
@@ -34,20 +45,21 @@ function customerRows(rows: PartyRanking[]): RankRow[] {
   }));
 }
 
-/** Insights práticos da tela de Vendas, respeitando o período e o canal. */
-export function SalesInsightsPanel({
-  from,
-  to,
-  channel,
-}: {
-  from: string;
-  to: string;
-  channel?: SalesChannel;
-}) {
-  const { data, isLoading } = useSalesInsights(from, to, channel);
+/** Insights práticos da tela de Vendas, respeitando período e filtros da tela. */
+export function SalesInsightsPanel({ filters }: { filters: SalesInsightsFilters }) {
+  const { data, isLoading } = useSalesInsights(filters);
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <Card className="space-y-4 p-5 lg:col-span-2">
+        <SectionTitle
+          icon={<Truck className="h-4 w-4" />}
+          title="Falta entregar"
+          hint="Vendas confirmadas ainda não entregues no período — por cliente."
+        />
+        <PendingDeliveriesList data={data?.pendingDeliveries} loading={isLoading} />
+      </Card>
+
       <Card className="space-y-5 p-5">
         <SectionTitle icon={<TrendingUp className="h-4 w-4" />} title="Mais vendidos" />
         <RankingList
@@ -148,6 +160,79 @@ function IdleList({ items, loading }: { items: IdleItem[]; loading: boolean }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function PendingDeliveriesList({
+  data,
+  loading,
+}: {
+  data: PendingDeliveries | undefined;
+  loading: boolean;
+}) {
+  if (loading || !data) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
+  if (data.salesCount === 0) {
+    return (
+      <p className="py-4 text-center text-sm text-muted-foreground">
+        Nada pendente de entrega no período.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        <span className="font-semibold text-foreground tabular-nums">
+          {data.totalQuantity}
+        </span>{" "}
+        {data.totalQuantity === 1 ? "item" : "itens"} em{" "}
+        <span className="font-semibold text-foreground tabular-nums">
+          {data.salesCount}
+        </span>{" "}
+        {data.salesCount === 1 ? "entrega" : "entregas"}
+      </p>
+      <ul className="divide-y divide-border">
+        {data.customers.map((c) => (
+          <li key={c.id ?? "sem-cliente"} className="py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="truncate text-sm font-medium">
+                {c.name ?? "Sem cliente"}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {c.salesCount} {c.salesCount === 1 ? "entrega" : "entregas"}
+              </span>
+            </div>
+            {c.items.length > 0 ? (
+              <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                {c.items.map((item) => (
+                  <li
+                    key={`${item.kind}:${item.id}:${item.unit}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    <span className="font-medium text-foreground tabular-nums">
+                      {item.quantity}
+                    </span>{" "}
+                    {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
+                    {item.quantity === 1 ? "" : "s"} — {item.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Venda de valor livre (sem itens detalhados).
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

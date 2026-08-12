@@ -162,7 +162,16 @@ export default function AtacadoPage() {
         </button>
         {showInsights ? (
           <div className="mt-4">
-            <SalesInsightsPanel from={from} to={to} channel="WHOLESALE" />
+            <SalesInsightsPanel
+              filters={{
+                from,
+                to,
+                channel: "WHOLESALE",
+                paymentStatus: payment,
+                delivered,
+                search: debouncedSearch || undefined,
+              }}
+            />
           </div>
         ) : null}
       </div>

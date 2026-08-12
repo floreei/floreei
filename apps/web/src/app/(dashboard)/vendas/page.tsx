@@ -191,7 +191,17 @@ export default function EventsPage() {
         </button>
         {showInsights ? (
           <div className="mt-4">
-            <SalesInsightsPanel from={from} to={to} channel="RETAIL" />
+            <SalesInsightsPanel
+              filters={{
+                from,
+                to,
+                channel: "RETAIL",
+                type,
+                paymentStatus: payment,
+                delivered,
+                search: debouncedSearch || undefined,
+              }}
+            />
           </div>
         ) : null}
       </div>
