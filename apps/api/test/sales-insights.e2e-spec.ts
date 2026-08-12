@@ -155,4 +155,157 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     expect(pending.body.data.length).toBe(1);
     expect(pending.body.data[0].title).toBe("A prazo");
   });
+
+  it("pendingDeliveries agrega itens não entregues por cliente", async () => {
+    const cat = await (
+      await http.post("/api/categories").set(auth()).send({ name: "Rosas P" }).expect(201)
+    ).body;
+    const prod = await (
+      await http
+        .post("/api/products")
+        .set(auth())
+        .send({ categoryId: cat.id, name: "Rosa Colombiana", unit: "MACO", defaultSalePrice: 30 })
+        .expect(201)
+    ).body;
+    const customer = await (
+      await http.post("/api/customers").set(auth()).send({ name: "Mercado Central" }).expect(201)
+    ).body;
+
+    // Pendente: 5 maços para o Mercado Central.
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "WHOLESALE",
+        customerId: customer.id,
+        items: [{ productId: prod.id, quantity: 5, unitSalePrice: 25 }],
+      })
+      .expect(201);
+    // Entregue: não pode aparecer nas pendências.
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "WHOLESALE",
+        delivered: true,
+        items: [{ productId: prod.id, quantity: 9, unitSalePrice: 25 }],
+      })
+      .expect(201);
+
+    const res = await http
+      .get("/api/events/insights")
+      .query({ channel: "WHOLESALE" })
+      .set(auth())
+      .expect(200);
+
+    const pd = res.body.pendingDeliveries;
+    expect(pd.salesCount).toBe(1);
+    expect(pd.totalQuantity).toBe(5);
+    expect(pd.customers).toHaveLength(1);
+    expect(pd.customers[0]).toMatchObject({
+      id: customer.id,
+      name: "Mercado Central",
+      salesCount: 1,
+    });
+    expect(pd.customers[0].items).toEqual([
+      expect.objectContaining({
+        id: prod.id,
+        name: "Rosa Colombiana",
+        kind: "product",
+        quantity: 5,
+        unit: "MACO",
+      }),
+    ]);
+  });
+
+  it("pendingDeliveries agrupa venda sem cliente e sem itens (valor livre)", async () => {
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ amount: 80, title: "Avulsa pendente", channel: "RETAIL" })
+      .expect(201);
+
+    const res = await http
+      .get("/api/events/insights")
+      .query({ channel: "RETAIL" })
+      .set(auth())
+      .expect(200);
+
+    const pd = res.body.pendingDeliveries;
+    expect(pd.salesCount).toBe(1);
+    expect(pd.totalQuantity).toBe(0);
+    expect(pd.customers[0]).toMatchObject({ id: null, salesCount: 1, items: [] });
+  });
+
+  it("insights respeitam paymentStatus e search", async () => {
+    const cat = await (
+      await http.post("/api/categories").set(auth()).send({ name: "Lírios F" }).expect(201)
+    ).body;
+    const mkProd = async (name: string) =>
+      (
+        await http
+          .post("/api/products")
+          .set(auth())
+          .send({ categoryId: cat.id, name, unit: "MACO", defaultSalePrice: 20 })
+          .expect(201)
+      ).body.id;
+    const pagoId = await mkProd("Lírio Pago");
+    const prazoId = await mkProd("Lírio Prazo");
+    const ana = await (
+      await http.post("/api/customers").set(auth()).send({ name: "Ana Flores" }).expect(201)
+    ).body;
+    const beto = await (
+      await http.post("/api/customers").set(auth()).send({ name: "Beto Buquês" }).expect(201)
+    ).body;
+
+    const paga = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "RETAIL",
+        customerId: ana.id,
+        items: [{ productId: pagoId, quantity: 2, unitSalePrice: 20 }],
+      })
+      .expect(201);
+    await http
+      .post(`/api/finance/events/${paga.body.id}/payments`)
+      .set(auth())
+      .send({ amount: 40, method: "PIX" })
+      .expect(201);
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "RETAIL",
+        customerId: beto.id,
+        items: [{ productId: prazoId, quantity: 3, unitSalePrice: 20 }],
+      })
+      .expect(201);
+
+    // paymentStatus=paid: só o item da venda quitada aparece no ranking.
+    const paid = await http
+      .get("/api/events/insights")
+      .query({ channel: "RETAIL", paymentStatus: "paid" })
+      .set(auth())
+      .expect(200);
+    const paidIds = paid.body.topItems.map((i: { id: string }) => i.id);
+    expect(paidIds).toContain(pagoId);
+    expect(paidIds).not.toContain(prazoId);
+    const paidCustomers = paid.body.topCustomers.map((c: { id: string }) => c.id);
+    expect(paidCustomers).toContain(ana.id);
+    expect(paidCustomers).not.toContain(beto.id);
+
+    // search por nome do cliente restringe rankings e pendências.
+    const searched = await http
+      .get("/api/events/insights")
+      .query({ channel: "RETAIL", search: "Beto" })
+      .set(auth())
+      .expect(200);
+    const sIds = searched.body.topItems.map((i: { id: string }) => i.id);
+    expect(sIds).toContain(prazoId);
+    expect(sIds).not.toContain(pagoId);
+    expect(
+      searched.body.pendingDeliveries.customers.map((c: { id: string | null }) => c.id),
+    ).toEqual([beto.id]);
+  });
 });
