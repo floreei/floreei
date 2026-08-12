@@ -364,4 +364,49 @@ describe("Eventos + conversão (e2e)", () => {
       .expect(200);
     expect(otherList.body.total).toBe(0);
   });
+
+  it("GET /events devolve os itens de cada venda na listagem", async () => {
+    const cat = await (
+      await http
+        .post("/api/categories")
+        .set(bearer(token))
+        .send({ name: "Astromélias L" })
+        .expect(201)
+    ).body;
+    const prod = await (
+      await http
+        .post("/api/products")
+        .set(bearer(token))
+        .send({
+          categoryId: cat.id,
+          name: "Astromélia",
+          unit: "MACO",
+          defaultSalePrice: 15,
+        })
+        .expect(201)
+    ).body;
+    await http
+      .post("/api/events/quick")
+      .set(bearer(token))
+      .send({
+        channel: "WHOLESALE",
+        items: [{ productId: prod.id, quantity: 4, unitSalePrice: 12 }],
+      })
+      .expect(201);
+
+    const res = await http
+      .get("/api/events")
+      .query({ channel: "WHOLESALE" })
+      .set(bearer(token))
+      .expect(200);
+    const withItems = res.body.data.find(
+      (e: { items?: Array<{ description: string }> }) => (e.items?.length ?? 0) > 0,
+    );
+    expect(withItems).toBeTruthy();
+    expect(withItems.items[0]).toMatchObject({
+      description: "Astromélia",
+      quantity: 4,
+      unit: "MACO",
+    });
+  });
 });

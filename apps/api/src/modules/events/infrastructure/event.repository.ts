@@ -31,7 +31,9 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
   }
 
   async search(query: EventQuery): Promise<Paginated<EventEntity>> {
-    const qb = this.qb("event").leftJoinAndSelect("event.customer", "customer");
+    const qb = this.qb("event")
+      .leftJoinAndSelect("event.customer", "customer")
+      .leftJoinAndSelect("event.items", "items");
     applySort(qb, query.sort, query.order, SORT, {
       column: "event.date",
       direction: "DESC",
