@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
+import { ReceberButton } from "@/components/events/receber-button";
 import { SaleItemsInline } from "@/components/events/sale-items-inline";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
@@ -236,13 +237,16 @@ export default function AtacadoPage() {
                     )
                   }
                 />
-                {event.items.length > 0 ? (
-                  <>
+                {event.items.length > 0 ||
+                (event.status !== "CANCELED" &&
+                  event.soldValue - event.receivedValue > 0.005) ? (
+                <div className="flex gap-2">
+                  {event.items.length > 0 ? (
                     <button
                       type="button"
                       aria-expanded={Boolean(expanded[event.id])}
                       onClick={() => toggleExpanded(event.id)}
-                      className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-3 text-sm text-muted-foreground transition-colors active:bg-muted/60"
+                      className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-3 text-sm text-muted-foreground transition-colors active:bg-muted/60"
                     >
                       {expanded[event.id]
                         ? "Ocultar itens"
@@ -254,12 +258,21 @@ export default function AtacadoPage() {
                         )}
                       />
                     </button>
-                    {expanded[event.id] ? (
-                      <div className="rounded-xl border border-border bg-card px-4 py-1.5">
-                        <SaleItemsInline items={event.items} />
-                      </div>
-                    ) : null}
-                  </>
+                  ) : null}
+                  {event.status !== "CANCELED" &&
+                  event.soldValue - event.receivedValue > 0.005 ? (
+                    <ReceberButton
+                      eventId={event.id}
+                      balanceDue={event.soldValue - event.receivedValue}
+                      className="min-h-[44px] flex-1 rounded-xl"
+                    />
+                  ) : null}
+                </div>
+                ) : null}
+                {expanded[event.id] && event.items.length > 0 ? (
+                  <div className="rounded-xl border border-border bg-card px-4 py-1.5">
+                    <SaleItemsInline items={event.items} />
+                  </div>
                 ) : null}
               </div>
             ))}
@@ -350,10 +363,16 @@ export default function AtacadoPage() {
                       className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
                         {event.status !== "CANCELED" &&
                         event.soldValue - event.receivedValue > 0.005 ? (
-                          <CobrancaButton eventId={event.id} />
+                          <>
+                            <ReceberButton
+                              eventId={event.id}
+                              balanceDue={event.soldValue - event.receivedValue}
+                            />
+                            <CobrancaButton eventId={event.id} />
+                          </>
                         ) : null}
                         <Button asChild variant="outline" size="sm" className="h-8">
                           <Link href={`/atacado/${event.id}`}>Ver detalhes</Link>

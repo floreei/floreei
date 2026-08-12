@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
+import { ReceberButton } from "@/components/events/receber-button";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -331,10 +332,16 @@ export default function EventsPage() {
                       className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
                         {event.status !== "CANCELED" &&
                         event.soldValue - event.receivedValue > 0.005 ? (
-                          <CobrancaButton eventId={event.id} />
+                          <>
+                            <ReceberButton
+                              eventId={event.id}
+                              balanceDue={event.soldValue - event.receivedValue}
+                            />
+                            <CobrancaButton eventId={event.id} />
+                          </>
                         ) : null}
                         <Button asChild variant="outline" size="sm" className="h-8">
                           <Link href={`/vendas/${event.id}`}>Ver detalhes</Link>

@@ -80,4 +80,11 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   await page.getByRole("button", { name: "Atacado" }).click();
   await expect(page).toHaveURL(/entrega=nao/);
   await expect(page.getByRole("button", { name: "Insights do período" })).toBeVisible();
+
+  // 4) Marcar como paga direto na listagem, sem entrar no detalhe.
+  await page.locator("table").getByRole("button", { name: "Receber" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Saldo em aberto/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Receber" }).click();
+  await expect(page.locator("table").getByText("Pago")).toBeVisible();
 });
