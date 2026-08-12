@@ -315,6 +315,7 @@ export class SalesInsightsService {
       .select("customer.id", "customerId")
       .addSelect("MAX(customer.name)", "customerName")
       .addSelect("COUNT(*)", "salesCount")
+      .addSelect("COALESCE(SUM(event.sold_value),0)", "totalValue")
       .andWhere(pendingWhere)
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
     this.applyListFilters(salesQb, f, { skipDelivered: true });
@@ -324,6 +325,7 @@ export class SalesInsightsService {
         customerId: string | null;
         customerName: string | null;
         salesCount: string;
+        totalValue: string;
       }>();
 
     const cid = this.tenant.getCompanyIdOrThrow();
@@ -339,6 +341,7 @@ export class SalesInsightsService {
       .addSelect(kindExpr, "kind")
       .addSelect("ei.unit", "unit")
       .addSelect("SUM(ei.quantity)", "quantity")
+      .addSelect("COALESCE(SUM(ei.line_total),0)", "value")
       .where("event.company_id = :cid", { cid })
       .andWhere(pendingWhere)
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
@@ -356,6 +359,7 @@ export class SalesInsightsService {
         kind: "product" | "arrangement";
         unit: string;
         quantity: string;
+        value: string;
       }>();
 
     const byCustomer = new Map<string, PendingDeliveryCustomer>();
@@ -365,6 +369,7 @@ export class SalesInsightsService {
         id: s.customerId ?? null,
         name: s.customerName ?? null,
         salesCount: Number(s.salesCount) || 0,
+        totalValue: roundMoney(Number(s.totalValue) || 0),
         items: [],
       });
     }
@@ -380,6 +385,7 @@ export class SalesInsightsService {
         kind: it.kind,
         quantity,
         unit: it.unit as ProductUnit,
+        value: roundMoney(Number(it.value) || 0),
       });
     }
 
@@ -392,6 +398,9 @@ export class SalesInsightsService {
     return {
       salesCount: sales.reduce((s, r) => s + (Number(r.salesCount) || 0), 0),
       totalQuantity,
+      totalValue: roundMoney(
+        customers.reduce((s, c) => s + c.totalValue, 0),
+      ),
       customers,
     };
   }

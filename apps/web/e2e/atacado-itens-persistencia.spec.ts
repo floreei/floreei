@@ -60,10 +60,15 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   await expect(page.getByText("Falta entregar")).toBeVisible();
   // O nome também aparece na tabela — o primeiro na DOM é o do painel de insights.
   await expect(page.getByText("Mercado das Flores").first()).toBeVisible();
-  // Somatório por produto no rodapé da seção.
+  // Somatório por produto no rodapé da seção, com valor de venda.
   await expect(page.getByText("Total por produto")).toBeVisible();
   // O detalhamento por cliente tem o mesmo texto — basta um visível.
-  await expect(page.getByText("7 maços — Girassol Gigante").first()).toBeVisible();
+  // 7 maços × R$ 35 = R$ 245,00 (Intl usa espaço não separável após "R$").
+  await expect(
+    page.getByText(/7 maços — Girassol Gigante \(R\$\s245,00\)/).first(),
+  ).toBeVisible();
+  // Valor total de todos os pedidos pendentes no final da seção.
+  await expect(page.getByText("Valor total a entregar")).toBeVisible();
 
   // 3) Filtro aplicado vai para a URL…
   await page.getByRole("button", { name: "A entregar" }).click();

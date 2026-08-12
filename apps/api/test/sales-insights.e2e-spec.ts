@@ -201,11 +201,13 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     const pd = res.body.pendingDeliveries;
     expect(pd.salesCount).toBe(1);
     expect(pd.totalQuantity).toBe(5);
+    expect(pd.totalValue).toBe(125);
     expect(pd.customers).toHaveLength(1);
     expect(pd.customers[0]).toMatchObject({
       id: customer.id,
       name: "Mercado Central",
       salesCount: 1,
+      totalValue: 125,
     });
     expect(pd.customers[0].items).toEqual([
       expect.objectContaining({
@@ -214,6 +216,7 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
         kind: "product",
         quantity: 5,
         unit: "MACO",
+        value: 125,
       }),
     ]);
   });
@@ -234,7 +237,13 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     const pd = res.body.pendingDeliveries;
     expect(pd.salesCount).toBe(1);
     expect(pd.totalQuantity).toBe(0);
-    expect(pd.customers[0]).toMatchObject({ id: null, salesCount: 1, items: [] });
+    expect(pd.totalValue).toBe(80);
+    expect(pd.customers[0]).toMatchObject({
+      id: null,
+      salesCount: 1,
+      totalValue: 80,
+      items: [],
+    });
   });
 
   it("insights respeitam paymentStatus e search", async () => {

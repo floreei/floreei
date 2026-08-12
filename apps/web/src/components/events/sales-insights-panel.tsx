@@ -206,8 +206,13 @@ function PendingDeliveriesList({
               <span className="truncate text-sm font-medium">
                 {c.name ?? "Sem cliente"}
               </span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {c.salesCount} {c.salesCount === 1 ? "entrega" : "entregas"}
+              <span className="flex shrink-0 items-baseline gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {c.salesCount} {c.salesCount === 1 ? "entrega" : "entregas"}
+                </span>
+                <span className="text-sm font-medium tabular-nums">
+                  {formatCurrency(c.totalValue)}
+                </span>
               </span>
             </div>
             {c.items.length > 0 ? (
@@ -221,7 +226,10 @@ function PendingDeliveriesList({
                       {item.quantity}
                     </span>{" "}
                     {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
-                    {item.quantity === 1 ? "" : "s"} — {item.name}
+                    {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
+                    <span className="tabular-nums">
+                      ({formatCurrency(item.value)})
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -233,48 +241,61 @@ function PendingDeliveriesList({
           </li>
         ))}
       </ul>
-      <PendingTotals customers={data.customers} />
+      <PendingTotals data={data} />
     </div>
   );
 }
 
-/** Somatório por produto (todas as entregas pendentes juntas). */
-function PendingTotals({
-  customers,
-}: {
-  customers: PendingDeliveries["customers"];
-}) {
+/** Somatório por produto (todas as entregas pendentes juntas) + valor total. */
+function PendingTotals({ data }: { data: PendingDeliveries }) {
   const totals = new Map<string, PendingDeliveryItem>();
-  for (const c of customers) {
+  for (const c of data.customers) {
     for (const item of c.items) {
       const key = `${item.kind}:${item.id}:${item.unit}`;
       const prev = totals.get(key);
-      if (prev) prev.quantity += item.quantity;
-      else totals.set(key, { ...item });
+      if (prev) {
+        prev.quantity += item.quantity;
+        prev.value += item.value;
+      } else {
+        totals.set(key, { ...item });
+      }
     }
   }
   const rows = [...totals.values()].sort((a, b) => b.quantity - a.quantity);
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && data.totalValue === 0) return null;
 
   return (
-    <div className="border-t border-border pt-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Total por produto
+    <div className="space-y-3 border-t border-border pt-3">
+      {rows.length > 0 ? (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Total por produto
+          </p>
+          <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+            {rows.map((item) => (
+              <li
+                key={`${item.kind}:${item.id}:${item.unit}`}
+                className="text-sm text-muted-foreground"
+              >
+                <span className="font-semibold text-foreground tabular-nums">
+                  {item.quantity}
+                </span>{" "}
+                {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
+                {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
+                <span className="tabular-nums">
+                  ({formatCurrency(item.value)})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <p className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="font-semibold">Valor total a entregar</span>
+        <span className="font-semibold tabular-nums">
+          {formatCurrency(data.totalValue)}
+        </span>
       </p>
-      <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-        {rows.map((item) => (
-          <li
-            key={`${item.kind}:${item.id}:${item.unit}`}
-            className="text-sm text-muted-foreground"
-          >
-            <span className="font-semibold text-foreground tabular-nums">
-              {item.quantity}
-            </span>{" "}
-            {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
-            {item.quantity === 1 ? "" : "s"} — {item.name}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

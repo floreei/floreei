@@ -37,6 +37,8 @@ export interface PendingDeliveryItem {
   kind: "product" | "arrangement";
   quantity: number;
   unit: ProductUnit;
+  /** Valor de venda somado (line_total) das linhas pendentes deste item. */
+  value: number;
 }
 
 /** Cliente com vendas a entregar no período (null = venda sem cliente). */
@@ -44,6 +46,8 @@ export interface PendingDeliveryCustomer {
   id: string | null;
   name: string | null;
   salesCount: number;
+  /** Soma do valor de venda (sold_value) dos pedidos pendentes do cliente. */
+  totalValue: number;
   items: PendingDeliveryItem[];
 }
 
@@ -53,6 +57,8 @@ export interface PendingDeliveries {
   salesCount: number;
   /** Soma das quantidades de todos os itens pendentes (unidades mistas). */
   totalQuantity: number;
+  /** Valor de venda somado de todos os pedidos pendentes. */
+  totalValue: number;
   /** Ordenado por quantidade pendente (desc). */
   customers: PendingDeliveryCustomer[];
 }
