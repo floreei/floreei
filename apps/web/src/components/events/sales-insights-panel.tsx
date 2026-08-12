@@ -5,6 +5,7 @@ import type {
   IdleItem,
   PartyRanking,
   PendingDeliveries,
+  PendingDeliveryItem,
   SoldItemRanking,
 } from "@sistema-flores/types";
 import {
@@ -229,6 +230,48 @@ function PendingDeliveriesList({
                 Venda de valor livre (sem itens detalhados).
               </p>
             )}
+          </li>
+        ))}
+      </ul>
+      <PendingTotals customers={data.customers} />
+    </div>
+  );
+}
+
+/** Somatório por produto (todas as entregas pendentes juntas). */
+function PendingTotals({
+  customers,
+}: {
+  customers: PendingDeliveries["customers"];
+}) {
+  const totals = new Map<string, PendingDeliveryItem>();
+  for (const c of customers) {
+    for (const item of c.items) {
+      const key = `${item.kind}:${item.id}:${item.unit}`;
+      const prev = totals.get(key);
+      if (prev) prev.quantity += item.quantity;
+      else totals.set(key, { ...item });
+    }
+  }
+  const rows = [...totals.values()].sort((a, b) => b.quantity - a.quantity);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="border-t border-border pt-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Total por produto
+      </p>
+      <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+        {rows.map((item) => (
+          <li
+            key={`${item.kind}:${item.id}:${item.unit}`}
+            className="text-sm text-muted-foreground"
+          >
+            <span className="font-semibold text-foreground tabular-nums">
+              {item.quantity}
+            </span>{" "}
+            {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
+            {item.quantity === 1 ? "" : "s"} — {item.name}
           </li>
         ))}
       </ul>
