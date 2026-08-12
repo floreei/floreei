@@ -3,7 +3,8 @@
 import type { EventType, PaymentStatusFilter } from "@sistema-flores/types";
 import { BarChart3, CalendarHeart, ChevronDown, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useEvents } from "@/lib/api/events";
 import { useDebounce } from "@/lib/use-debounce";
+import { useFilterParams } from "@/lib/use-filter-params";
 import { cn, currentMonthRange, formatCurrency, formatDate } from "@/lib/utils";
 
 const filters: Array<{ label: string; value?: EventType }> = [
@@ -53,17 +55,39 @@ const deliveryFilters: Array<{ label: string; value?: boolean }> = [
 ];
 
 export default function EventsPage() {
-  const [type, setType] = useState<EventType | undefined>();
-  const [payment, setPayment] = useState<PaymentStatusFilter | undefined>();
-  const [delivered, setDelivered] = useState<boolean | undefined>();
-  const [search, setSearch] = useState("");
-  const initialRange = currentMonthRange();
-  const [from, setFrom] = useState(initialRange.from);
-  const [to, setTo] = useState(initialRange.to);
-  const [page, setPage] = useState(1);
-  const [showInsights, setShowInsights] = useState(false);
+  const router = useRouter();
+  const defaults = useMemo(() => {
+    const range = currentMonthRange();
+    return { de: range.from, ate: range.to };
+  }, []);
+  const { get, set } = useFilterParams(defaults);
+
+  const typeParam = get("tipo");
+  const type: EventType | undefined =
+    typeParam === "ORDER" || typeParam === "EVENT" ? typeParam : undefined;
+  const paymentParam = get("pagamento");
+  const payment: PaymentStatusFilter | undefined =
+    paymentParam === "paid" || paymentParam === "pending"
+      ? paymentParam
+      : undefined;
+  const deliveredParam = get("entrega");
+  const delivered =
+    deliveredParam === "sim" ? true : deliveredParam === "nao" ? false : undefined;
+  const from = get("de");
+  const to = get("ate");
+  const page = Math.max(1, Number.parseInt(get("pagina"), 10) || 1);
+  const showInsights = get("insights") === "1";
+
+  // Busca digitada fica local (input fluido); a URL recebe o valor debounced.
+  const [search, setSearch] = useState(() => get("busca"));
   const debouncedSearch = useDebounce(search);
-  const sortState = useTableSort(() => setPage(1));
+  useEffect(() => {
+    if (debouncedSearch === get("busca")) return;
+    set({ busca: debouncedSearch || undefined, pagina: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando o debounce muda
+  }, [debouncedSearch]);
+
+  const sortState = useTableSort(() => set({ pagina: undefined }));
 
   // channel: RETAIL — vendas no atacado têm lista própria em /atacado.
   const { data, isLoading } = useEvents({
@@ -81,27 +105,19 @@ export default function EventsPage() {
   });
   const { openSale } = useQuickSale();
 
-  const changeType = (value: EventType | undefined) => {
-    setType(value);
-    setPage(1);
-  };
-  const changePayment = (value: PaymentStatusFilter | undefined) => {
-    setPayment(value);
-    setPage(1);
-  };
-  const changeDelivered = (value: boolean | undefined) => {
-    setDelivered(value);
-    setPage(1);
-  };
-  const changeSearch = (value: string) => {
-    setSearch(value);
-    setPage(1);
-  };
-  const changeDate = (nextFrom: string, nextTo: string) => {
-    setFrom(nextFrom);
-    setTo(nextTo);
-    setPage(1);
-  };
+  const changeType = (value: EventType | undefined) =>
+    set({ tipo: value, pagina: undefined });
+  const changePayment = (value: PaymentStatusFilter | undefined) =>
+    set({ pagamento: value, pagina: undefined });
+  const changeDelivered = (value: boolean | undefined) =>
+    set({
+      entrega: value === undefined ? undefined : value ? "sim" : "nao",
+      pagina: undefined,
+    });
+  const changeDate = (nextFrom: string, nextTo: string) =>
+    set({ de: nextFrom, ate: nextTo, pagina: undefined });
+  const setPage = (p: number) => set({ pagina: p === 1 ? undefined : String(p) });
+  const toggleInsights = () => set({ insights: showInsights ? undefined : "1" });
 
   return (
     <div className="space-y-6">
@@ -117,7 +133,7 @@ export default function EventsPage() {
 
       <SalesFilters
         search={search}
-        onSearchChange={changeSearch}
+        onSearchChange={setSearch}
         from={from}
         to={to}
         onDateChange={changeDate}
@@ -177,7 +193,7 @@ export default function EventsPage() {
       <div>
         <button
           type="button"
-          onClick={() => setShowInsights((v) => !v)}
+          onClick={toggleInsights}
           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
         >
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -268,9 +284,7 @@ export default function EventsPage() {
                   <TableRow
                     key={event.id}
                     className="cursor-pointer"
-                    onClick={() => {
-                      window.location.href = `/vendas/${event.id}`;
-                    }}
+                    onClick={() => router.push(`/vendas/${event.id}`)}
                   >
                     <TableCell>
                       <p className="font-medium">{event.title}</p>
