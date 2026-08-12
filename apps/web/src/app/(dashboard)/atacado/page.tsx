@@ -1,12 +1,13 @@
 "use client";
 
 import type { PaymentStatusFilter } from "@sistema-flores/types";
-import { BarChart3, Boxes, ChevronDown, Plus } from "lucide-react";
+import { BarChart3, Boxes, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
+import { SaleItemsInline } from "@/components/events/sale-items-inline";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -104,6 +105,10 @@ export default function AtacadoPage() {
     set({ de: nextFrom, ate: nextTo, pagina: undefined });
   const setPage = (p: number) => set({ pagina: p === 1 ? undefined : String(p) });
   const toggleInsights = () => set({ insights: showInsights ? undefined : "1" });
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <div className="space-y-6">
@@ -205,32 +210,58 @@ export default function AtacadoPage() {
           {/* Celular: cartões tocáveis (linha inteira leva ao detalhe) */}
           <div className="space-y-2 sm:hidden">
             {data.data.map((event) => (
-              <ListCard
-                key={event.id}
-                href={`/atacado/${event.id}`}
-                title={event.title}
-                subtitle={
-                  <span className="flex items-center gap-1.5">
-                    <span className="truncate">
-                      {event.customer?.name ?? "Sem cliente"}
+              <div key={event.id} className="space-y-1">
+                <ListCard
+                  href={`/atacado/${event.id}`}
+                  title={event.title}
+                  subtitle={
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate">
+                        {event.customer?.name ?? "Sem cliente"}
+                      </span>
+                      <span aria-hidden>·</span>
+                      <span className="shrink-0">{formatDate(event.date)}</span>
                     </span>
-                    <span aria-hidden>·</span>
-                    <span className="shrink-0">{formatDate(event.date)}</span>
-                  </span>
-                }
-                meta={formatCurrency(event.soldValue)}
-                metaSub={
-                  event.status === "CANCELED" ? (
-                    <EventStatusBadge status={event.status} />
-                  ) : (
-                    <PaymentStatusBadge
-                      sold={event.soldValue}
-                      received={event.receivedValue}
-                      date={event.date}
-                    />
-                  )
-                }
-              />
+                  }
+                  meta={formatCurrency(event.soldValue)}
+                  metaSub={
+                    event.status === "CANCELED" ? (
+                      <EventStatusBadge status={event.status} />
+                    ) : (
+                      <PaymentStatusBadge
+                        sold={event.soldValue}
+                        received={event.receivedValue}
+                        date={event.date}
+                      />
+                    )
+                  }
+                />
+                {event.items.length > 0 ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-expanded={Boolean(expanded[event.id])}
+                      onClick={() => toggleExpanded(event.id)}
+                      className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-3 text-sm text-muted-foreground transition-colors active:bg-muted/60"
+                    >
+                      {expanded[event.id]
+                        ? "Ocultar itens"
+                        : `Ver itens (${event.items.length})`}
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          expanded[event.id] && "rotate-180",
+                        )}
+                      />
+                    </button>
+                    {expanded[event.id] ? (
+                      <div className="rounded-xl border border-border bg-card px-4 py-1.5">
+                        <SaleItemsInline items={event.items} />
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
             ))}
           </div>
 
@@ -239,6 +270,7 @@ export default function AtacadoPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10" />
                   <SortableHead column="title" state={sortState}>Venda</SortableHead>
                   <SortableHead column="date" state={sortState} className="hidden md:table-cell">Data</SortableHead>
                   <TableHead>Pagamento</TableHead>
@@ -250,11 +282,32 @@ export default function AtacadoPage() {
               </TableHeader>
               <TableBody>
                 {data.data.map((event) => (
+                  <Fragment key={event.id}>
                   <TableRow
-                    key={event.id}
                     className="cursor-pointer"
                     onClick={() => router.push(`/atacado/${event.id}`)}
                   >
+                    <TableCell
+                      className="w-10 pr-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {event.items.length > 0 ? (
+                        <button
+                          type="button"
+                          aria-label="Ver itens"
+                          aria-expanded={Boolean(expanded[event.id])}
+                          onClick={() => toggleExpanded(event.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <ChevronRight
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              expanded[event.id] && "rotate-90",
+                            )}
+                          />
+                        </button>
+                      ) : null}
+                    </TableCell>
                     <TableCell>
                       <p className="font-medium">{event.title}</p>
                       <p className="text-xs text-muted-foreground">
@@ -308,6 +361,14 @@ export default function AtacadoPage() {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {expanded[event.id] ? (
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableCell colSpan={8} className="py-2 pl-12 pr-4">
+                        <SaleItemsInline items={event.items} />
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
