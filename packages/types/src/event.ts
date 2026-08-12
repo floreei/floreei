@@ -151,11 +151,19 @@ export const eventQuerySchema = paginationQuerySchema.extend({
 });
 export type EventQuery = z.infer<typeof eventQuerySchema>;
 
-/** Filtro dos insights de venda (período + canal opcional). */
+/** Filtro dos insights de venda — período + os mesmos filtros da listagem. */
 export const insightsQuerySchema = z.object({
   from: dateString.optional(),
   to: dateString.optional(),
   channel: salesChannelSchema.optional(),
+  type: eventTypeSchema.optional(),
+  paymentStatus: paymentStatusFilterSchema.optional(),
+  /** true ⇒ só entregues (DONE); false ⇒ só "a entregar" (CONFIRMED/IN_PROGRESS). */
+  delivered: z.preprocess(
+    (v) => (v === "true" ? true : v === "false" ? false : v),
+    z.boolean().optional(),
+  ),
+  search: z.string().trim().max(120).optional(),
 });
 export type InsightsQuery = z.infer<typeof insightsQuerySchema>;
 
