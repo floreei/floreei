@@ -8,14 +8,14 @@ import { useSendCobranca } from "@/lib/api/dunning";
 import { whatsappHref } from "@/lib/whatsapp";
 
 /**
- * Botão "Cobrar": monta a cobrança da venda no backend (texto + PIX/link
+ * Ação "Cobrar": monta a cobrança da venda no backend (texto + PIX/link
  * conforme a régua) e abre o WhatsApp do dono com a mensagem pronta. Uso
  * manual, complementar à régua automática.
  */
-export function CobrancaButton({ eventId }: { eventId: string }) {
+export function useCobranca() {
   const send = useSendCobranca();
 
-  const onClick = async () => {
+  const cobrar = async (eventId: string) => {
     try {
       const { phone, message, link } = await send.mutateAsync(eventId);
       const href = whatsappHref(phone, message);
@@ -35,13 +35,20 @@ export function CobrancaButton({ eventId }: { eventId: string }) {
     }
   };
 
+  return { cobrar, isPending: send.isPending };
+}
+
+/** Botão avulso de cobrança (usado fora do menu de ações da linha). */
+export function CobrancaButton({ eventId }: { eventId: string }) {
+  const { cobrar, isPending } = useCobranca();
+
   return (
     <Button
       variant="outline"
       size="sm"
       className="h-8"
-      onClick={onClick}
-      loading={send.isPending}
+      onClick={() => cobrar(eventId)}
+      loading={isPending}
     >
       <MessageCircle className="h-4 w-4" />
       Cobrar

@@ -2,12 +2,10 @@
 
 import type { EventType, PaymentStatusFilter } from "@sistema-flores/types";
 import { BarChart3, CalendarHeart, ChevronDown, Plus } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
-import { ReceberButton } from "@/components/events/receber-button";
+import { SaleRowActions } from "@/components/events/sale-row-actions";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -277,7 +275,7 @@ export default function EventsPage() {
                   <TableHead className="hidden md:table-cell">Entrega</TableHead>
                   <SortableHead column="sold" state={sortState} align="right" className="text-right">Vendido</SortableHead>
                   <TableHead className="hidden text-right lg:table-cell">Saldo</TableHead>
-                  <TableHead className="w-32 text-right" />
+                  <TableHead className="w-14 text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -332,21 +330,10 @@ export default function EventsPage() {
                       className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {event.status !== "CANCELED" &&
-                        event.soldValue - event.receivedValue > 0.005 ? (
-                          <>
-                            <ReceberButton
-                              eventId={event.id}
-                              balanceDue={event.soldValue - event.receivedValue}
-                            />
-                            <CobrancaButton eventId={event.id} />
-                          </>
-                        ) : null}
-                        <Button asChild variant="outline" size="sm" className="h-8">
-                          <Link href={`/vendas/${event.id}`}>Ver detalhes</Link>
-                        </Button>
-                      </div>
+                      <SaleRowActions
+                        event={event}
+                        detailHref={`/vendas/${event.id}`}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

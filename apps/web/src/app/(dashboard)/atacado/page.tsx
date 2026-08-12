@@ -2,12 +2,11 @@
 
 import type { PaymentStatusFilter } from "@sistema-flores/types";
 import { BarChart3, Boxes, ChevronDown, ChevronRight, Plus } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { CobrancaButton } from "@/components/events/cobranca-button";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
 import { ReceberButton } from "@/components/events/receber-button";
+import { SaleRowActions } from "@/components/events/sale-row-actions";
 import { SaleItemsInline } from "@/components/events/sale-items-inline";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
@@ -290,7 +289,7 @@ export default function AtacadoPage() {
                   <TableHead className="hidden md:table-cell">Entrega</TableHead>
                   <SortableHead column="sold" state={sortState} align="right" className="text-right">Vendido</SortableHead>
                   <TableHead className="hidden text-right lg:table-cell">Saldo</TableHead>
-                  <TableHead className="w-32 text-right" />
+                  <TableHead className="w-14 text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -363,21 +362,10 @@ export default function AtacadoPage() {
                       className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {event.status !== "CANCELED" &&
-                        event.soldValue - event.receivedValue > 0.005 ? (
-                          <>
-                            <ReceberButton
-                              eventId={event.id}
-                              balanceDue={event.soldValue - event.receivedValue}
-                            />
-                            <CobrancaButton eventId={event.id} />
-                          </>
-                        ) : null}
-                        <Button asChild variant="outline" size="sm" className="h-8">
-                          <Link href={`/atacado/${event.id}`}>Ver detalhes</Link>
-                        </Button>
-                      </div>
+                      <SaleRowActions
+                        event={event}
+                        detailHref={`/atacado/${event.id}`}
+                      />
                     </TableCell>
                   </TableRow>
                   {expanded[event.id] ? (

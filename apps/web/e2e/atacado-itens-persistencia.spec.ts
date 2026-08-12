@@ -68,21 +68,36 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
     page.getByText(/7 maços — Girassol Gigante \(R\$\s245,00\)/).first(),
   ).toBeVisible();
   // Valor total de todos os pedidos pendentes no final da seção.
-  await expect(page.getByText("Valor total a entregar")).toBeVisible();
+  const totalRow = page.locator("p", { hasText: "Valor total a entregar" });
+  await expect(totalRow).toContainText("245,00");
+
+  // Desmarcar um cliente tira os pedidos dele da contagem…
+  await page
+    .getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" })
+    .uncheck();
+  await expect(totalRow).toContainText("0,00");
+  await expect(page.getByText("1 cliente fora da contagem")).toBeVisible();
+  // …e marcar de novo devolve.
+  await page
+    .getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" })
+    .check();
+  await expect(totalRow).toContainText("245,00");
 
   // 3) Filtro aplicado vai para a URL…
   await page.getByRole("button", { name: "A entregar" }).click();
   await expect(page).toHaveURL(/entrega=nao/);
 
-  // …e sobrevive ao ir-e-voltar do detalhe.
-  await page.getByRole("link", { name: "Ver detalhes" }).first().click();
+  // …e sobrevive ao ir-e-voltar do detalhe (via menu de ações da linha).
+  await page.getByRole("button", { name: "Ações da venda" }).first().click();
+  await page.getByRole("menuitem", { name: "Ver detalhes" }).click();
   await page.waitForURL(/\/atacado\/[0-9a-f-]+/);
   await page.getByRole("button", { name: "Atacado" }).click();
   await expect(page).toHaveURL(/entrega=nao/);
   await expect(page.getByRole("button", { name: "Insights do período" })).toBeVisible();
 
   // 4) Marcar como paga direto na listagem, sem entrar no detalhe.
-  await page.locator("table").getByRole("button", { name: "Receber" }).click();
+  await page.getByRole("button", { name: "Ações da venda" }).first().click();
+  await page.getByRole("menuitem", { name: "Receber" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText(/Saldo em aberto/)).toBeVisible();
   await dialog.getByRole("button", { name: "Receber" }).click();

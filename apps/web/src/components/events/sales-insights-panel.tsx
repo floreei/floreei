@@ -16,6 +16,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
+import { useState } from "react";
 import { RankingList, type RankRow } from "@/components/reports/ranking-list";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +25,7 @@ import {
   type SalesInsightsFilters,
 } from "@/lib/api/events";
 import { unitLabels } from "@/lib/labels";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 function itemRows(items: SoldItemRanking[]): RankRow[] {
   return items.map((i) => ({
@@ -56,7 +57,7 @@ export function SalesInsightsPanel({ filters }: { filters: SalesInsightsFilters 
         <SectionTitle
           icon={<Truck className="h-4 w-4" />}
           title="Falta entregar"
-          hint="Vendas confirmadas ainda não entregues no período — por cliente."
+          hint="Vendas confirmadas ainda não entregues no período — por cliente. Desmarque um cliente para tirá-lo da contagem (ex.: pedido futuro)."
         />
         <PendingDeliveriesList data={data?.pendingDeliveries} loading={isLoading} />
       </Card>
@@ -171,6 +172,19 @@ function PendingDeliveriesList({
   data: PendingDeliveries | undefined;
   loading: boolean;
 }) {
+  // Clientes desmarcados saem da contagem (só na tela — não altera nada no
+  // servidor). Chaves que sumirem com a troca de filtros são simplesmente
+  // ignoradas.
+  const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
+  const keyOf = (id: string | null) => id ?? "sem-cliente";
+  const toggle = (key: string) =>
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
   if (loading || !data) {
     return (
       <div className="space-y-2">
@@ -187,69 +201,108 @@ function PendingDeliveriesList({
       </p>
     );
   }
+
+  const included = data.customers.filter((c) => !excluded.has(keyOf(c.id)));
+  const totalQuantity = included.reduce(
+    (sum, c) => sum + c.items.reduce((s, i) => s + i.quantity, 0),
+    0,
+  );
+  const salesCount = included.reduce((sum, c) => sum + c.salesCount, 0);
+  const totalValue = included.reduce((sum, c) => sum + c.totalValue, 0);
+  const hiddenCount = data.customers.length - included.length;
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
         <span className="font-semibold text-foreground tabular-nums">
-          {data.totalQuantity}
+          {totalQuantity}
         </span>{" "}
-        {data.totalQuantity === 1 ? "item" : "itens"} em{" "}
+        {totalQuantity === 1 ? "item" : "itens"} em{" "}
         <span className="font-semibold text-foreground tabular-nums">
-          {data.salesCount}
+          {salesCount}
         </span>{" "}
-        {data.salesCount === 1 ? "entrega" : "entregas"}
+        {salesCount === 1 ? "entrega" : "entregas"}
+        {hiddenCount > 0 ? (
+          <span>
+            {" "}
+            · {hiddenCount} {hiddenCount === 1 ? "cliente fora" : "clientes fora"}{" "}
+            da contagem
+          </span>
+        ) : null}
       </p>
       <ul className="divide-y divide-border">
-        {data.customers.map((c) => (
-          <li key={c.id ?? "sem-cliente"} className="py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="truncate text-sm font-medium">
-                {c.name ?? "Sem cliente"}
-              </span>
-              <span className="flex shrink-0 items-baseline gap-3">
-                <span className="text-xs text-muted-foreground">
-                  {c.salesCount} {c.salesCount === 1 ? "entrega" : "entregas"}
+        {data.customers.map((c) => {
+          const key = keyOf(c.id);
+          const active = !excluded.has(key);
+          return (
+            <li
+              key={key}
+              className={cn("py-2.5 transition-opacity", !active && "opacity-45")}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex min-h-[44px] min-w-0 cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-primary"
+                    checked={active}
+                    onChange={() => toggle(key)}
+                    aria-label={`Incluir ${c.name ?? "Sem cliente"} na contagem`}
+                  />
+                  <span className="truncate text-sm font-medium">
+                    {c.name ?? "Sem cliente"}
+                  </span>
+                </label>
+                <span className="flex shrink-0 items-baseline gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {c.salesCount} {c.salesCount === 1 ? "entrega" : "entregas"}
+                  </span>
+                  <span className="text-sm font-medium tabular-nums">
+                    {formatCurrency(c.totalValue)}
+                  </span>
                 </span>
-                <span className="text-sm font-medium tabular-nums">
-                  {formatCurrency(c.totalValue)}
-                </span>
-              </span>
-            </div>
-            {c.items.length > 0 ? (
-              <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-                {c.items.map((item) => (
-                  <li
-                    key={`${item.kind}:${item.id}:${item.unit}`}
-                    className="text-xs text-muted-foreground"
-                  >
-                    <span className="font-medium text-foreground tabular-nums">
-                      {item.quantity}
-                    </span>{" "}
-                    {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
-                    {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
-                    <span className="tabular-nums">
-                      ({formatCurrency(item.value)})
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Venda de valor livre (sem itens detalhados).
-              </p>
-            )}
-          </li>
-        ))}
+              </div>
+              {c.items.length > 0 ? (
+                <ul className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 pl-[26px]">
+                  {c.items.map((item) => (
+                    <li
+                      key={`${item.kind}:${item.id}:${item.unit}`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      <span className="font-medium text-foreground tabular-nums">
+                        {item.quantity}
+                      </span>{" "}
+                      {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
+                      {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
+                      <span className="tabular-nums">
+                        ({formatCurrency(item.value)})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-0.5 pl-[26px] text-xs text-muted-foreground">
+                  Venda de valor livre (sem itens detalhados).
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ul>
-      <PendingTotals data={data} />
+      <PendingTotals customers={included} totalValue={totalValue} />
     </div>
   );
 }
 
-/** Somatório por produto (todas as entregas pendentes juntas) + valor total. */
-function PendingTotals({ data }: { data: PendingDeliveries }) {
+/** Somatório por produto (só clientes marcados) + valor total. */
+function PendingTotals({
+  customers,
+  totalValue,
+}: {
+  customers: PendingDeliveries["customers"];
+  totalValue: number;
+}) {
   const totals = new Map<string, PendingDeliveryItem>();
-  for (const c of data.customers) {
+  for (const c of customers) {
     for (const item of c.items) {
       const key = `${item.kind}:${item.id}:${item.unit}`;
       const prev = totals.get(key);
@@ -262,7 +315,6 @@ function PendingTotals({ data }: { data: PendingDeliveries }) {
     }
   }
   const rows = [...totals.values()].sort((a, b) => b.quantity - a.quantity);
-  if (rows.length === 0 && data.totalValue === 0) return null;
 
   return (
     <div className="space-y-3 border-t border-border pt-3">
@@ -293,7 +345,7 @@ function PendingTotals({ data }: { data: PendingDeliveries }) {
       <p className="flex items-baseline justify-between gap-3 text-sm">
         <span className="font-semibold">Valor total a entregar</span>
         <span className="font-semibold tabular-nums">
-          {formatCurrency(data.totalValue)}
+          {formatCurrency(totalValue)}
         </span>
       </p>
     </div>
