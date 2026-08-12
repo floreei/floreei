@@ -3,12 +3,20 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type {
   AtRiskCustomer,
   IdleItem,
+  InsightsQuery,
   PartyRanking,
+  PendingDeliveries,
+  PendingDeliveryCustomer,
+  ProductUnit,
   SalesChannel,
   SalesInsights,
   SoldItemRanking,
 } from "@sistema-flores/types";
-import { Repository } from "typeorm";
+import {
+  Repository,
+  type ObjectLiteral,
+  type SelectQueryBuilder,
+} from "typeorm";
 import { roundMoney } from "../../../common/money/money";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { ArrangementEntity } from "../../arrangements/infrastructure/arrangement.entity";
@@ -19,6 +27,12 @@ import { EventRepository } from "../infrastructure/event.repository";
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
+
+/** Filtros normalizados (período resolvido) aplicados às queries de insight. */
+type InsightsFilters = Omit<InsightsQuery, "from" | "to"> & {
+  from: string;
+  to: string;
+};
 
 /**
  * Insights práticos da tela de Vendas (gated por SALES). Reaproveita os padrões
@@ -55,34 +69,70 @@ export class SalesInsightsService {
     };
   }
 
-  async generate(
-    fromInput?: string,
-    toInput?: string,
-    channel?: SalesChannel,
-  ): Promise<SalesInsights> {
-    const { from, to } = this.defaultRange(fromInput, toInput);
-    const [topItems, idleItems, topCustomers, atRiskCustomers] =
+  async generate(query: InsightsQuery): Promise<SalesInsights> {
+    const { from, to } = this.defaultRange(query.from, query.to);
+    const f: InsightsFilters = { ...query, from, to };
+    const [topItems, idleItems, topCustomers, atRiskCustomers, pendingDeliveries] =
       await Promise.all([
-        this.topItems(from, to, channel),
-        this.idleItems(from, to, channel),
-        this.topCustomers(from, to, channel),
-        this.atRiskCustomers(from, channel),
+        this.topItems(f),
+        this.idleItems(from, to, query.channel),
+        this.topCustomers(f),
+        this.atRiskCustomers(from, query.channel),
+        this.pendingDeliveries(f),
       ]);
-    return { from, to, topItems, idleItems, topCustomers, atRiskCustomers };
+    return {
+      from,
+      to,
+      topItems,
+      idleItems,
+      topCustomers,
+      atRiskCustomers,
+      pendingDeliveries,
+    };
+  }
+
+  /**
+   * Filtros da listagem aplicados a uma query com alias `event` (e `customer`
+   * joinado — necessário para a busca). Mesmas cláusulas do
+   * EventRepository.search. `delivered` pode ser ignorado quando a query já
+   * fixa o status (seção "falta entregar").
+   */
+  private applyListFilters(
+    qb: SelectQueryBuilder<ObjectLiteral>,
+    f: InsightsFilters,
+    opts: { skipDelivered?: boolean } = {},
+  ): void {
+    if (f.channel) qb.andWhere("event.channel = :channel", { channel: f.channel });
+    if (f.type) qb.andWhere("event.type = :type", { type: f.type });
+    if (f.paymentStatus === "paid") {
+      qb.andWhere("event.received_value >= event.sold_value");
+    } else if (f.paymentStatus === "pending") {
+      qb.andWhere("event.received_value < event.sold_value");
+    } else if (f.paymentStatus === "overdue") {
+      qb.andWhere("event.received_value < event.sold_value");
+      qb.andWhere("event.date < CURRENT_DATE");
+    }
+    if (!opts.skipDelivered) {
+      if (f.delivered === true) qb.andWhere("event.status = 'DONE'");
+      else if (f.delivered === false)
+        qb.andWhere("event.status IN ('CONFIRMED', 'IN_PROGRESS')");
+    }
+    if (f.search) {
+      qb.andWhere("(event.title ILIKE :s OR customer.name ILIKE :s)", {
+        s: `%${f.search}%`,
+      });
+    }
   }
 
   /** Itens (insumo ou buquê) mais vendidos no período, por quantidade. */
-  private async topItems(
-    from: string,
-    to: string,
-    channel?: SalesChannel,
-  ): Promise<SoldItemRanking[]> {
+  private async topItems(f: InsightsFilters): Promise<SoldItemRanking[]> {
     const cid = this.tenant.getCompanyIdOrThrow();
     const kindExpr =
       "CASE WHEN ei.product_id IS NOT NULL THEN 'product' ELSE 'arrangement' END";
     const qb = this.items
       .createQueryBuilder("ei")
       .innerJoin("ei.event", "event")
+      .leftJoin("event.customer", "customer")
       .select("COALESCE(ei.product_id, ei.arrangement_id)", "id")
       .addSelect("MAX(ei.description)", "name")
       .addSelect(kindExpr, "kind")
@@ -90,9 +140,9 @@ export class SalesInsightsService {
       .addSelect("SUM(ei.line_total)", "revenue")
       .where("event.company_id = :cid", { cid })
       .andWhere("event.status <> 'CANCELED'")
-      .andWhere("event.date BETWEEN :from AND :to", { from, to })
+      .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
       .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
-    if (channel) qb.andWhere("event.channel = :channel", { channel });
+    this.applyListFilters(qb, f);
     const rows = await qb
       .groupBy("COALESCE(ei.product_id, ei.arrangement_id)")
       .addGroupBy(kindExpr)
@@ -190,11 +240,7 @@ export class SalesInsightsService {
   }
 
   /** Clientes que mais compraram no período (por receita). */
-  private async topCustomers(
-    from: string,
-    to: string,
-    channel?: SalesChannel,
-  ): Promise<PartyRanking[]> {
+  private async topCustomers(f: InsightsFilters): Promise<PartyRanking[]> {
     const qb = this.events
       .qb("event")
       .innerJoin("event.customer", "customer")
@@ -203,8 +249,8 @@ export class SalesInsightsService {
       .addSelect("COALESCE(SUM(event.sold_value),0)", "total")
       .addSelect("COUNT(*)", "count")
       .andWhere("event.status <> 'CANCELED'")
-      .andWhere("event.date BETWEEN :from AND :to", { from, to });
-    if (channel) qb.andWhere("event.channel = :channel", { channel });
+      .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
+    this.applyListFilters(qb, f);
     const rows = await qb
       .groupBy("customer.id")
       .addGroupBy("customer.name")
@@ -253,5 +299,100 @@ export class SalesInsightsService {
       lastPurchaseAt: r.lastPurchaseAt ?? null,
       total: roundMoney(Number(r.total ?? 0)),
     }));
+  }
+
+  /**
+   * O que falta entregar no período: vendas CONFIRMED/IN_PROGRESS agrupadas
+   * por cliente, com as quantidades por item. Ignora o filtro `delivered`
+   * (a seção já é, por definição, "não entregue").
+   */
+  private async pendingDeliveries(f: InsightsFilters): Promise<PendingDeliveries> {
+    const pendingWhere = "event.status IN ('CONFIRMED', 'IN_PROGRESS')";
+
+    const salesQb = this.events
+      .qb("event")
+      .leftJoin("event.customer", "customer")
+      .select("customer.id", "customerId")
+      .addSelect("MAX(customer.name)", "customerName")
+      .addSelect("COUNT(*)", "salesCount")
+      .andWhere(pendingWhere)
+      .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
+    this.applyListFilters(salesQb, f, { skipDelivered: true });
+    const sales = await salesQb
+      .groupBy("customer.id")
+      .getRawMany<{
+        customerId: string | null;
+        customerName: string | null;
+        salesCount: string;
+      }>();
+
+    const cid = this.tenant.getCompanyIdOrThrow();
+    const kindExpr =
+      "CASE WHEN ei.product_id IS NOT NULL THEN 'product' ELSE 'arrangement' END";
+    const itemsQb = this.items
+      .createQueryBuilder("ei")
+      .innerJoin("ei.event", "event")
+      .leftJoin("event.customer", "customer")
+      .select("customer.id", "customerId")
+      .addSelect("COALESCE(ei.product_id, ei.arrangement_id)", "id")
+      .addSelect("MAX(ei.description)", "name")
+      .addSelect(kindExpr, "kind")
+      .addSelect("ei.unit", "unit")
+      .addSelect("SUM(ei.quantity)", "quantity")
+      .where("event.company_id = :cid", { cid })
+      .andWhere(pendingWhere)
+      .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
+      .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
+    this.applyListFilters(itemsQb, f, { skipDelivered: true });
+    const items = await itemsQb
+      .groupBy("customer.id")
+      .addGroupBy("COALESCE(ei.product_id, ei.arrangement_id)")
+      .addGroupBy(kindExpr)
+      .addGroupBy("ei.unit")
+      .getRawMany<{
+        customerId: string | null;
+        id: string;
+        name: string;
+        kind: "product" | "arrangement";
+        unit: string;
+        quantity: string;
+      }>();
+
+    const byCustomer = new Map<string, PendingDeliveryCustomer>();
+    const keyOf = (id: string | null) => id ?? "__none__";
+    for (const s of sales) {
+      byCustomer.set(keyOf(s.customerId), {
+        id: s.customerId ?? null,
+        name: s.customerName ?? null,
+        salesCount: Number(s.salesCount) || 0,
+        items: [],
+      });
+    }
+    let totalQuantity = 0;
+    for (const it of items) {
+      const entry = byCustomer.get(keyOf(it.customerId));
+      if (!entry) continue;
+      const quantity = Number(it.quantity) || 0;
+      totalQuantity += quantity;
+      entry.items.push({
+        id: it.id,
+        name: it.name,
+        kind: it.kind,
+        quantity,
+        unit: it.unit as ProductUnit,
+      });
+    }
+
+    const pendingOf = (c: PendingDeliveryCustomer) =>
+      c.items.reduce((sum, i) => sum + i.quantity, 0);
+    const customers = [...byCustomer.values()];
+    for (const c of customers) c.items.sort((a, b) => b.quantity - a.quantity);
+    customers.sort((a, b) => pendingOf(b) - pendingOf(a));
+
+    return {
+      salesCount: sales.reduce((s, r) => s + (Number(r.salesCount) || 0), 0),
+      totalQuantity,
+      customers,
+    };
   }
 }

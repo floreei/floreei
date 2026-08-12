@@ -6,8 +6,10 @@ import type {
   EventAttachment,
   EventInput,
   EventQuery,
+  EventType,
   EventUpdate,
   Paginated,
+  PaymentStatusFilter,
   QuickSaleInput,
   SalesChannel,
   SalesInsights,
@@ -43,19 +45,30 @@ export function useEvents(query: Partial<EventQuery> = {}) {
   });
 }
 
-/** Insights práticos da tela de Vendas (mais/parados, top/em risco) no período. */
-export function useSalesInsights(
-  from?: string,
-  to?: string,
-  channel?: SalesChannel,
-) {
+/** Filtros do painel de insights — os mesmos da listagem de vendas. */
+export interface SalesInsightsFilters {
+  from?: string;
+  to?: string;
+  channel?: SalesChannel;
+  type?: EventType;
+  paymentStatus?: PaymentStatusFilter;
+  delivered?: boolean;
+  search?: string;
+}
+
+/** Insights práticos da tela de Vendas, respeitando período e filtros. */
+export function useSalesInsights(filters: SalesInsightsFilters) {
   return useQuery({
-    queryKey: [KEY, "insights", from ?? "", to ?? "", channel ?? ""],
+    queryKey: [KEY, "insights", filters],
     queryFn: () =>
       api.get<SalesInsights>("/events/insights", {
-        from: from || undefined,
-        to: to || undefined,
-        channel,
+        from: filters.from || undefined,
+        to: filters.to || undefined,
+        channel: filters.channel,
+        type: filters.type,
+        paymentStatus: filters.paymentStatus,
+        delivered: filters.delivered,
+        search: filters.search || undefined,
       }),
     staleTime: 60_000,
   });

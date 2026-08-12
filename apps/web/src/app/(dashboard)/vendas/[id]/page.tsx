@@ -110,12 +110,17 @@ export default function EventDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        href={backHref}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      <button
+        type="button"
+        onClick={() => {
+          // Veio da lista? Voltar restaura a URL com os filtros. Deep link cai no fallback.
+          if (window.history.length > 1) router.back();
+          else router.push(backHref);
+        }}
+        className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> {backLabel}
-      </Link>
+      </button>
 
       <PageHeader
         title={event.title}

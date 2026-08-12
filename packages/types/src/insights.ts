@@ -1,3 +1,4 @@
+import type { ProductUnit } from "./enums";
 import type { PartyRanking } from "./report";
 
 /** Item vendido (insumo avulso ou buquê) ranqueado por quantidade no período. */
@@ -29,10 +30,37 @@ export interface AtRiskCustomer {
   total: number;
 }
 
+/** Item (produto ou buquê) pendente de entrega, com quantidade somada. */
+export interface PendingDeliveryItem {
+  id: string;
+  name: string;
+  kind: "product" | "arrangement";
+  quantity: number;
+  unit: ProductUnit;
+}
+
+/** Cliente com vendas a entregar no período (null = venda sem cliente). */
+export interface PendingDeliveryCustomer {
+  id: string | null;
+  name: string | null;
+  salesCount: number;
+  items: PendingDeliveryItem[];
+}
+
+/** Consolidado do que falta entregar no período filtrado. */
+export interface PendingDeliveries {
+  /** Vendas confirmadas/em andamento (não entregues, não canceladas). */
+  salesCount: number;
+  /** Soma das quantidades de todos os itens pendentes (unidades mistas). */
+  totalQuantity: number;
+  /** Ordenado por quantidade pendente (desc). */
+  customers: PendingDeliveryCustomer[];
+}
+
 /**
  * Insights práticos da tela de Vendas, no período filtrado. "Mais" mostra o
  * que puxa a receita; "parados/em risco" é o que vira ação (empurrar item
- * encalhado, reativar cliente sumido).
+ * encalhado, reativar cliente sumido); "falta entregar" é a rota do dia.
  */
 export interface SalesInsights {
   from: string;
@@ -41,4 +69,5 @@ export interface SalesInsights {
   idleItems: IdleItem[];
   topCustomers: PartyRanking[];
   atRiskCustomers: AtRiskCustomer[];
+  pendingDeliveries: PendingDeliveries;
 }

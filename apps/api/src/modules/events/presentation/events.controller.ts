@@ -46,11 +46,11 @@ export class EventsController {
     return this.events.list(query);
   }
 
-  /** Insights práticos da tela de Vendas (mais/parados, top/em risco). */
+  /** Insights práticos da tela de Vendas (mais/parados, top/em risco, entregas). */
   @Get("insights")
   @RequiresFeature("SALES")
   getInsights(@Query() query: InsightsQueryDto) {
-    return this.insights.generate(query.from, query.to, query.channel);
+    return this.insights.generate(query);
   }
 
   @Get(":id")
