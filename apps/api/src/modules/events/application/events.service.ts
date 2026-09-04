@@ -103,7 +103,7 @@ export class EventsService {
       if (item.arrangementId) {
         const arr = await this.arrangements.findOne(item.arrangementId);
         const unitSale = item.unitSalePrice ?? arr.salePrice;
-        const unitCost = item.unitCost ?? arr.cost;
+        const unitCost = roundMoney(item.unitCost ?? arr.cost);
         saleAcc += item.quantity * unitSale;
         costAcc += item.quantity * unitCost;
         for (const comp of arr.items) {
@@ -120,7 +120,7 @@ export class EventsService {
           unit: "UNIDADE",
           unitSalePrice: roundMoney(unitSale),
           lineTotal: roundMoney(item.quantity * unitSale),
-          unitCost: roundMoney(unitCost),
+          unitCost,
         });
       } else {
         const product = await this.products.findByIdOrFail(
@@ -139,18 +139,27 @@ export class EventsService {
             ? product.defaultSalePrice
             : roundMoney(product.defaultSalePrice / product.packSize);
         const unitSale = item.unitSalePrice ?? perUnitDefault;
-        // Custo base por haste: custo atual; se zerado, preço de compra padrão
-        // (que é por unidade de compra) ÷ packSize.
-        const baseUnitCost =
-          product.currentUnitCost > 0
-            ? product.currentUnitCost
-            : product.packSize > 1
-              ? roundMoney(product.defaultPurchasePrice / product.packSize)
-              : product.defaultPurchasePrice;
+        // Custo padrão por unidade da linha. `currentUnitCost` é sempre por
+        // haste (cadastro deriva automaticamente de defaultPurchasePrice ÷
+        // packSize quando não informado — ver ProductsService.withDerivedCost).
+        // Para não perder centavos ao "desfazer" essa divisão numa linha em
+        // maço (ex.: packSize 12, preço 25 → currentUnitCost 2.08 → ×12 =
+        // 24.96 ≠ 25), detectamos esse caso (currentUnitCost bate com o valor
+        // que o cadastro teria derivado) e usamos o preço de compra padrão
+        // direto, que já é por maço e não precisa de round-trip. Custo
+        // genuinamente distinto (atualizado por compra real) segue
+        // currentUnitCost × packSize normalmente.
+        const derivedFromPurchasePrice =
+          product.packSize > 1
+            ? roundMoney(product.defaultPurchasePrice / product.packSize)
+            : product.defaultPurchasePrice;
+        const looksDerived = product.currentUnitCost === derivedFromPurchasePrice;
         const unitCostDefault = pack
-          ? roundMoney(baseUnitCost * product.packSize)
-          : baseUnitCost;
-        const unitCost = item.unitCost ?? unitCostDefault;
+          ? looksDerived
+            ? product.defaultPurchasePrice
+            : roundMoney(product.currentUnitCost * product.packSize)
+          : product.currentUnitCost;
+        const unitCost = roundMoney(item.unitCost ?? unitCostDefault);
         saleAcc += item.quantity * unitSale;
         costAcc += item.quantity * unitCost;
         consumption.push({ productId: product.id, quantity: baseQty });
@@ -162,7 +171,7 @@ export class EventsService {
           unit: item.saleUnit ?? product.unit,
           unitSalePrice: roundMoney(unitSale),
           lineTotal: roundMoney(item.quantity * unitSale),
-          unitCost: roundMoney(unitCost),
+          unitCost,
         });
       }
       itemEntities.push(ei);
@@ -178,8 +187,8 @@ export class EventsService {
 
   /**
    * Venda de balcão: insumos avulsos (revenda), buquês (produto composto) ou
-   * valor livre. Custo = `currentUnitCost` do insumo × qtd, ou `arrangement.cost`
-   * × qtd para buquês. Buquê explode a ficha técnica em baixa de estoque.
+   * valor livre. Custo = quantity × unitCost (informado ou custo do produto/buquê
+   * na unidade da linha). Buquê explode a ficha técnica em baixa de estoque.
    */
   async quickSale(input: QuickSaleInput): Promise<Event> {
     if (input.customerId) {

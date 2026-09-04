@@ -92,7 +92,7 @@ describe("Vendas — custo por item (e2e)", () => {
     expect(byStem.body.cost).toBe(12);
   });
 
-  it("sem custo atual, cai no preço de compra padrão", async () => {
+  it("sem custo atual, cai no preço de compra padrão (mesmo com pack não divisível)", async () => {
     const cat = (
       await http.post("/api/categories").set(auth()).send({ name: "Folhagens" }).expect(201)
     ).body;
@@ -105,15 +105,18 @@ describe("Vendas — custo por item (e2e)", () => {
           name: "Eucalipto",
           unit: "HASTE",
           purchaseUnit: "MACO",
-          packSize: 10,
-          defaultPurchasePrice: 20,
+          packSize: 12,
+          defaultPurchasePrice: 25,
           defaultSalePrice: 40,
           currentUnitCost: 0,
         })
         .expect(201)
     ).body.id;
 
-    const sale = await http
+    // Maço: usa o preço de compra padrão inteiro (25), sem dividir por
+    // packSize e multiplicar de volta — não pode perder centavos em packs
+    // não divisíveis (25 / 12 × 12 ≠ 25 se arredondado no meio do caminho).
+    const byPack = await http
       .post("/api/events/quick")
       .set(auth())
       .send({
@@ -121,8 +124,20 @@ describe("Vendas — custo por item (e2e)", () => {
         items: [{ productId: pid, quantity: 1, saleUnit: "MACO", unitSalePrice: 40 }],
       })
       .expect(201);
-    expect(sale.body.items[0].unitCost).toBe(20);
-    expect(sale.body.cost).toBe(20);
+    expect(byPack.body.items[0].unitCost).toBe(25);
+    expect(byPack.body.cost).toBe(25);
+
+    // Haste: preço de compra padrão ÷ packSize, arredondado (25 / 12 = 2.08).
+    const byStem = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "WHOLESALE",
+        items: [{ productId: pid, quantity: 1, saleUnit: "HASTE", unitSalePrice: 4 }],
+      })
+      .expect(201);
+    expect(byStem.body.items[0].unitCost).toBe(2.08);
+    expect(byStem.body.cost).toBe(2.08);
   });
 
   it("editar itens preserva o unitCost reenviado", async () => {
