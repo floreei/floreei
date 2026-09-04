@@ -17,6 +17,7 @@
 - `unit_cost` é custo **por unidade de venda da linha** (mesma unidade de `quantity`/`unit`).
 - Despesas entram pela **`dueDate`** dentro de `[from, to]`, pagas ou não; `overdue = !paid && dueDate < hoje`.
 - Semana = **segunda a domingo**, em data local.
+- **Sociedade:** só o lucro divide (`myLineProfit = roundMoney(lineProfit / N)`, `partnersLineShare = lineProfit − myLineProfit`); custo da flor fica cheio; compra em sociedade grava `grossTotal` cheio e `total = grossTotal ÷ N`; estoque usa `unitPrice` cheio. `net.value = myProfit − expenses.total`.
 - UI em pt-BR, sem emoji, ícones `lucide-react`, moeda em `tabular-nums`, alvos de toque ≥ 44px, serif só em título de página.
 - Commits direto na `main` (regra do repo). **Não fazer push.**
 - Rodar cada comando a partir da raiz do repo: `/Users/hugouraga/dev/pessoal/sistema-flores/floreei`.
@@ -51,6 +52,7 @@
 | `apps/web/src/components/wholesale/period-result-dialog.tsx` (novo) | o modal |
 | `apps/web/src/app/(dashboard)/atacado/page.tsx` | botão que abre o modal |
 | `apps/web/e2e/atacado-resultado.spec.ts` (novo) | Playwright |
+| Sociedade (Task 2b/4b): `packages/types/src/{catalog,event,purchase,period-result}.ts`, migração `1787100000000-ProfitShares.ts`, entidades product/event-item/event/purchase, `events.service.ts`, `purchases.service.ts`, mappers, `product-dialog.tsx`, `purchase-dialog.tsx` | lucro dividido entre N pessoas |
 
 ---
 
@@ -573,6 +575,431 @@ Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
 
 ---
 
+### Task 2b: Sociedade — tipos + API (produto, venda, compra)
+
+Contexto: alguns produtos (ex.: gipsófila) são plantio em sociedade e o **lucro** é dividido entre N pessoas. Só o lucro divide: o custo da flor fica cheio. Na compra desses insumos, o que o usuário paga é a nota ÷ N. Regra de dinheiro (spec §1b): `myLineProfit = roundMoney(lineProfit / N)`, `partnersLineShare = roundMoney(lineProfit − myLineProfit)`; compra: `total = roundMoney((itemsTotal + freight) / N)`, `grossTotal = roundMoney(itemsTotal + freight)`; o estoque continua usando `unitPrice` cheio.
+
+**Files:**
+- Modify: `packages/types/src/catalog.ts` (`productInputSchema`, interface `Product`)
+- Modify: `packages/types/src/event.ts` (`quickSaleItemSchema`, `EventItem`, `Event`)
+- Modify: `packages/types/src/purchase.ts` (`purchaseInputSchema`, `Purchase`)
+- Modify: `packages/types/src/period-result.ts`
+- Create: `apps/api/src/database/migrations/1787100000000-ProfitShares.ts`
+- Modify: `apps/api/src/modules/catalog/infrastructure/product.entity.ts`
+- Modify: `apps/api/src/modules/events/infrastructure/event-item.entity.ts`
+- Modify: `apps/api/src/modules/events/infrastructure/event.entity.ts`
+- Modify: `apps/api/src/modules/events/application/events.service.ts` (`processSaleItems`, `quickSale`, `editItems`)
+- Modify: `apps/api/src/modules/events/application/event.mapper.ts`
+- Modify: `apps/api/src/modules/purchases/infrastructure/purchase.entity.ts`
+- Modify: `apps/api/src/modules/purchases/application/purchases.service.ts` (`create`, `update`, `totals`)
+- Modify: `apps/api/src/modules/purchases/application/purchase.mapper.ts`
+- Test: `apps/api/test/profit-shares.e2e-spec.ts` (novo)
+
+**Interfaces:**
+- Consumes: `EventItemEntity.unitCost`, `processSaleItems` (Task 2).
+- Produces: `Product.profitShares: number`; `QuickSaleItem.profitShares?: number`; `EventItem.profitShares: number`, `EventItem.myLineProfit: number | null`, `EventItem.partnersLineShare: number | null`; `Event.partnersShare: number`, `Event.myProfit: number`; `EventEntity.partnersShare`; `Purchase.profitShares: number`, `Purchase.grossTotal: number`; `PurchaseInput.profitShares`; `PeriodResultItem.profitShares/myLineProfit/partnersLineShare`, `PeriodResultOrder.partnersShare/myProfit`, `PeriodResult.sales.partnersShare/myProfit`.
+
+- [ ] **Step 1: Tipos**
+
+`packages/types/src/catalog.ts` — em `productInputSchema`, após `showInWholesale`:
+
+```ts
+  /** Lucro dividido entre N pessoas (plantio em sociedade). 1 = só o dono. */
+  profitShares: z.coerce.number().int().min(1, "Mínimo 1 pessoa").default(1),
+```
+
+Na interface `Product`, após `showInWholesale: boolean;`: `profitShares: number;`.
+
+`packages/types/src/event.ts` — em `quickSaleItemSchema`, após `unitCost`:
+
+```ts
+    /** Entre quantas pessoas o lucro desta linha é dividido. Ausente ⇒ do produto (buquê = 1). */
+    profitShares: z.coerce.number().int().min(1).optional(),
+```
+
+Em `EventItem`, após `lineProfit`:
+
+```ts
+  /** Entre quantas pessoas o lucro da linha é dividido (snapshot). */
+  profitShares: number;
+  /** lineProfit ÷ profitShares. null quando lineProfit é null. */
+  myLineProfit: number | null;
+  /** lineProfit − myLineProfit. null quando lineProfit é null. */
+  partnersLineShare: number | null;
+```
+
+Em `Event`, após `estimatedProfit: number;`:
+
+```ts
+  /** Parte do lucro que pertence aos sócios (Σ das linhas). */
+  partnersShare: number;
+  /** estimatedProfit − partnersShare. */
+  myProfit: number;
+```
+
+`packages/types/src/purchase.ts` — em `purchaseInputSchema`, após `freight`:
+
+```ts
+  /** Compra em sociedade: o usuário paga (itens + frete) ÷ N. 1 = compra só dele. */
+  profitShares: z.coerce.number().int().min(1).default(1),
+```
+
+Em `Purchase`, após `total: number;`:
+
+```ts
+  /** Entre quantas pessoas a compra é dividida. */
+  profitShares: number;
+  /** Nota cheia (itens + frete). `total` é a parte do usuário (grossTotal ÷ profitShares). */
+  grossTotal: number;
+```
+
+`packages/types/src/period-result.ts` — em `PeriodResultItem`, após `lineProfit`: `profitShares: number; myLineProfit: number | null; partnersLineShare: number | null;`. Em `PeriodResultOrder`, após `profit`: `partnersShare: number; myProfit: number;`. Em `PeriodResult.sales`, após `grossMargin`: `/** Σ partnersShare dos pedidos. */ partnersShare: number; /** grossProfit − partnersShare. */ myProfit: number;`. No comentário de `net.value` deixe claro: `myProfit − expenses.total`.
+
+Run: `pnpm --filter @sistema-flores/types typecheck && pnpm --filter @sistema-flores/types test`.
+
+- [ ] **Step 2: E2E (escrever antes da API)**
+
+`apps/api/test/profit-shares.e2e-spec.ts`:
+
+```ts
+import request from "supertest";
+import { bearer, registerCompany } from "./utils/auth-helper";
+import { createTestApp, TestApp } from "./utils/test-app";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const today = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+})();
+
+describe("Sociedade — lucro dividido entre N pessoas (e2e)", () => {
+  let ctx: TestApp;
+  let http: ReturnType<typeof request>;
+  let token: string;
+  const auth = () => bearer(token);
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    http = request(ctx.app.getHttpServer());
+    token = (await registerCompany(http, { email: "profitshares" })).accessToken;
+  });
+  afterAll(async () => {
+    await ctx.close();
+  });
+  beforeEach(async () => {
+    await ctx.resetBusiness();
+  });
+
+  async function makeGipso(profitShares = 3) {
+    const cat = (
+      await http.post("/api/categories").set(auth()).send({ name: "Gipsófila" }).expect(201)
+    ).body;
+    const res = await http
+      .post("/api/products")
+      .set(auth())
+      .send({
+        categoryId: cat.id,
+        name: "Gipso",
+        unit: "MACO",
+        defaultPurchasePrice: 5,
+        defaultSalePrice: 25,
+        currentUnitCost: 5,
+        profitShares,
+      })
+      .expect(201);
+    expect(res.body.profitShares).toBe(profitShares);
+    return res.body.id as string;
+  }
+
+  it("produto guarda profitShares (padrão 1)", async () => {
+    const cat = (
+      await http.post("/api/categories").set(auth()).send({ name: "Rosas" }).expect(201)
+    ).body;
+    const res = await http
+      .post("/api/products")
+      .set(auth())
+      .send({ categoryId: cat.id, name: "Rosa", unit: "MACO", defaultSalePrice: 10 })
+      .expect(201);
+    expect(res.body.profitShares).toBe(1);
+  });
+
+  it("venda herda N do produto, divide só o lucro e permite ajustar na linha", async () => {
+    const pid = await makeGipso(3);
+    // 60 maços × 25 = 1500; custo 60 × 5 = 300; lucro 1200; sua parte 400.
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 60 }] })
+      .expect(201);
+    expect(sale.body).toMatchObject({
+      soldValue: 1500,
+      cost: 300,
+      estimatedProfit: 1200,
+      partnersShare: 800,
+      myProfit: 400,
+    });
+    expect(sale.body.items[0]).toMatchObject({
+      profitShares: 3,
+      lineProfit: 1200,
+      myLineProfit: 400,
+      partnersLineShare: 800,
+    });
+
+    // Ajuste na linha: N = 2 → sua parte 600.
+    const custom = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "WHOLESALE",
+        date: today,
+        items: [{ productId: pid, quantity: 60, profitShares: 2 }],
+      })
+      .expect(201);
+    expect(custom.body.items[0].profitShares).toBe(2);
+    expect(custom.body.myProfit).toBe(600);
+    expect(custom.body.partnersShare).toBe(600);
+  });
+
+  it("arredonda a parte do usuário e joga a diferença para os sócios", async () => {
+    const pid = await makeGipso(3);
+    // 1 maço: lucro 20 → 6.67 pro usuário, 13.33 sócios.
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 1 }] })
+      .expect(201);
+    expect(sale.body.items[0].myLineProfit).toBe(6.67);
+    expect(sale.body.items[0].partnersLineShare).toBe(13.33);
+    expect(sale.body.myProfit).toBe(6.67);
+  });
+
+  it("editar itens preserva profitShares reenviado", async () => {
+    const pid = await makeGipso(3);
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 1, profitShares: 2 }] })
+      .expect(201);
+    const edited = await http
+      .patch(`/api/events/${sale.body.id}/items`)
+      .set(auth())
+      .send({
+        pricingMode: "ITEMS",
+        items: [{ productId: pid, quantity: 2, unitCost: 5, profitShares: 2 }],
+      })
+      .expect(200);
+    expect(edited.body.items[0].profitShares).toBe(2);
+    expect(edited.body.estimatedProfit).toBe(40);
+    expect(edited.body.myProfit).toBe(20);
+  });
+
+  it("compra em sociedade: total = nota ÷ N, nota cheia em grossTotal, custo do produto cheio", async () => {
+    const pid = await makeGipso(3);
+    const supplier = (
+      await http.post("/api/suppliers").set(auth()).send({ name: "Sítio" }).expect(201)
+    ).body;
+    const purchase = await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId: supplier.id,
+        date: today,
+        status: "RECEIVED",
+        freight: 30,
+        profitShares: 3,
+        items: [{ productId: pid, description: "Gipso", quantity: 60, unit: "MACO", unitPrice: 4.5 }],
+      })
+      .expect(201);
+    // itens 270 + frete 30 = 300 → paga 100.
+    expect(purchase.body).toMatchObject({
+      itemsTotal: 270,
+      freight: 30,
+      grossTotal: 300,
+      total: 100,
+      profitShares: 3,
+      balanceDue: 100,
+    });
+    const product = await http.get(`/api/products/${pid}`).set(auth()).expect(200);
+    // Custo por maço cheio (4.5), não ÷ 3.
+    expect(product.body.currentUnitCost).toBe(4.5);
+
+    // Compra sem sociedade continua igual.
+    const plain = await http
+      .post("/api/purchases")
+      .set(auth())
+      .send({
+        supplierId: supplier.id,
+        date: today,
+        items: [{ description: "Fita", quantity: 2, unit: "METRO", unitPrice: 3 }],
+      })
+      .expect(201);
+    expect(plain.body).toMatchObject({ total: 6, grossTotal: 6, profitShares: 1 });
+  });
+});
+```
+
+Se `POST /api/suppliers` exigir mais campos ou `GET /api/products/:id` não existir, confira em `apps/api/test/purchases.e2e-spec.ts` e `apps/api/test/catalog.e2e-spec.ts` como os testes existentes criam fornecedor e leem produto, e ajuste só a chamada (não a asserção).
+
+Run: `pnpm --filter @sistema-flores/api test:e2e -- profit-shares` → Expected: FAIL (campos ausentes / 400 por campo desconhecido? — nestjs-zod ignora extras; a falha vem das asserções).
+
+- [ ] **Step 3: Migração**
+
+`apps/api/src/database/migrations/1787100000000-ProfitShares.ts`:
+
+```ts
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+/**
+ * Sociedade: lucro dividido entre N pessoas. N no produto (padrão), snapshot
+ * por linha da venda, parte dos sócios no cabeçalho; compra em sociedade
+ * guarda a nota cheia e passa `total` a ser a parte do usuário.
+ */
+export class ProfitShares1787100000000 implements MigrationInterface {
+  name = "ProfitShares1787100000000";
+
+  public async up(q: QueryRunner): Promise<void> {
+    await q.query(`ALTER TABLE "products" ADD COLUMN "profit_shares" integer NOT NULL DEFAULT 1`);
+    await q.query(`ALTER TABLE "event_items" ADD COLUMN "profit_shares" integer NOT NULL DEFAULT 1`);
+    await q.query(`ALTER TABLE "events" ADD COLUMN "partners_share" numeric(12,2) NOT NULL DEFAULT 0`);
+    await q.query(`ALTER TABLE "purchases" ADD COLUMN "profit_shares" integer NOT NULL DEFAULT 1`);
+    await q.query(`ALTER TABLE "purchases" ADD COLUMN "gross_total" numeric(12,2) NOT NULL DEFAULT 0`);
+    await q.query(`UPDATE "purchases" SET "gross_total" = "total"`);
+  }
+
+  public async down(q: QueryRunner): Promise<void> {
+    await q.query(`ALTER TABLE "purchases" DROP COLUMN "gross_total"`);
+    await q.query(`ALTER TABLE "purchases" DROP COLUMN "profit_shares"`);
+    await q.query(`ALTER TABLE "events" DROP COLUMN "partners_share"`);
+    await q.query(`ALTER TABLE "event_items" DROP COLUMN "profit_shares"`);
+    await q.query(`ALTER TABLE "products" DROP COLUMN "profit_shares"`);
+  }
+}
+```
+
+- [ ] **Step 4: Entidades**
+
+`product.entity.ts`, após `showInWholesale`:
+
+```ts
+  /** Lucro dividido entre N pessoas (plantio em sociedade). 1 = só o dono. */
+  @Column({ name: "profit_shares", type: "int", default: 1 })
+  profitShares!: number;
+```
+
+`event-item.entity.ts`, após `unitCost`:
+
+```ts
+  /** Entre quantas pessoas o lucro da linha é dividido (snapshot). */
+  @Column({ name: "profit_shares", type: "int", default: 1 })
+  profitShares!: number;
+```
+
+`event.entity.ts`, após `estimatedProfit`:
+
+```ts
+  /** Parte do lucro que pertence aos sócios (Σ das linhas em sociedade). */
+  @Column({
+    name: "partners_share",
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
+  partnersShare!: number;
+```
+
+`purchase.entity.ts`, após `total`:
+
+```ts
+  /** Entre quantas pessoas a compra é dividida (1 = só o dono). */
+  @Column({ name: "profit_shares", type: "int", default: 1 })
+  profitShares!: number;
+
+  /** Nota cheia (itens + frete). `total` é a parte do usuário. */
+  @Column({
+    name: "gross_total",
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
+  grossTotal!: number;
+```
+
+- [ ] **Step 5: Vendas — `processSaleItems`, `quickSale`, `editItems`, mapper**
+
+Em `processSaleItems`, o retorno ganha `partnersAcc` → `partnersShare: number`. Para cada linha, depois de calcular `unitCost` e `lineTotal`:
+
+```ts
+        const lineTotal = roundMoney(item.quantity * unitSale);
+        const lineCost = roundMoney(item.quantity * unitCost);
+        const profitShares = Math.max(1, Math.trunc(item.profitShares ?? defaultShares));
+        const lineProfit = roundMoney(lineTotal - lineCost);
+        const myLineProfit = roundMoney(lineProfit / profitShares);
+        partnersAcc += roundMoney(lineProfit - myLineProfit);
+```
+
+onde `defaultShares` é `product.profitShares` no ramo de produto e `1` no ramo de buquê. Grave `profitShares` na entidade (`Object.assign(ei, { ..., profitShares })`) e use `lineTotal` já calculado. Retorne `partnersShare: roundMoney(partnersAcc)`.
+
+Em `quickSale`: `let partnersShare = 0;` e, quando há itens, `partnersShare = processed.partnersShare;` → passe `partnersShare` no `events.create({...})`.
+
+Em `editItems`: destructure `partnersShare` de `processSaleItems` e inclua em `updateById(id, { soldValue, cost, estimatedProfit, partnersShare })`.
+
+Mapper (`event.mapper.ts`): em `toItem`, após `lineProfit`:
+
+```ts
+    profitShares: item.profitShares ?? 1,
+    myLineProfit: lineProfit === null ? null : roundMoney(lineProfit / (item.profitShares ?? 1)),
+    partnersLineShare:
+      lineProfit === null ? null : roundMoney(lineProfit - roundMoney(lineProfit / (item.profitShares ?? 1))),
+```
+
+(extraia `lineProfit` para uma const antes do `return`). Em `toEvent`, após `estimatedProfit`: `partnersShare: event.partnersShare ?? 0, myProfit: roundMoney(event.estimatedProfit - (event.partnersShare ?? 0)),`.
+
+- [ ] **Step 6: Compras — `totals`, `create`, `update`, mapper**
+
+`purchases.service.ts`:
+
+```ts
+  /** Nota cheia e a parte do usuário (nota ÷ N quando a compra é em sociedade). */
+  private totals(items: PurchaseItemInput[], freight: number, profitShares = 1) {
+    const itemsTotal = sumMoney(
+      items.map((i) => roundMoney(i.quantity * i.unitPrice)),
+    );
+    const grossTotal = roundMoney(itemsTotal + freight);
+    const shares = Math.max(1, Math.trunc(profitShares));
+    return {
+      itemsTotal,
+      grossTotal,
+      profitShares: shares,
+      total: roundMoney(grossTotal / shares),
+    };
+  }
+```
+
+Em `create` e `update`: `const totals = this.totals(input.items, input.freight, input.profitShares);` — `...totals` já espalha `grossTotal`, `profitShares` e `total`. A checagem `paidAmount > totals.total` continua válida (compara com a parte do usuário). O estoque continua recebendo `unitPrice` cheio (não mexa em `registerFromPurchase`).
+
+Mapper (`purchase.mapper.ts`): após `total`, `profitShares: purchase.profitShares ?? 1, grossTotal: purchase.grossTotal ?? purchase.total,`.
+
+- [ ] **Step 7: Rodar e2e + vizinhos**
+
+Run: `pnpm --filter @sistema-flores/api test:e2e -- profit-shares events-unit-cost events.e2e purchases catalog && pnpm --filter @sistema-flores/api typecheck && pnpm --filter @sistema-flores/api lint`
+Expected: PASS. Se um teste antigo de compras assertar `total` com objeto exato (`toEqual`), some `grossTotal`/`profitShares` ao esperado.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add packages/types/src apps/api/src apps/api/test/profit-shares.e2e-spec.ts
+git commit -m "feat: sociedade — lucro dividido entre N pessoas (produto, venda, compra)
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
+```
+
+---
+
 ### Task 3: API — `GET /events/period-result`
 
 **Files:**
@@ -1027,6 +1454,15 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
 ```
 
+**Adendo sociedade (aplica-se sobre os passos acima):**
+
+- Os tipos `PeriodResultItem/Order/sales` já têm `profitShares`, `myLineProfit`, `partnersLineShare`, `partnersShare`, `myProfit` (Task 2b). Preencha-os no service:
+  - item: `profitShares: i.profitShares ?? 1`, `myLineProfit = lineProfit === null ? null : roundMoney(lineProfit / profitShares)`, `partnersLineShare = lineProfit === null ? null : roundMoney(lineProfit - myLineProfit)`.
+  - pedido: `partnersShare: e.partnersShare ?? 0`, `myProfit: roundMoney(profit - (e.partnersShare ?? 0))`.
+  - `sales.partnersShare = roundMoney(Σ orders.partnersShare)`, `sales.myProfit = roundMoney(grossProfit − partnersShare)`.
+  - **`net.value = roundMoney(sales.myProfit − expenses.total)`** (não mais `grossProfit`); `net.margin = margin(net.value, revenue)`.
+- No e2e, adicione um terceiro pedido em sociedade ao primeiro caso: produto "Gipso" com `profitShares: 3`, `defaultPurchasePrice: 5, defaultSalePrice: 25, currentUnitCost: 5`, venda de 6 maços (`quantity: 6`, sem `unitSalePrice` → 25) em `date: today`. Números esperados passam a ser: `sales = { count: 3, revenue: 230, cost: 76, grossProfit: 154, grossMargin: 66.96, partnersShare: 80, myProfit: 74 }` (gipso: lucro 120, sua parte 40, sócios 80); `net = { value: 49, margin: 21.3 }` (74 − 25). Assert também no pedido da gipso: `{ profit: 120, partnersShare: 80, myProfit: 40 }` e no item `{ profitShares: 3, myLineProfit: 40, partnersLineShare: 80 }`. Nos outros dois pedidos `partnersShare: 0` e `myProfit === profit`.
+
 ---
 
 ### Task 4: Web — custo editável no carrinho do atacado
@@ -1244,6 +1680,123 @@ Expected: sem erros.
 ```bash
 git add apps/web/src/lib/sale-units.ts apps/web/src/lib/sale-units.test.ts apps/web/src/components/wholesale/wholesale-sale-dialog.tsx apps/web/src/components/events/edit-sale-items-dialog.tsx
 git commit -m "feat(web): custo por item editável na venda do atacado com lucro ao vivo
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
+```
+
+**Adendo sociedade (aplica-se sobre os passos acima):**
+
+- `Sellable` ganha `profitShares: number` (de `p.profitShares ?? 1`, também em `addCreatedProduct`). `CartItem` ganha `profitShares: number`, inicializado com `sellable.profitShares` em `addSellable`.
+- Setter: `const setShares = (id: string, profitShares: number) => setCart((c) => (c[id] ? { ...c, [id]: { ...c[id], profitShares: Math.max(1, profitShares) } } : c));`
+- Na linha do carrinho, abaixo do bloco Preço/Custo, um stepper compacto:
+
+```tsx
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Dividir lucro por</span>
+                        <div className="inline-flex items-center gap-1">
+                          <button type="button" aria-label="Menos pessoas" className="flex h-8 w-8 items-center justify-center rounded-md border border-border disabled:opacity-40" disabled={item.profitShares <= 1} onClick={() => setShares(id, item.profitShares - 1)}>
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-medium tabular-nums" data-testid={`shares-${id}`}>{item.profitShares}</span>
+                          <button type="button" aria-label="Mais pessoas" className="flex h-8 w-8 items-center justify-center rounded-md border border-border" onClick={() => setShares(id, item.profitShares + 1)}>
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+```
+
+- A linha "Lucro da linha" passa a mostrar, quando `item.profitShares > 1`, ` · Sua parte: R$ X` com `X = round(round(quantity × (price − cost)) / profitShares)`.
+- Rodapé: além de "Lucro estimado", se alguma linha tiver `profitShares > 1`, uma linha `data-testid="ws-my-profit"`: "Sua parte: R$ X" onde `X = round(Σ round(lineProfit / profitShares))`.
+- Submit envia `profitShares: i.profitShares` por item.
+- `edit-sale-items-dialog.tsx`: `CartItem.profitShares?: number`, preenchido de `item.profitShares` em `initialCart` e reenviado no submit (sem UI nova).
+- Teste vitest extra em `sale-units.test.ts` não é necessário; a divisão é aritmética simples coberta pelo Playwright (Task 7).
+
+---
+
+### Task 4b: Web — campo de sociedade no produto e na compra
+
+**Files:**
+- Modify: `apps/web/src/components/catalog/product-dialog.tsx`
+- Modify: `apps/web/src/components/purchases/purchase-dialog.tsx`
+
+**Interfaces:**
+- Consumes: `productInputSchema.profitShares`, `purchaseInputSchema.profitShares`, `Purchase.grossTotal` (Task 2b).
+
+- [ ] **Step 1: Produto**
+
+Em `product-dialog.tsx`: `defaultValues` ganha `profitShares: 1`; no `reset`/valores iniciais, `profitShares: product?.profitShares ?? 1`. Após o `Field` de "Custo por …" (`p-cost`), adicione:
+
+```tsx
+          <Field
+            label="Lucro dividido entre"
+            htmlFor="p-shares"
+            hint="Plantio em sociedade: informe quantas pessoas dividem o lucro (você incluído). 1 = só você."
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                id="p-shares"
+                type="number"
+                min="1"
+                step="1"
+                className="max-w-[120px]"
+                {...form.register("profitShares", { valueAsNumber: true })}
+              />
+              <span className="text-sm text-muted-foreground">pessoas</span>
+            </div>
+          </Field>
+```
+
+- [ ] **Step 2: Compra**
+
+Em `purchase-dialog.tsx`: `FormValues` ganha `profitShares: number`; `initialValues` → `profitShares: purchase?.profitShares ?? 1`. Após `const total = itemsTotal + freight;`:
+
+```ts
+  const shares = Math.max(1, Math.trunc(Number(form.watch("profitShares")) || 1));
+  const myShare = roundMoney(total / shares);
+```
+
+(importe `roundMoney` de `@sistema-flores/types`). No bloco "Frete + total", entre o `Field` de frete e o total, adicione:
+
+```tsx
+            <Field label="Em sociedade, dividir por" htmlFor="pu-shares" optional className="max-w-[160px]">
+              <div className="flex items-center gap-2">
+                <Input id="pu-shares" type="number" min="1" step="1" {...form.register("profitShares", { valueAsNumber: true })} />
+                <span className="text-sm text-muted-foreground">pessoas</span>
+              </div>
+            </Field>
+```
+
+e troque o total exibido para:
+
+```tsx
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {shares > 1 ? "Sua parte da compra" : "Total da compra"}
+              </p>
+              <p className="font-serif text-2xl font-semibold tabular-nums" data-testid="purchase-total">
+                {formatCurrency(shares > 1 ? myShare : total)}
+              </p>
+              {shares > 1 ? (
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  Nota cheia {formatCurrency(total)} ÷ {shares}
+                </p>
+              ) : null}
+            </div>
+```
+
+Garanta que o submit envia `profitShares` (se o diálogo monta o payload campo a campo, inclua-o; se espalha `values`, já vai).
+
+- [ ] **Step 3: Verificar**
+
+Run: `pnpm --filter @sistema-flores/web typecheck && pnpm --filter @sistema-flores/web lint`
+Depois rode os Playwright que tocam esses diálogos: `pnpm --filter @sistema-flores/web exec playwright test e2e/compras.spec.ts e2e/produtos.spec.ts` (use os nomes reais: `ls apps/web/e2e | grep -i "compra\|produto\|catalog"`). Expected: PASS.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add apps/web/src/components/catalog/product-dialog.tsx apps/web/src/components/purchases/purchase-dialog.tsx
+git commit -m "feat(web): sociedade no cadastro do produto e na compra (dividir por N)
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
@@ -1848,6 +2401,12 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
 ```
 
+**Adendo sociedade (aplica-se sobre o código acima):**
+
+- `SalesTiles`: no tile "Lucro bruto", quando `sales.partnersShare > 0`, o `sub` vira `` `sua parte ${formatCurrency(sales.myProfit)}` `` (em vez da margem) e a margem some do tile.
+- `OrdersSection`: a grade da linha do pedido passa a 4 colunas (`grid-cols-4`): Venda, Custo, Lucro, **Sua parte** (`o.myProfit`, negrito). Quando `o.partnersShare === 0`, "Sua parte" mostra o mesmo valor do lucro. Na tabela de itens, acrescente a coluna "Sua parte" (`money(it.myLineProfit)`) e, quando `it.profitShares > 1`, um sufixo discreto `÷{it.profitShares}` ao lado do lucro da linha.
+- `NetBlock`: linhas passam a ser: "Lucro bruto das vendas" (`grossProfit`); se `partnersShare > 0`, "Parte dos sócios" (`− partnersShare`) e "Lucro seu" (`myProfit`); "Despesas do período" (`− expenses.total`); "Resultado líquido" (`net.value`).
+
 ---
 
 ### Task 7: Playwright — semana, custo no carrinho e modal
@@ -1966,6 +2525,11 @@ git commit -m "test(web): e2e do resultado do período, semana e custo por item 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJ85oQYTjdwWYsQxar5NS"
 ```
+
+**Adendo sociedade (aplica-se sobre o teste acima):**
+
+- Crie o produto "Rosa Vermelha" com `profitShares: 3` em vez de 1 (mesmos preços). No carrinho, após ajustar o custo para 16, o stepper `data-testid` que começa com `shares-` deve mostrar `3`; clique em "Menos pessoas" uma vez → `2`. Lucro da linha 9, sua parte 4,50: `await expect(page.getByTestId("ws-my-profit")).toContainText("4,50")`.
+- No modal: o pedido mostra "Sua parte" 4,50; despesa 4 → `period-net` contém "0,50" e, no bloco, "Parte dos sócios" contém "4,50".
 
 ---
 
