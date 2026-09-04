@@ -16,6 +16,7 @@ export * from "./event";
 export * from "./expense";
 export * from "./finance";
 export * from "./insights";
+export * from "./period-result";
 export * from "./invoice";
 export * from "./ncm";
 export * from "./platform";

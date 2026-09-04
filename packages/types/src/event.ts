@@ -66,6 +66,11 @@ export const quickSaleItemSchema = z
     saleUnit: productUnitSchema.optional(),
     /** Preço de venda deste item nesta venda (sobrepõe o preço sugerido). */
     unitSalePrice: z.coerce.number().nonnegative().optional(),
+    /**
+     * Custo por unidade de venda desta linha (snapshot). Ausente ⇒ a API usa o
+     * custo atual do produto (ou do buquê) na unidade escolhida.
+     */
+    unitCost: z.coerce.number().nonnegative().optional(),
   })
   .refine((v) => Boolean(v.productId) !== Boolean(v.arrangementId), {
     message: "Informe um produto OU um buquê",
@@ -177,6 +182,12 @@ export interface EventItem {
   unit: ProductUnit;
   unitSalePrice: number;
   lineTotal: number;
+  /** Custo por unidade de venda (snapshot na venda). null em vendas antigas. */
+  unitCost: number | null;
+  /** quantity × unitCost. null quando unitCost é null. */
+  lineCost: number | null;
+  /** lineTotal − lineCost. null quando lineCost é null. */
+  lineProfit: number | null;
 }
 
 export interface Event {
