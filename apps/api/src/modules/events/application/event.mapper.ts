@@ -1,4 +1,5 @@
 import type { Event, EventItem } from "@sistema-flores/types";
+import { roundMoney } from "../../../common/money/money";
 import { EventEntity } from "../infrastructure/event.entity";
 import { EventItemEntity } from "../infrastructure/event-item.entity";
 
@@ -6,6 +7,8 @@ const iso = (value: Date | string): string =>
   value instanceof Date ? value.toISOString() : value;
 
 function toItem(item: EventItemEntity): EventItem {
+  const unitCost = item.unitCost ?? null;
+  const lineCost = unitCost === null ? null : roundMoney(item.quantity * unitCost);
   return {
     id: item.id,
     productId: item.productId,
@@ -15,6 +18,9 @@ function toItem(item: EventItemEntity): EventItem {
     unit: item.unit,
     unitSalePrice: item.unitSalePrice,
     lineTotal: item.lineTotal,
+    unitCost,
+    lineCost,
+    lineProfit: lineCost === null ? null : roundMoney(item.lineTotal - lineCost),
   };
 }
 

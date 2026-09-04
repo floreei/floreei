@@ -85,7 +85,7 @@ export class EventsService {
   /**
    * Processa os itens de uma venda: monta as linhas (`event_items`), o consumo de
    * estoque (buquê explode a ficha técnica em insumos) e as somas de venda e custo.
-   * Custo = `currentUnitCost` do insumo × qtd, ou `arrangement.cost` × qtd (buquê).
+   * Custo = quantity × unitCost (informado ou custo do produto/buquê na unidade da linha).
    */
   private async processSaleItems(items: QuickSaleItem[]): Promise<{
     itemEntities: EventItemEntity[];
@@ -103,8 +103,9 @@ export class EventsService {
       if (item.arrangementId) {
         const arr = await this.arrangements.findOne(item.arrangementId);
         const unitSale = item.unitSalePrice ?? arr.salePrice;
+        const unitCost = item.unitCost ?? arr.cost;
         saleAcc += item.quantity * unitSale;
-        costAcc += item.quantity * arr.cost;
+        costAcc += item.quantity * unitCost;
         for (const comp of arr.items) {
           consumption.push({
             productId: comp.productId,
@@ -119,6 +120,7 @@ export class EventsService {
           unit: "UNIDADE",
           unitSalePrice: roundMoney(unitSale),
           lineTotal: roundMoney(item.quantity * unitSale),
+          unitCost: roundMoney(unitCost),
         });
       } else {
         const product = await this.products.findByIdOrFail(
@@ -137,8 +139,20 @@ export class EventsService {
             ? product.defaultSalePrice
             : roundMoney(product.defaultSalePrice / product.packSize);
         const unitSale = item.unitSalePrice ?? perUnitDefault;
+        // Custo base por haste: custo atual; se zerado, preço de compra padrão
+        // (que é por unidade de compra) ÷ packSize.
+        const baseUnitCost =
+          product.currentUnitCost > 0
+            ? product.currentUnitCost
+            : product.packSize > 1
+              ? roundMoney(product.defaultPurchasePrice / product.packSize)
+              : product.defaultPurchasePrice;
+        const unitCostDefault = pack
+          ? roundMoney(baseUnitCost * product.packSize)
+          : baseUnitCost;
+        const unitCost = item.unitCost ?? unitCostDefault;
         saleAcc += item.quantity * unitSale;
-        costAcc += baseQty * product.currentUnitCost;
+        costAcc += item.quantity * unitCost;
         consumption.push({ productId: product.id, quantity: baseQty });
         Object.assign(ei, {
           productId: product.id,
@@ -148,6 +162,7 @@ export class EventsService {
           unit: item.saleUnit ?? product.unit,
           unitSalePrice: roundMoney(unitSale),
           lineTotal: roundMoney(item.quantity * unitSale),
+          unitCost: roundMoney(unitCost),
         });
       }
       itemEntities.push(ei);

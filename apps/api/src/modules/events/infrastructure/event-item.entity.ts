@@ -55,6 +55,17 @@ export class EventItemEntity extends BaseEntity {
   })
   lineTotal!: number;
 
+  /** Custo por unidade de venda (snapshot). null em vendas anteriores. */
+  @Column({
+    name: "unit_cost",
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  unitCost!: number | null;
+
   @ManyToOne(() => EventEntity, (event) => event.items, { onDelete: "CASCADE" })
   @JoinColumn({ name: "event_id" })
   event!: EventEntity;
