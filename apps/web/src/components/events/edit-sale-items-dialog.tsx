@@ -216,12 +216,20 @@ export function EditSaleItemsDialog({
         soldValue: mode === "FIXED" ? round(fixedValue) : undefined,
         items: cartItems.map((i) =>
           i.sellable.kind === "arrangement"
-            ? { arrangementId: i.sellable.id, quantity: i.quantity, unitSalePrice: i.price }
+            ? {
+                arrangementId: i.sellable.id,
+                quantity: i.quantity,
+                unitSalePrice: i.price,
+                unitCost: i.unitCost,
+                profitShares: i.profitShares,
+              }
             : {
                 productId: i.sellable.id,
                 quantity: i.quantity,
                 saleUnit: i.saleUnit,
                 unitSalePrice: i.price,
+                unitCost: i.unitCost,
+                profitShares: i.profitShares,
               },
         ),
       });
