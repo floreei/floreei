@@ -64,5 +64,8 @@ test("atacado: filtros pago/entrega, insights, toggle de entrega e carrinho arej
   await page.getByRole("button", { name: /Hortênsias Azuis/ }).click();
   await page.getByRole("button", { name: /Hortênsias Brancas/ }).click();
   // Total do rodapé confirma os 2 itens no carrinho (30 + 30).
-  await expect(page.getByText("R$ 60,00")).toBeVisible();
+  // Escopado ao parágrafo "Total" (não ao "Lucro estimado", que agora também mostra R$ 60,00).
+  await expect(
+    page.getByText("Total", { exact: true }).locator("xpath=following-sibling::p[1]"),
+  ).toHaveText("R$ 60,00");
 });
