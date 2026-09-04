@@ -436,9 +436,23 @@ export function PurchaseDialog({
                 )}
               />
             </Field>
-            <Field label="Em sociedade, dividir por" htmlFor="pu-shares" optional className="max-w-[160px]">
+            <Field
+              label="Em sociedade, dividir por"
+              htmlFor="pu-shares"
+              optional
+              className="max-w-[160px]"
+              error={form.formState.errors.profitShares?.message}
+            >
               <div className="flex items-center gap-2">
-                <Input id="pu-shares" type="number" min="1" step="1" {...form.register("profitShares", { valueAsNumber: true })} />
+                <Input
+                  id="pu-shares"
+                  type="number"
+                  min="1"
+                  step="1"
+                  {...form.register("profitShares", {
+                    setValueAs: (v) => (v === "" || v === null ? 1 : Number(v)),
+                  })}
+                />
                 <span className="text-sm text-muted-foreground">pessoas</span>
               </div>
             </Field>

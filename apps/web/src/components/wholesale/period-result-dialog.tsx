@@ -102,7 +102,17 @@ function Tile({ label, value, sub, tone }: { label: string; value: string; sub?:
 }
 
 function SalesTiles({ sales }: { sales: PeriodResult["sales"] }) {
-  const hasPartners = sales.partnersShare > 0;
+  // Sócios podem ter parte negativa (prejuízo dividido): comparar com 0 por
+  // "diferente", não por "maior que".
+  const hasPartners = sales.partnersShare !== 0;
+  const margin =
+    sales.grossMargin === null ? null : `margem ${formatPercent(sales.grossMargin)}`;
+  const mine = `sua parte ${formatCurrency(sales.myProfit)}`;
+  const profitSub = hasPartners
+    ? margin
+      ? `${mine} · ${margin}`
+      : mine
+    : (margin ?? undefined);
   return (
     <section className="space-y-3">
       <SectionTitle icon={<ShoppingBag className="h-4 w-4" />} title="Vendas" />
@@ -113,13 +123,7 @@ function SalesTiles({ sales }: { sales: PeriodResult["sales"] }) {
         <Tile
           label="Lucro bruto"
           value={formatCurrency(sales.grossProfit)}
-          sub={
-            hasPartners
-              ? `sua parte ${formatCurrency(sales.myProfit)}`
-              : sales.grossMargin === null
-                ? undefined
-                : `margem ${formatPercent(sales.grossMargin)}`
-          }
+          sub={profitSub}
           tone={sales.grossProfit < 0 ? "bad" : "good"}
         />
       </div>
@@ -290,7 +294,7 @@ function ExpenseGroup({ group }: { group: PeriodResultExpenseGroup }) {
 
 function NetBlock({ data }: { data: PeriodResult }) {
   const negative = data.net.value < 0;
-  const hasPartners = data.sales.partnersShare > 0;
+  const hasPartners = data.sales.partnersShare !== 0;
   return (
     <section
       className={cn(
@@ -327,9 +331,9 @@ function NetBlock({ data }: { data: PeriodResult }) {
           </dd>
         </div>
         {data.net.margin !== null ? (
-          <p className="text-right text-xs text-muted-foreground">
+          <div className="text-right text-xs text-muted-foreground">
             margem líquida {formatPercent(data.net.margin)}
-          </p>
+          </div>
         ) : null}
       </dl>
     </section>

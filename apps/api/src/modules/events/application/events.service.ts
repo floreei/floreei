@@ -16,7 +16,11 @@ import type {
 } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { todayISO } from "../../../common/date/today";
-import { roundMoney, splitProfit } from "../../../common/money/money";
+import {
+  partnersShareFor,
+  roundMoney,
+  splitProfit,
+} from "../../../common/money/money";
 import { ArrangementsService } from "../../arrangements/application/arrangements.service";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
 import { CompanyService } from "../../companies/company.module";
@@ -159,16 +163,20 @@ export class EventsService {
         // direto, que já é por maço e não precisa de round-trip. Custo
         // genuinamente distinto (atualizado por compra real) segue
         // currentUnitCost × packSize normalmente.
-        const derivedFromPurchasePrice =
-          product.packSize > 1
-            ? roundMoney(product.defaultPurchasePrice / product.packSize)
-            : product.defaultPurchasePrice;
-        const looksDerived = product.currentUnitCost === derivedFromPurchasePrice;
+        const packSize = product.packSize > 1 ? product.packSize : 1;
+        const derivedFromPurchasePrice = roundMoney(
+          product.defaultPurchasePrice / packSize,
+        );
+        const hasRealCost =
+          product.currentUnitCost > 0 &&
+          product.currentUnitCost !== derivedFromPurchasePrice;
         const unitCostDefault = pack
-          ? looksDerived
-            ? product.defaultPurchasePrice
-            : roundMoney(product.currentUnitCost * product.packSize)
-          : product.currentUnitCost;
+          ? hasRealCost
+            ? roundMoney(product.currentUnitCost * packSize)
+            : product.defaultPurchasePrice
+          : product.currentUnitCost > 0
+            ? product.currentUnitCost
+            : derivedFromPurchasePrice;
         const unitCost = roundMoney(item.unitCost ?? unitCostDefault);
         saleAcc += item.quantity * unitSale;
         costAcc += item.quantity * unitCost;
@@ -322,17 +330,21 @@ export class EventsService {
         : roundMoney(input.soldValue ?? 0);
     const estimatedProfit = roundMoney(soldValue - costSum);
     // Em FIXED, a venda usa um valor combinado diferente da soma dos itens — o
-    // lucro real (estimatedProfit) diverge do lucro somado das linhas
-    // (profitItems). Escalamos proporcionalmente a parte dos sócios calculada
-    // linha a linha para o lucro efetivo, em vez de usar partnersShareItems
-    // direto (o que resultaria em myProfit incoerente com estimatedProfit).
-    const profitItems = roundMoney(saleSum - costSum);
+    // lucro real (estimatedProfit) diverge do lucro somado das linhas. Rateamos
+    // o lucro de cabeçalho pelas linhas (peso = custo) e dividimos cada parcela
+    // pelo N da linha, para manter myProfit coerente com estimatedProfit mesmo
+    // quando o lucro somado dos itens é zero ou negativo.
     const partnersShare =
       input.pricingMode === "ITEMS"
         ? partnersShareItems
-        : profitItems > 0
-          ? roundMoney((estimatedProfit * partnersShareItems) / profitItems)
-          : 0;
+        : partnersShareFor(
+            estimatedProfit,
+            itemEntities.map((i) => ({
+              lineCost: roundMoney(i.quantity * (i.unitCost ?? 0)),
+              lineTotal: i.lineTotal,
+              profitShares: i.profitShares ?? 1,
+            })),
+          );
     await this.events.updateById(id, {
       soldValue,
       cost: costSum,
@@ -371,6 +383,19 @@ export class EventsService {
     Object.assign(event, input);
     // Mantém o COGS coerente com venda − lucro.
     event.cost = roundMoney(event.soldValue - event.estimatedProfit);
+    // Mudou o lucro de cabeçalho: a parte dos sócios precisa ser recalculada a
+    // partir das linhas (peso = custo), senão fica presa ao lucro antigo.
+    if (input.estimatedProfit !== undefined || input.soldValue !== undefined) {
+      const items = await this.items.find({ where: { eventId: id } });
+      event.partnersShare = partnersShareFor(
+        event.estimatedProfit,
+        items.map((i) => ({
+          lineCost: roundMoney(Number(i.quantity) * Number(i.unitCost ?? 0)),
+          lineTotal: Number(i.lineTotal),
+          profitShares: i.profitShares ?? 1,
+        })),
+      );
+    }
     await this.events.save(event);
     return this.findOne(id);
   }

@@ -121,9 +121,15 @@ export default function PurchaseNotePage() {
           <div className="flex items-center justify-between border-y border-primary/15 py-3">
             <span className="font-semibold">Total</span>
             <span className="font-serif text-xl font-semibold tabular-nums text-primary">
-              {formatCurrency(purchase.total)}
+              {formatCurrency(purchase.profitShares > 1 ? purchase.grossTotal : purchase.total)}
             </span>
           </div>
+          {purchase.profitShares > 1 ? (
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Sua parte (÷{purchase.profitShares})</span>
+              <span className="tabular-nums">{formatCurrency(purchase.total)}</span>
+            </div>
+          ) : null}
           {purchase.paidAmount > 0 ? (
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Pago</span>

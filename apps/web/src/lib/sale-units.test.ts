@@ -19,6 +19,24 @@ describe("productPackCost", () => {
       productPackCost({ currentUnitCost: 4.5, defaultPurchasePrice: 4, packSize: 1 }),
     ).toBe(4.5);
   });
+
+  it("custo derivado do preço de compra não perde centavos no round-trip", () => {
+    expect(
+      productPackCost({ currentUnitCost: 2.08, defaultPurchasePrice: 25, packSize: 12 }),
+    ).toBe(25);
+  });
+
+  it("custo real de compra prevalece sobre o preço padrão", () => {
+    expect(
+      productPackCost({ currentUnitCost: 2.5, defaultPurchasePrice: 25, packSize: 12 }),
+    ).toBe(30);
+  });
+
+  it("custo atual zerado cai no preço de compra padrão", () => {
+    expect(
+      productPackCost({ currentUnitCost: 0, defaultPurchasePrice: 25, packSize: 12 }),
+    ).toBe(25);
+  });
 });
 
 describe("suggestedUnitCost", () => {

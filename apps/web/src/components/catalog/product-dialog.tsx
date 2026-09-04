@@ -424,6 +424,7 @@ export function ProductDialog({
             label="Lucro dividido entre"
             htmlFor="p-shares"
             hint="Plantio em sociedade: informe quantas pessoas dividem o lucro (você incluído). 1 = só você."
+            error={form.formState.errors.profitShares?.message}
           >
             <div className="flex items-center gap-2">
               <Input
@@ -432,7 +433,9 @@ export function ProductDialog({
                 min="1"
                 step="1"
                 className="max-w-[120px]"
-                {...form.register("profitShares", { valueAsNumber: true })}
+                {...form.register("profitShares", {
+                  setValueAs: (v) => (v === "" || v === null ? 1 : Number(v)),
+                })}
               />
               <span className="text-sm text-muted-foreground">pessoas</span>
             </div>

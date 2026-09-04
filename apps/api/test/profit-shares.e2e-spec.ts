@@ -137,8 +137,8 @@ describe("Sociedade — lucro dividido entre N pessoas (e2e)", () => {
       .set(auth())
       .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 60 }] })
       .expect(201);
-    // Valor combinado (FIXED) 1000 ≠ soma dos itens: lucro real 700, mas a
-    // proporção dos sócios (800/1200) é preservada sobre o lucro efetivo.
+    // Valor combinado (FIXED) 1000 ≠ soma dos itens: lucro real 700, rateado
+    // pela linha (peso = custo) e dividido por N = 3 → sócios 466.67.
     const edited = await http
       .patch(`/api/events/${sale.body.id}/items`)
       .set(auth())
@@ -151,6 +151,52 @@ describe("Sociedade — lucro dividido entre N pessoas (e2e)", () => {
     expect(edited.body.estimatedProfit).toBe(700);
     expect(edited.body.partnersShare).toBe(466.67);
     expect(edited.body.myProfit).toBe(233.33);
+  });
+
+  it("editar itens FIXED com itens a preço de custo ainda divide o lucro do cabeçalho", async () => {
+    const pid = await makeGipso(3);
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 60 }] })
+      .expect(201);
+    // Itens lançados a preço de custo (lucro somado das linhas = 0), mas a
+    // venda combinada é 1500: lucro 1200 → sócios 800, minha parte 400.
+    const edited = await http
+      .patch(`/api/events/${sale.body.id}/items`)
+      .set(auth())
+      .send({
+        pricingMode: "FIXED",
+        soldValue: 1500,
+        items: [{ productId: pid, quantity: 60, unitSalePrice: 5, unitCost: 5 }],
+      })
+      .expect(200);
+    expect(edited.body).toMatchObject({
+      estimatedProfit: 1200,
+      partnersShare: 800,
+      myProfit: 400,
+    });
+  });
+
+  it("PATCH da venda recalcula a parte dos sócios quando o lucro do cabeçalho muda", async () => {
+    const pid = await makeGipso(3);
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 60 }] })
+      .expect(201);
+    expect(sale.body.partnersShare).toBe(800);
+    const edited = await http
+      .patch(`/api/events/${sale.body.id}`)
+      .set(auth())
+      .send({ soldValue: 900, estimatedProfit: 600 })
+      .expect(200);
+    expect(edited.body).toMatchObject({
+      soldValue: 900,
+      estimatedProfit: 600,
+      partnersShare: 400,
+      myProfit: 200,
+    });
   });
 
   it("compra em sociedade: total = nota ÷ N, nota cheia em grossTotal, custo do produto cheio", async () => {

@@ -40,17 +40,21 @@ export interface UnitCosting extends UnitPricing {
 }
 
 /**
- * Custo por unidade de compra: custo atual (por haste) × packSize; se o custo
- * atual estiver zerado, o preço de compra padrão (que já é por maço).
+ * Custo por unidade de compra (mesma regra da API, `events.service.ts`): custo
+ * atual (por haste) × packSize quando é um custo real de compra; quando o custo
+ * atual está zerado ou é apenas o preço de compra padrão dividido pelo pacote,
+ * usa o preço de compra direto — assim não se perdem centavos no round-trip
+ * (ex.: packSize 12, preço 25 → currentUnitCost 2.08 → ×12 = 24.96 ≠ 25).
  */
 export function productPackCost(p: {
   currentUnitCost: number;
   defaultPurchasePrice: number;
   packSize?: number;
 }): number {
-  const pack = p.packSize ?? 1;
-  if (p.currentUnitCost > 0) return round2(p.currentUnitCost * pack);
-  return p.defaultPurchasePrice;
+  const pack = (p.packSize ?? 1) > 1 ? (p.packSize as number) : 1;
+  const derived = round2(p.defaultPurchasePrice / pack);
+  const hasRealCost = p.currentUnitCost > 0 && p.currentUnitCost !== derived;
+  return hasRealCost ? round2(p.currentUnitCost * pack) : p.defaultPurchasePrice;
 }
 
 /** Custo sugerido na unidade escolhida (mesma regra do preço: maço cheio, haste ÷ pacote). */

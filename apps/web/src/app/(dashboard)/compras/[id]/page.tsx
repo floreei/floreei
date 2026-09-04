@@ -166,7 +166,18 @@ export default function PurchaseDetailPage() {
           <CardContent className="space-y-3">
             <MoneyRow label="Itens" value={purchase.itemsTotal} />
             <MoneyRow label="Frete" value={purchase.freight} />
-            <MoneyRow label="Total" value={purchase.total} strong />
+            {purchase.profitShares > 1 ? (
+              <>
+                <MoneyRow label="Nota cheia" value={purchase.grossTotal} />
+                <MoneyRow
+                  label={`Sua parte (÷${purchase.profitShares})`}
+                  value={purchase.total}
+                  strong
+                />
+              </>
+            ) : (
+              <MoneyRow label="Total" value={purchase.total} strong />
+            )}
             <MoneyRow label="Pago" value={purchase.paidAmount} />
             <MoneyRow
               label="Falta pagar"

@@ -203,11 +203,13 @@ export class PurchasesService {
       items.map((i) => roundMoney(i.quantity * i.unitPrice)),
     );
     const grossTotal = roundMoney(itemsTotal + freight);
+    // Guarda defensiva: chamadas internas podem não passar pelo DTO (min 1, int).
+    const shares = Math.max(1, Math.trunc(profitShares || 1));
     return {
       itemsTotal,
       grossTotal,
-      profitShares,
-      total: roundMoney(grossTotal / profitShares),
+      profitShares: shares,
+      total: roundMoney(grossTotal / shares),
     };
   }
 
