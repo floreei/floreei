@@ -199,6 +199,65 @@ describe("Sociedade — lucro dividido entre N pessoas (e2e)", () => {
     });
   });
 
+  it("PATCH sem mudar o lucro preserva a divisão exata linha a linha", async () => {
+    const cat = (
+      await http.post("/api/categories").set(auth()).send({ name: "Mistas" }).expect(201)
+    ).body;
+    const make = async (name: string, profitShares: number) =>
+      (
+        await http
+          .post("/api/products")
+          .set(auth())
+          .send({
+            categoryId: cat.id,
+            name,
+            unit: "MACO",
+            defaultPurchasePrice: 100,
+            defaultSalePrice: 200,
+            currentUnitCost: 100,
+            profitShares,
+          })
+          .expect(201)
+      ).body.id as string;
+    const a = await make("Sócia", 2);
+    const b = await make("Só minha", 1);
+    // A: lucro 100, N=2 → sócios 50. B: lucro 300, N=1 → sócios 0.
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "WHOLESALE",
+        date: today,
+        items: [
+          { productId: a, quantity: 1, unitSalePrice: 200, unitCost: 100 },
+          { productId: b, quantity: 1, unitSalePrice: 400, unitCost: 100 },
+        ],
+      })
+      .expect(201);
+    expect(sale.body).toMatchObject({
+      soldValue: 600,
+      estimatedProfit: 400,
+      partnersShare: 50,
+    });
+
+    // O diálogo de edição reenvia soldValue/estimatedProfit inalterados ao
+    // mexer só no título: a divisão exata das linhas tem de ser preservada.
+    const renamed = await http
+      .patch(`/api/events/${sale.body.id}`)
+      .set(auth())
+      .send({ title: "Renomeada", soldValue: 600, estimatedProfit: 400 })
+      .expect(200);
+    expect(renamed.body).toMatchObject({ title: "Renomeada", partnersShare: 50 });
+
+    // Lucro realmente diferente: rateia pelas linhas (peso = custo).
+    const rebated = await http
+      .patch(`/api/events/${sale.body.id}`)
+      .set(auth())
+      .send({ soldValue: 600, estimatedProfit: 200 })
+      .expect(200);
+    expect(rebated.body).toMatchObject({ partnersShare: 50, myProfit: 150 });
+  });
+
   it("compra em sociedade: total = nota ÷ N, nota cheia em grossTotal, custo do produto cheio", async () => {
     const pid = await makeGipso(3);
     const supplier = (

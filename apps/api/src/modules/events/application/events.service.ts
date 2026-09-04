@@ -380,12 +380,16 @@ export class EventsService {
     if (input.customerId && input.customerId !== event.customerId) {
       await this.customers.findByIdOrFail(input.customerId);
     }
+    const previousProfit = Number(event.estimatedProfit);
     Object.assign(event, input);
     // Mantém o COGS coerente com venda − lucro.
     event.cost = roundMoney(event.soldValue - event.estimatedProfit);
-    // Mudou o lucro de cabeçalho: a parte dos sócios precisa ser recalculada a
-    // partir das linhas (peso = custo), senão fica presa ao lucro antigo.
-    if (input.estimatedProfit !== undefined || input.soldValue !== undefined) {
+    // Só quando o lucro de cabeçalho realmente muda a parte dos sócios é
+    // recalculada a partir das linhas (peso = custo) — senão ficaria presa ao
+    // lucro antigo. Com o lucro inalterado (o diálogo de edição reenvia
+    // soldValue/estimatedProfit mesmo ao mexer só no título ou na data),
+    // preservamos a divisão exata linha a linha, que é mais precisa que o rateio.
+    if (roundMoney(Number(event.estimatedProfit)) !== roundMoney(previousProfit)) {
       const items = await this.items.find({ where: { eventId: id } });
       event.partnersShare = partnersShareFor(
         event.estimatedProfit,
