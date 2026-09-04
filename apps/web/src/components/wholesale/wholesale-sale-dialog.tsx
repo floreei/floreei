@@ -649,7 +649,10 @@ export function WholesaleSaleDialog({
               </p>
               {hasSharedProfit ? (
                 <p
-                  className="text-xs tabular-nums text-muted-foreground"
+                  className={cn(
+                    "text-xs tabular-nums",
+                    myProfit < 0 ? "text-destructive" : "text-muted-foreground",
+                  )}
                   data-testid="ws-my-profit"
                 >
                   Sua parte: <span className="font-medium">{formatCurrency(myProfit)}</span>

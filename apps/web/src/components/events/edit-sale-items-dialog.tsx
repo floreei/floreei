@@ -190,6 +190,9 @@ export function EditSaleItemsDialog({
               ...c[k],
               saleUnit,
               price: suggestedUnitPrice(c[k].sellable, saleUnit),
+              // Custo preservado era da unidade antiga (ex.: maço) — na nova
+              // unidade fica errado, então volta pro custo do produto (API recalcula).
+              unitCost: undefined,
             },
           }
         : c,
