@@ -84,6 +84,7 @@ export function ProductDialog({
       showInWholesale: true,
       imageUrl: null as string | null,
       ncm: "",
+      profitShares: 1,
     },
   });
 
@@ -104,6 +105,7 @@ export function ProductDialog({
         showInWholesale: product?.showInWholesale ?? true,
         imageUrl: product?.imageUrl ?? null,
         ncm: product?.ncm ?? "",
+        profitShares: product?.profitShares ?? 1,
       });
     }
     // `categories` de propósito fora das deps: recarrega (nova referência) ao
@@ -416,6 +418,24 @@ export function ProductDialog({
                 />
               )}
             />
+          </Field>
+
+          <Field
+            label="Lucro dividido entre"
+            htmlFor="p-shares"
+            hint="Plantio em sociedade: informe quantas pessoas dividem o lucro (você incluído). 1 = só você."
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                id="p-shares"
+                type="number"
+                min="1"
+                step="1"
+                className="max-w-[120px]"
+                {...form.register("profitShares", { valueAsNumber: true })}
+              />
+              <span className="text-sm text-muted-foreground">pessoas</span>
+            </div>
           </Field>
 
           <Field

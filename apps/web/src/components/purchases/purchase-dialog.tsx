@@ -3,6 +3,7 @@
 import {
   isFractionalUnit,
   purchaseInputSchema,
+  roundMoney,
   sumMoney,
   type Product,
   type Purchase,
@@ -58,6 +59,7 @@ type FormValues = {
   freight: number;
   notes?: string;
   items: ItemForm[];
+  profitShares: number;
 };
 
 function todayStr() {
@@ -82,6 +84,7 @@ function initialValues(purchase?: Purchase | null): FormValues {
     status: purchase?.status ?? "ORDERED",
     freight: purchase?.freight ?? 0,
     notes: purchase?.notes ?? "",
+    profitShares: purchase?.profitShares ?? 1,
     items: purchase?.items.length
       ? purchase.items.map((i) => ({
           productId: i.productId,
@@ -131,6 +134,8 @@ export function PurchaseDialog({
     (items ?? []).map((i) => (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0)),
   );
   const total = itemsTotal + freight;
+  const shares = Math.max(1, Math.trunc(Number(form.watch("profitShares")) || 1));
+  const myShare = roundMoney(total / shares);
 
   const onPickProduct = (index: number, productId: string) => {
     const product = products?.data.find((p) => p.id === productId);
@@ -431,16 +436,24 @@ export function PurchaseDialog({
                 )}
               />
             </Field>
+            <Field label="Em sociedade, dividir por" htmlFor="pu-shares" optional className="max-w-[160px]">
+              <div className="flex items-center gap-2">
+                <Input id="pu-shares" type="number" min="1" step="1" {...form.register("profitShares", { valueAsNumber: true })} />
+                <span className="text-sm text-muted-foreground">pessoas</span>
+              </div>
+            </Field>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Total da compra
+                {shares > 1 ? "Sua parte da compra" : "Total da compra"}
               </p>
-              <p
-                className="font-serif text-2xl font-semibold tabular-nums"
-                data-testid="purchase-total"
-              >
-                {formatCurrency(total)}
+              <p className="font-serif text-2xl font-semibold tabular-nums" data-testid="purchase-total">
+                {formatCurrency(shares > 1 ? myShare : total)}
               </p>
+              {shares > 1 ? (
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  Nota cheia {formatCurrency(total)} ÷ {shares}
+                </p>
+              ) : null}
             </div>
           </div>
 
