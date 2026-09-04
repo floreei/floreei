@@ -6,10 +6,12 @@ import { CatalogModule } from "../catalog/catalog.module";
 import { ProductEntity } from "../catalog/infrastructure/product.entity";
 import { CompanyModule } from "../companies/company.module";
 import { CustomersModule } from "../customers/customers.module";
+import { ExpenseEntity } from "../expenses/infrastructure/expense.entity";
 import { InvoicesModule } from "../invoices/invoices.module";
 import { QuotesModule } from "../quotes/quotes.module";
 import { StockModule } from "../stock/stock.module";
 import { EventsService } from "./application/events.service";
+import { PeriodResultService } from "./application/period-result.service";
 import { SalesInsightsService } from "./application/sales-insights.service";
 import { EventAttachmentEntity } from "./infrastructure/event-attachment.entity";
 import { EventAttachmentRepository } from "./infrastructure/event-attachment.repository";
@@ -26,6 +28,7 @@ import { EventsController } from "./presentation/events.controller";
       EventItemEntity,
       ProductEntity,
       ArrangementEntity,
+      ExpenseEntity,
     ]),
     CustomersModule,
     QuotesModule,
@@ -39,6 +42,7 @@ import { EventsController } from "./presentation/events.controller";
   providers: [
     EventsService,
     SalesInsightsService,
+    PeriodResultService,
     EventRepository,
     EventAttachmentRepository,
   ],

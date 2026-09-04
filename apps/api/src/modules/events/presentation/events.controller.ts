@@ -15,11 +15,12 @@ import {
   editSaleItemsSchema,
   quickSaleSchema,
 } from "@sistema-flores/types";
-import { insightsQuerySchema } from "@sistema-flores/types";
+import { insightsQuerySchema, periodResultQuerySchema } from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { RequiresFeature } from "../../../common/auth/feature.guard";
 import { Roles } from "../../../common/auth/roles.decorator";
 import { EventsService } from "../application/events.service";
+import { PeriodResultService } from "../application/period-result.service";
 import { SalesInsightsService } from "../application/sales-insights.service";
 import {
   ConvertQuoteDto,
@@ -33,12 +34,14 @@ class AttachmentInputDto extends createZodDto(attachmentInputSchema) {}
 class QuickSaleDto extends createZodDto(quickSaleSchema) {}
 class EditSaleItemsDto extends createZodDto(editSaleItemsSchema) {}
 class InsightsQueryDto extends createZodDto(insightsQuerySchema) {}
+class PeriodResultQueryDto extends createZodDto(periodResultQuerySchema) {}
 
 @Controller("events")
 export class EventsController {
   constructor(
     private readonly events: EventsService,
     private readonly insights: SalesInsightsService,
+    private readonly periodResult: PeriodResultService,
   ) {}
 
   @Get()
@@ -51,6 +54,13 @@ export class EventsController {
   @RequiresFeature("SALES")
   getInsights(@Query() query: InsightsQueryDto) {
     return this.insights.generate(query);
+  }
+
+  /** Resultado do período (Atacado): lucro por pedido/item, despesas e líquido. */
+  @Get("period-result")
+  @RequiresFeature("SALES")
+  getPeriodResult(@Query() query: PeriodResultQueryDto) {
+    return this.periodResult.generate(query);
   }
 
   @Get(":id")
