@@ -39,6 +39,8 @@ export function toPurchase(purchase: PurchaseEntity): Purchase {
     itemsTotal: purchase.itemsTotal,
     freight: purchase.freight,
     total: purchase.total,
+    profitShares: purchase.profitShares ?? 1,
+    grossTotal: purchase.grossTotal ?? purchase.total,
     paidAmount: purchase.paidAmount,
     balanceDue: roundMoney(purchase.total - purchase.paidAmount),
     notes: purchase.notes,

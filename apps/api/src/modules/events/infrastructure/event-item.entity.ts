@@ -66,6 +66,10 @@ export class EventItemEntity extends BaseEntity {
   })
   unitCost!: number | null;
 
+  /** Entre quantas pessoas o lucro da linha é dividido (snapshot). */
+  @Column({ name: "profit_shares", type: "int", default: 1 })
+  profitShares!: number;
+
   @ManyToOne(() => EventEntity, (event) => event.items, { onDelete: "CASCADE" })
   @JoinColumn({ name: "event_id" })
   event!: EventEntity;

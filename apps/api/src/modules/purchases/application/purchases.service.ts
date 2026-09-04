@@ -53,7 +53,7 @@ export class PurchasesService {
 
   async create(input: PurchaseInput): Promise<Purchase> {
     await this.suppliers.findByIdOrFail(input.supplierId);
-    const totals = this.totals(input.items, input.freight);
+    const totals = this.totals(input.items, input.freight, input.profitShares);
 
     const purchase = this.purchases.create({
       supplierId: input.supplierId,
@@ -89,7 +89,7 @@ export class PurchasesService {
     if (input.supplierId !== purchase.supplierId) {
       await this.suppliers.findByIdOrFail(input.supplierId);
     }
-    const totals = this.totals(input.items, input.freight);
+    const totals = this.totals(input.items, input.freight, input.profitShares);
     if (purchase.paidAmount > totals.total) {
       throw new BadRequestException(
         "O total da compra não pode ficar abaixo do valor já pago.",
@@ -197,11 +197,19 @@ export class PurchasesService {
     await this.attachments.deleteById(attachmentId);
   }
 
-  private totals(items: PurchaseItemInput[], freight: number) {
+  /** Nota cheia e a parte do usuário (nota ÷ N quando a compra é em sociedade). */
+  private totals(items: PurchaseItemInput[], freight: number, profitShares = 1) {
     const itemsTotal = sumMoney(
       items.map((i) => roundMoney(i.quantity * i.unitPrice)),
     );
-    return { itemsTotal, total: roundMoney(itemsTotal + freight) };
+    const grossTotal = roundMoney(itemsTotal + freight);
+    const shares = Math.max(1, Math.trunc(profitShares));
+    return {
+      itemsTotal,
+      grossTotal,
+      profitShares: shares,
+      total: roundMoney(grossTotal / shares),
+    };
   }
 
   private buildItems(inputs: PurchaseItemInput[]): PurchaseItemEntity[] {

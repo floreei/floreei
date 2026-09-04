@@ -60,6 +60,21 @@ export class PurchaseEntity extends TenantOwnedEntity {
   })
   total!: number;
 
+  /** Entre quantas pessoas a compra é dividida (1 = só o dono). */
+  @Column({ name: "profit_shares", type: "int", default: 1 })
+  profitShares!: number;
+
+  /** Nota cheia (itens + frete). `total` é a parte do usuário. */
+  @Column({
+    name: "gross_total",
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
+  grossTotal!: number;
+
   @Column({
     name: "paid_amount",
     type: "decimal",

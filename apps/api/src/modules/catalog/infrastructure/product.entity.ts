@@ -83,6 +83,10 @@ export class ProductEntity extends TenantOwnedEntity {
   @Column({ name: "show_in_wholesale", type: "boolean", default: true })
   showInWholesale!: boolean;
 
+  /** Lucro dividido entre N pessoas (plantio em sociedade). 1 = só o dono. */
+  @Column({ name: "profit_shares", type: "int", default: 1 })
+  profitShares!: number;
+
   /** Código fiscal (8 dígitos) — só necessário pra emitir nota fiscal. */
   @Column({ type: "varchar", length: 8, nullable: true })
   ncm!: string | null;

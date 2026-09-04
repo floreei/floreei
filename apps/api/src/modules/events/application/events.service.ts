@@ -92,11 +92,13 @@ export class EventsService {
     consumption: { productId: string; quantity: number }[];
     saleSum: number;
     costSum: number;
+    partnersShare: number;
   }> {
     const itemEntities: EventItemEntity[] = [];
     const consumption: { productId: string; quantity: number }[] = [];
     let saleAcc = 0;
     let costAcc = 0;
+    let partnersAcc = 0;
 
     for (const item of items) {
       const ei = new EventItemEntity();
@@ -112,6 +114,13 @@ export class EventsService {
             quantity: roundQty(item.quantity * comp.quantity),
           });
         }
+        const lineTotal = roundMoney(item.quantity * unitSale);
+        const lineCost = roundMoney(item.quantity * unitCost);
+        // Buquê é sempre sociedade de 1 (não há N configurável no buquê).
+        const profitShares = Math.max(1, Math.trunc(item.profitShares ?? 1));
+        const lineProfit = roundMoney(lineTotal - lineCost);
+        const myLineProfit = roundMoney(lineProfit / profitShares);
+        partnersAcc += roundMoney(lineProfit - myLineProfit);
         Object.assign(ei, {
           productId: null,
           arrangementId: arr.id,
@@ -119,8 +128,9 @@ export class EventsService {
           quantity: item.quantity,
           unit: "UNIDADE",
           unitSalePrice: roundMoney(unitSale),
-          lineTotal: roundMoney(item.quantity * unitSale),
+          lineTotal,
           unitCost,
+          profitShares,
         });
       } else {
         const product = await this.products.findByIdOrFail(
@@ -163,6 +173,15 @@ export class EventsService {
         saleAcc += item.quantity * unitSale;
         costAcc += item.quantity * unitCost;
         consumption.push({ productId: product.id, quantity: baseQty });
+        const lineTotal = roundMoney(item.quantity * unitSale);
+        const lineCost = roundMoney(item.quantity * unitCost);
+        const profitShares = Math.max(
+          1,
+          Math.trunc(item.profitShares ?? product.profitShares),
+        );
+        const lineProfit = roundMoney(lineTotal - lineCost);
+        const myLineProfit = roundMoney(lineProfit / profitShares);
+        partnersAcc += roundMoney(lineProfit - myLineProfit);
         Object.assign(ei, {
           productId: product.id,
           arrangementId: null,
@@ -170,8 +189,9 @@ export class EventsService {
           quantity: item.quantity,
           unit: item.saleUnit ?? product.unit,
           unitSalePrice: roundMoney(unitSale),
-          lineTotal: roundMoney(item.quantity * unitSale),
+          lineTotal,
           unitCost,
+          profitShares,
         });
       }
       itemEntities.push(ei);
@@ -182,6 +202,7 @@ export class EventsService {
       consumption,
       saleSum: roundMoney(saleAcc),
       costSum: roundMoney(costAcc),
+      partnersShare: roundMoney(partnersAcc),
     };
   }
 
@@ -200,6 +221,7 @@ export class EventsService {
     let soldValue = roundMoney(input.amount ?? 0);
     let cost = 0;
     let estimatedProfit = 0;
+    let partnersShare = 0;
     const items = input.items ?? [];
     let itemEntities: EventItemEntity[] = [];
     let consumption: { productId: string; quantity: number }[] = [];
@@ -211,6 +233,7 @@ export class EventsService {
       soldValue = processed.saleSum;
       cost = processed.costSum;
       estimatedProfit = roundMoney(soldValue - cost);
+      partnersShare = processed.partnersShare;
     }
 
     const channel = input.channel ?? "RETAIL";
@@ -228,6 +251,7 @@ export class EventsService {
       soldValue,
       cost,
       estimatedProfit,
+      partnersShare,
       receivedValue: 0,
       items: itemEntities,
     });
@@ -283,7 +307,7 @@ export class EventsService {
       throw new BadRequestException("Uma venda cancelada não pode ser editada.");
     }
 
-    const { itemEntities, consumption, saleSum, costSum } =
+    const { itemEntities, consumption, saleSum, costSum, partnersShare } =
       await this.processSaleItems(input.items);
 
     // Troca as linhas da venda.
@@ -303,6 +327,7 @@ export class EventsService {
       soldValue,
       cost: costSum,
       estimatedProfit: roundMoney(soldValue - costSum),
+      partnersShare,
     });
     return this.findOne(id);
   }

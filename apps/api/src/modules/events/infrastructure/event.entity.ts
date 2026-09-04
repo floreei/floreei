@@ -93,6 +93,17 @@ export class EventEntity extends TenantOwnedEntity {
   })
   estimatedProfit!: number;
 
+  /** Parte do lucro que pertence aos sócios (Σ das linhas em sociedade). */
+  @Column({
+    name: "partners_share",
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
+  partnersShare!: number;
+
   @Column({
     name: "real_profit",
     type: "decimal",

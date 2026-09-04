@@ -9,6 +9,9 @@ const iso = (value: Date | string): string =>
 function toItem(item: EventItemEntity): EventItem {
   const unitCost = item.unitCost ?? null;
   const lineCost = unitCost === null ? null : roundMoney(item.quantity * unitCost);
+  const lineProfit = lineCost === null ? null : roundMoney(item.lineTotal - lineCost);
+  const profitShares = item.profitShares ?? 1;
+  const myLineProfit = lineProfit === null ? null : roundMoney(lineProfit / profitShares);
   return {
     id: item.id,
     productId: item.productId,
@@ -20,7 +23,10 @@ function toItem(item: EventItemEntity): EventItem {
     lineTotal: item.lineTotal,
     unitCost,
     lineCost,
-    lineProfit: lineCost === null ? null : roundMoney(item.lineTotal - lineCost),
+    lineProfit,
+    profitShares,
+    myLineProfit,
+    partnersLineShare: lineProfit === null ? null : roundMoney(lineProfit - (myLineProfit as number)),
   };
 }
 
@@ -50,6 +56,8 @@ export function toEvent(event: EventEntity): Event {
     cost: event.cost,
     receivedValue: event.receivedValue,
     estimatedProfit: event.estimatedProfit,
+    partnersShare: event.partnersShare ?? 0,
+    myProfit: roundMoney(event.estimatedProfit - (event.partnersShare ?? 0)),
     realProfit: event.realProfit,
     notes: event.notes,
     items: items.map(toItem),
