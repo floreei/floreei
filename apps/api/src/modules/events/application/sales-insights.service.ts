@@ -12,27 +12,21 @@ import type {
   SalesInsights,
   SoldItemRanking,
 } from "@sistema-flores/types";
-import {
-  Repository,
-  type ObjectLiteral,
-  type SelectQueryBuilder,
-} from "typeorm";
+import { Repository } from "typeorm";
 import { roundMoney } from "../../../common/money/money";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
 import { ArrangementEntity } from "../../arrangements/infrastructure/arrangement.entity";
 import { ProductEntity } from "../../catalog/infrastructure/product.entity";
+import {
+  applyEventListFilters,
+  defaultMonthRange,
+  type EventListFilters,
+} from "./event-list-filters";
 import { EventItemEntity } from "../infrastructure/event-item.entity";
 import { EventRepository } from "../infrastructure/event.repository";
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
 /** Filtros normalizados (período resolvido) aplicados às queries de insight. */
-type InsightsFilters = Omit<InsightsQuery, "from" | "to"> & {
-  from: string;
-  to: string;
-};
+type InsightsFilters = EventListFilters;
 
 /**
  * Insights práticos da tela de Vendas (gated por SALES). Reaproveita os padrões
@@ -57,20 +51,8 @@ export class SalesInsightsService {
     private readonly arrangements: Repository<ArrangementEntity>,
   ) {}
 
-  private defaultRange(from?: string, to?: string): { from: string; to: string } {
-    const now = new Date();
-    return {
-      from: from ?? `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`,
-      to:
-        to ??
-        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-          new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
-        )}`,
-    };
-  }
-
   async generate(query: InsightsQuery): Promise<SalesInsights> {
-    const { from, to } = this.defaultRange(query.from, query.to);
+    const { from, to } = defaultMonthRange(query.from, query.to);
     const f: InsightsFilters = { ...query, from, to };
     const [topItems, idleItems, topCustomers, atRiskCustomers, pendingDeliveries] =
       await Promise.all([
@@ -91,39 +73,6 @@ export class SalesInsightsService {
     };
   }
 
-  /**
-   * Filtros da listagem aplicados a uma query com alias `event` (e `customer`
-   * joinado — necessário para a busca). Mesmas cláusulas do
-   * EventRepository.search. `delivered` pode ser ignorado quando a query já
-   * fixa o status (seção "falta entregar").
-   */
-  private applyListFilters(
-    qb: SelectQueryBuilder<ObjectLiteral>,
-    f: InsightsFilters,
-    opts: { skipDelivered?: boolean } = {},
-  ): void {
-    if (f.channel) qb.andWhere("event.channel = :channel", { channel: f.channel });
-    if (f.type) qb.andWhere("event.type = :type", { type: f.type });
-    if (f.paymentStatus === "paid") {
-      qb.andWhere("event.received_value >= event.sold_value");
-    } else if (f.paymentStatus === "pending") {
-      qb.andWhere("event.received_value < event.sold_value");
-    } else if (f.paymentStatus === "overdue") {
-      qb.andWhere("event.received_value < event.sold_value");
-      qb.andWhere("event.date < CURRENT_DATE");
-    }
-    if (!opts.skipDelivered) {
-      if (f.delivered === true) qb.andWhere("event.status = 'DONE'");
-      else if (f.delivered === false)
-        qb.andWhere("event.status IN ('CONFIRMED', 'IN_PROGRESS')");
-    }
-    if (f.search) {
-      qb.andWhere("(event.title ILIKE :s OR customer.name ILIKE :s)", {
-        s: `%${f.search}%`,
-      });
-    }
-  }
-
   /** Itens (insumo ou buquê) mais vendidos no período, por quantidade. */
   private async topItems(f: InsightsFilters): Promise<SoldItemRanking[]> {
     const cid = this.tenant.getCompanyIdOrThrow();
@@ -142,7 +91,7 @@ export class SalesInsightsService {
       .andWhere("event.status <> 'CANCELED'")
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
       .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
-    this.applyListFilters(qb, f);
+    applyEventListFilters(qb, f);
     const rows = await qb
       .groupBy("COALESCE(ei.product_id, ei.arrangement_id)")
       .addGroupBy(kindExpr)
@@ -250,7 +199,7 @@ export class SalesInsightsService {
       .addSelect("COUNT(*)", "count")
       .andWhere("event.status <> 'CANCELED'")
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
-    this.applyListFilters(qb, f);
+    applyEventListFilters(qb, f);
     const rows = await qb
       .groupBy("customer.id")
       .addGroupBy("customer.name")
@@ -318,7 +267,7 @@ export class SalesInsightsService {
       .addSelect("COALESCE(SUM(event.sold_value),0)", "totalValue")
       .andWhere(pendingWhere)
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
-    this.applyListFilters(salesQb, f, { skipDelivered: true });
+    applyEventListFilters(salesQb, f, { skipDelivered: true });
     const sales = await salesQb
       .groupBy("customer.id")
       .getRawMany<{
@@ -346,7 +295,7 @@ export class SalesInsightsService {
       .andWhere(pendingWhere)
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
       .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
-    this.applyListFilters(itemsQb, f, { skipDelivered: true });
+    applyEventListFilters(itemsQb, f, { skipDelivered: true });
     const items = await itemsQb
       .groupBy("customer.id")
       .addGroupBy("COALESCE(ei.product_id, ei.arrangement_id)")

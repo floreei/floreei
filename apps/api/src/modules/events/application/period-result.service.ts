@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
 import type {
   PeriodResult,
   PeriodResultExpense,
@@ -7,11 +6,10 @@ import type {
   PeriodResultOrder,
   PeriodResultQuery,
 } from "@sistema-flores/types";
-import { Repository } from "typeorm";
 import { roundMoney, splitProfit } from "../../../common/money/money";
-import { TenantContextService } from "../../../common/tenant/tenant-context.service";
-import { ExpenseEntity } from "../../expenses/infrastructure/expense.entity";
-import { EventEntity } from "../infrastructure/event.entity";
+import { ExpenseRepository } from "../../expenses/infrastructure/expense.repository";
+import { applyEventListFilters, defaultMonthRange } from "./event-list-filters";
+import { EventRepository } from "../infrastructure/event.repository";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const localISO = (d: Date) =>
@@ -31,31 +29,21 @@ function margin(value: number, revenue: number): number | null {
 @Injectable()
 export class PeriodResultService {
   constructor(
-    private readonly tenant: TenantContextService,
-    @InjectRepository(EventEntity)
-    private readonly events: Repository<EventEntity>,
-    @InjectRepository(ExpenseEntity)
-    private readonly expenses: Repository<ExpenseEntity>,
+    private readonly events: EventRepository,
+    private readonly expenses: ExpenseRepository,
   ) {}
 
   private defaultRange(from?: string, to?: string) {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
-    const monthEnd = localISO(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-    return {
-      from: from ?? monthStart,
-      to: to ?? monthEnd,
-      defaulted: !from && !to,
-    };
+    const { from: resolvedFrom, to: resolvedTo } = defaultMonthRange(from, to);
+    return { from: resolvedFrom, to: resolvedTo, defaulted: !from && !to };
   }
 
   async generate(query: PeriodResultQuery): Promise<PeriodResult> {
-    const cid = this.tenant.getCompanyIdOrThrow();
     const { from, to, defaulted } = this.defaultRange(query.from, query.to);
 
     const [orders, expenses] = await Promise.all([
-      this.loadOrders(cid, { ...query, from, to }),
-      this.loadExpenses(cid, from, to),
+      this.loadOrders({ ...query, from, to }),
+      this.loadExpenses(from, to),
     ]);
 
     const revenue = roundMoney(orders.reduce((s, o) => s + o.soldValue, 0));
@@ -86,37 +74,17 @@ export class PeriodResultService {
 
   /** Mesmos filtros da listagem (EventRepository.search), sem paginação, sem CANCELED. */
   private async loadOrders(
-    cid: string,
     f: PeriodResultQuery & { from: string; to: string },
   ): Promise<PeriodResultOrder[]> {
     const qb = this.events
-      .createQueryBuilder("event")
+      .qb("event")
       .leftJoinAndSelect("event.customer", "customer")
       .leftJoinAndSelect("event.items", "items")
-      .where("event.company_id = :cid", { cid })
       .andWhere("event.status <> 'CANCELED'")
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
       .orderBy("event.date", "DESC")
       .addOrderBy("event.created_at", "DESC");
-
-    if (f.channel) qb.andWhere("event.channel = :channel", { channel: f.channel });
-    if (f.type) qb.andWhere("event.type = :type", { type: f.type });
-    if (f.paymentStatus === "paid") {
-      qb.andWhere("event.received_value >= event.sold_value");
-    } else if (f.paymentStatus === "pending") {
-      qb.andWhere("event.received_value < event.sold_value");
-    } else if (f.paymentStatus === "overdue") {
-      qb.andWhere("event.received_value < event.sold_value");
-      qb.andWhere("event.date < CURRENT_DATE");
-    }
-    if (f.delivered === true) qb.andWhere("event.status = 'DONE'");
-    else if (f.delivered === false)
-      qb.andWhere("event.status IN ('CONFIRMED', 'IN_PROGRESS')");
-    if (f.search) {
-      qb.andWhere("(event.title ILIKE :s OR customer.name ILIKE :s)", {
-        s: `%${f.search}%`,
-      });
-    }
+    applyEventListFilters(qb, f);
 
     const rows = await qb.getMany();
     return rows.map((e) => {
@@ -133,7 +101,10 @@ export class PeriodResultService {
         partnersShare,
         myProfit: roundMoney(profit - partnersShare),
         items: [...(e.items ?? [])]
-          .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+          .sort(
+            (a, b) =>
+              a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+          )
           .map((i) => {
             const unitCost = i.unitCost ?? null;
             const lineCost = unitCost === null ? null : roundMoney(i.quantity * unitCost);
@@ -158,22 +129,22 @@ export class PeriodResultService {
     });
   }
 
-  /** Despesas por vencimento no período, agrupadas por centro de custo (maior total primeiro). */
-  private async loadExpenses(
-    cid: string,
-    from: string,
-    to: string,
-  ): Promise<PeriodResult["expenses"]> {
+  /**
+   * Despesas por vencimento no período, agrupadas por centro de custo (maior
+   * total primeiro). Agrupamento ignora espaços nas pontas e maiúsculas —
+   * "Salários" e "salários " caem no mesmo grupo — exibindo a primeira grafia
+   * encontrada.
+   */
+  private async loadExpenses(from: string, to: string): Promise<PeriodResult["expenses"]> {
     const rows = await this.expenses
-      .createQueryBuilder("e")
-      .where("e.company_id = :cid", { cid })
-      .andWhere("e.due_date BETWEEN :from AND :to", { from, to })
-      .orderBy("e.due_date", "ASC")
-      .addOrderBy("e.created_at", "ASC")
+      .qb("expense")
+      .andWhere("expense.due_date BETWEEN :from AND :to", { from, to })
+      .orderBy("expense.due_date", "ASC")
+      .addOrderBy("expense.created_at", "ASC")
       .getMany();
 
     const today = localISO(new Date());
-    const byCenter = new Map<string, PeriodResultExpense[]>();
+    const byCenter = new Map<string, { label: string; entries: PeriodResultExpense[] }>();
     for (const r of rows) {
       const entry: PeriodResultExpense = {
         id: r.id,
@@ -183,14 +154,15 @@ export class PeriodResultService {
         paid: r.paid,
         overdue: !r.paid && r.dueDate < today,
       };
-      const list = byCenter.get(r.costCenter) ?? [];
-      list.push(entry);
-      byCenter.set(r.costCenter, list);
+      const key = r.costCenter.trim().toLocaleLowerCase("pt-BR");
+      const bucket = byCenter.get(key);
+      if (bucket) bucket.entries.push(entry);
+      else byCenter.set(key, { label: r.costCenter, entries: [entry] });
     }
 
-    const groups: PeriodResultExpenseGroup[] = [...byCenter.entries()]
-      .map(([costCenter, entries]) => ({
-        costCenter,
+    const groups: PeriodResultExpenseGroup[] = [...byCenter.values()]
+      .map(({ label, entries }) => ({
+        costCenter: label,
         total: roundMoney(entries.reduce((s, x) => s + x.amount, 0)),
         entries,
       }))
