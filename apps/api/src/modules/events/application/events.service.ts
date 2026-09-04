@@ -16,7 +16,7 @@ import type {
 } from "@sistema-flores/types";
 import { Repository } from "typeorm";
 import { todayISO } from "../../../common/date/today";
-import { roundMoney } from "../../../common/money/money";
+import { roundMoney, splitProfit } from "../../../common/money/money";
 import { ArrangementsService } from "../../arrangements/application/arrangements.service";
 import { ProductRepository } from "../../catalog/infrastructure/product.repository";
 import { CompanyService } from "../../companies/company.module";
@@ -117,10 +117,10 @@ export class EventsService {
         const lineTotal = roundMoney(item.quantity * unitSale);
         const lineCost = roundMoney(item.quantity * unitCost);
         // Buquê é sempre sociedade de 1 (não há N configurável no buquê).
-        const profitShares = Math.max(1, Math.trunc(item.profitShares ?? 1));
+        const profitShares = item.profitShares ?? 1;
         const lineProfit = roundMoney(lineTotal - lineCost);
-        const myLineProfit = roundMoney(lineProfit / profitShares);
-        partnersAcc += roundMoney(lineProfit - myLineProfit);
+        const { partners } = splitProfit(lineProfit, profitShares);
+        partnersAcc += partners;
         Object.assign(ei, {
           productId: null,
           arrangementId: arr.id,
@@ -175,13 +175,10 @@ export class EventsService {
         consumption.push({ productId: product.id, quantity: baseQty });
         const lineTotal = roundMoney(item.quantity * unitSale);
         const lineCost = roundMoney(item.quantity * unitCost);
-        const profitShares = Math.max(
-          1,
-          Math.trunc(item.profitShares ?? product.profitShares),
-        );
+        const profitShares = item.profitShares ?? product.profitShares;
         const lineProfit = roundMoney(lineTotal - lineCost);
-        const myLineProfit = roundMoney(lineProfit / profitShares);
-        partnersAcc += roundMoney(lineProfit - myLineProfit);
+        const { partners } = splitProfit(lineProfit, profitShares);
+        partnersAcc += partners;
         Object.assign(ei, {
           productId: product.id,
           arrangementId: null,
@@ -307,7 +304,7 @@ export class EventsService {
       throw new BadRequestException("Uma venda cancelada não pode ser editada.");
     }
 
-    const { itemEntities, consumption, saleSum, costSum, partnersShare } =
+    const { itemEntities, consumption, saleSum, costSum, partnersShare: partnersShareItems } =
       await this.processSaleItems(input.items);
 
     // Troca as linhas da venda.
@@ -323,10 +320,23 @@ export class EventsService {
       input.pricingMode === "ITEMS"
         ? saleSum
         : roundMoney(input.soldValue ?? 0);
+    const estimatedProfit = roundMoney(soldValue - costSum);
+    // Em FIXED, a venda usa um valor combinado diferente da soma dos itens — o
+    // lucro real (estimatedProfit) diverge do lucro somado das linhas
+    // (profitItems). Escalamos proporcionalmente a parte dos sócios calculada
+    // linha a linha para o lucro efetivo, em vez de usar partnersShareItems
+    // direto (o que resultaria em myProfit incoerente com estimatedProfit).
+    const profitItems = roundMoney(saleSum - costSum);
+    const partnersShare =
+      input.pricingMode === "ITEMS"
+        ? partnersShareItems
+        : profitItems > 0
+          ? roundMoney((estimatedProfit * partnersShareItems) / profitItems)
+          : 0;
     await this.events.updateById(id, {
       soldValue,
       cost: costSum,
-      estimatedProfit: roundMoney(soldValue - costSum),
+      estimatedProfit,
       partnersShare,
     });
     return this.findOne(id);

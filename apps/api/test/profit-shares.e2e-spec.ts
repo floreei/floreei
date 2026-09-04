@@ -129,6 +129,30 @@ describe("Sociedade — lucro dividido entre N pessoas (e2e)", () => {
     expect(edited.body.myProfit).toBe(20);
   });
 
+  it("editar com pricingMode FIXED escala a parte dos sócios pro valor combinado", async () => {
+    const pid = await makeGipso(3);
+    // 60 maços × 25 = 1500; custo 300; lucro dos itens 1200 (minha parte 400, sócios 800).
+    const sale = await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({ channel: "WHOLESALE", date: today, items: [{ productId: pid, quantity: 60 }] })
+      .expect(201);
+    // Valor combinado (FIXED) 1000 ≠ soma dos itens: lucro real 700, mas a
+    // proporção dos sócios (800/1200) é preservada sobre o lucro efetivo.
+    const edited = await http
+      .patch(`/api/events/${sale.body.id}/items`)
+      .set(auth())
+      .send({
+        pricingMode: "FIXED",
+        soldValue: 1000,
+        items: [{ productId: pid, quantity: 60 }],
+      })
+      .expect(200);
+    expect(edited.body.estimatedProfit).toBe(700);
+    expect(edited.body.partnersShare).toBe(466.67);
+    expect(edited.body.myProfit).toBe(233.33);
+  });
+
   it("compra em sociedade: total = nota ÷ N, nota cheia em grossTotal, custo do produto cheio", async () => {
     const pid = await makeGipso(3);
     const supplier = (

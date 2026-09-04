@@ -203,12 +203,11 @@ export class PurchasesService {
       items.map((i) => roundMoney(i.quantity * i.unitPrice)),
     );
     const grossTotal = roundMoney(itemsTotal + freight);
-    const shares = Math.max(1, Math.trunc(profitShares));
     return {
       itemsTotal,
       grossTotal,
-      profitShares: shares,
-      total: roundMoney(grossTotal / shares),
+      profitShares,
+      total: roundMoney(grossTotal / profitShares),
     };
   }
 

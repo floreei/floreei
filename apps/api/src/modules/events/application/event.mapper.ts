@@ -1,5 +1,5 @@
 import type { Event, EventItem } from "@sistema-flores/types";
-import { roundMoney } from "../../../common/money/money";
+import { roundMoney, splitProfit } from "../../../common/money/money";
 import { EventEntity } from "../infrastructure/event.entity";
 import { EventItemEntity } from "../infrastructure/event-item.entity";
 
@@ -11,7 +11,7 @@ function toItem(item: EventItemEntity): EventItem {
   const lineCost = unitCost === null ? null : roundMoney(item.quantity * unitCost);
   const lineProfit = lineCost === null ? null : roundMoney(item.lineTotal - lineCost);
   const profitShares = item.profitShares ?? 1;
-  const myLineProfit = lineProfit === null ? null : roundMoney(lineProfit / profitShares);
+  const split = lineProfit === null ? null : splitProfit(lineProfit, profitShares);
   return {
     id: item.id,
     productId: item.productId,
@@ -25,8 +25,8 @@ function toItem(item: EventItemEntity): EventItem {
     lineCost,
     lineProfit,
     profitShares,
-    myLineProfit,
-    partnersLineShare: lineProfit === null ? null : roundMoney(lineProfit - (myLineProfit as number)),
+    myLineProfit: split === null ? null : split.mine,
+    partnersLineShare: split === null ? null : split.partners,
   };
 }
 

@@ -13,3 +13,12 @@ export function roundMoney(value: number): number {
 export function sumMoney(values: number[]): number {
   return roundMoney(values.reduce((acc, v) => acc + v, 0));
 }
+
+/** Divide o lucro entre N pessoas: parte do dono arredondada; o resto (centavos) fica com os sócios. */
+export function splitProfit(
+  lineProfit: number,
+  shares: number,
+): { mine: number; partners: number } {
+  const mine = roundMoney(lineProfit / shares);
+  return { mine, partners: roundMoney(lineProfit - mine) };
+}
