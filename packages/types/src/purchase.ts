@@ -45,6 +45,8 @@ export const purchaseInputSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   freight: moneySchema.default(0),
+  /** Compra em sociedade: o usuário paga (itens + frete) ÷ N. 1 = compra só dele. */
+  profitShares: z.coerce.number().int().min(1).default(1),
   status: purchaseStatusSchema.default("RECEIVED"),
   notes: z
     .string()
@@ -87,6 +89,10 @@ export interface Purchase {
   itemsTotal: number;
   freight: number;
   total: number;
+  /** Entre quantas pessoas a compra é dividida. */
+  profitShares: number;
+  /** Nota cheia (itens + frete). `total` é a parte do usuário (grossTotal ÷ profitShares). */
+  grossTotal: number;
   paidAmount: number;
   /** total - paidAmount */
   balanceDue: number;

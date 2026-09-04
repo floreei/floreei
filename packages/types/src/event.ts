@@ -71,6 +71,8 @@ export const quickSaleItemSchema = z
      * custo atual do produto (ou do buquê) na unidade escolhida.
      */
     unitCost: z.coerce.number().nonnegative().optional(),
+    /** Entre quantas pessoas o lucro desta linha é dividido. Ausente ⇒ do produto (buquê = 1). */
+    profitShares: z.coerce.number().int().min(1).optional(),
   })
   .refine((v) => Boolean(v.productId) !== Boolean(v.arrangementId), {
     message: "Informe um produto OU um buquê",
@@ -188,6 +190,12 @@ export interface EventItem {
   lineCost: number | null;
   /** lineTotal − lineCost. null quando lineCost é null. */
   lineProfit: number | null;
+  /** Entre quantas pessoas o lucro da linha é dividido (snapshot). */
+  profitShares: number;
+  /** lineProfit ÷ profitShares. null quando lineProfit é null. */
+  myLineProfit: number | null;
+  /** lineProfit − myLineProfit. null quando lineProfit é null. */
+  partnersLineShare: number | null;
 }
 
 export interface Event {
@@ -212,6 +220,10 @@ export interface Event {
   cost: number;
   receivedValue: number;
   estimatedProfit: number;
+  /** Parte do lucro que pertence aos sócios (Σ das linhas). */
+  partnersShare: number;
+  /** estimatedProfit − partnersShare. */
+  myProfit: number;
   realProfit: number | null;
   notes: string | null;
   items: EventItem[];

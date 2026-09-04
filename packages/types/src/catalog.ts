@@ -41,6 +41,8 @@ export const productInputSchema = z.object({
   showInRetail: z.coerce.boolean().default(false),
   /** Aparece no atacado (revenda em pacote a outros lojistas). */
   showInWholesale: z.coerce.boolean().default(true),
+  /** Lucro dividido entre N pessoas (plantio em sociedade). 1 = só o dono. */
+  profitShares: z.coerce.number().int().min(1, "Mínimo 1 pessoa").default(1),
   /** URL da imagem do item (Firebase Storage) — opcional. */
   imageUrl: z
     .string()
@@ -87,6 +89,7 @@ export interface Product {
   showInRetail: boolean;
   /** Aparece no atacado (revenda em pacote). */
   showInWholesale: boolean;
+  profitShares: number;
   /** URL da imagem do item (Firebase Storage) ou null. */
   imageUrl: string | null;
   /** Código fiscal (8 dígitos) — null até o lojista preencher. */

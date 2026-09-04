@@ -16,6 +16,9 @@ export interface PeriodResultItem {
   lineTotal: number;
   lineCost: number | null;
   lineProfit: number | null;
+  profitShares: number;
+  myLineProfit: number | null;
+  partnersLineShare: number | null;
 }
 
 export interface PeriodResultOrder {
@@ -26,6 +29,8 @@ export interface PeriodResultOrder {
   soldValue: number;
   cost: number;
   profit: number;
+  partnersShare: number;
+  myProfit: number;
   items: PeriodResultItem[];
 }
 
@@ -61,6 +66,10 @@ export interface PeriodResult {
     grossProfit: number;
     /** 0–100; null quando revenue = 0. */
     grossMargin: number | null;
+    /** Σ partnersShare dos pedidos. */
+    partnersShare: number;
+    /** grossProfit − partnersShare. */
+    myProfit: number;
   };
   orders: PeriodResultOrder[];
   expenses: {
@@ -71,6 +80,7 @@ export interface PeriodResult {
     groups: PeriodResultExpenseGroup[];
   };
   net: {
+    /** myProfit − expenses.total */
     value: number;
     /** 0–100; null quando revenue = 0. */
     margin: number | null;
