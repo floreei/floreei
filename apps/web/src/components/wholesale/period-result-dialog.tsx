@@ -90,7 +90,7 @@ function Tile({ label, value, sub, tone }: { label: string; value: string; sub?:
       <p
         className={cn(
           "text-lg font-semibold tabular-nums",
-          tone === "good" && "text-emerald-700 dark:text-emerald-400",
+          tone === "good" && "text-success",
           tone === "bad" && "text-destructive",
         )}
       >

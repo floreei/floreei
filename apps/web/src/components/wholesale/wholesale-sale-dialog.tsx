@@ -417,10 +417,10 @@ export function WholesaleSaleDialog({
                           <button
                             type="button"
                             aria-label="Menos"
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
+                            className="flex h-11 w-11 items-center justify-center rounded-md border border-border"
                             onClick={() => changeQty(id, -1)}
                           >
-                            <Minus className="h-3.5 w-3.5" />
+                            <Minus className="h-4 w-4" />
                           </button>
                           <span className="w-8 text-center text-sm font-medium tabular-nums">
                             {item.quantity}
@@ -428,10 +428,10 @@ export function WholesaleSaleDialog({
                           <button
                             type="button"
                             aria-label="Mais"
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
+                            className="flex h-11 w-11 items-center justify-center rounded-md border border-border"
                             onClick={() => changeQty(id, 1)}
                           >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Plus className="h-4 w-4" />
                           </button>
                         </div>
                         <span className="text-base font-semibold tabular-nums">
@@ -477,11 +477,11 @@ export function WholesaleSaleDialog({
                           <button
                             type="button"
                             aria-label="Menos pessoas"
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border disabled:opacity-40"
+                            className="flex h-11 w-11 items-center justify-center rounded-md border border-border disabled:opacity-40"
                             disabled={item.profitShares <= 1}
                             onClick={() => setShares(id, item.profitShares - 1)}
                           >
-                            <Minus className="h-3.5 w-3.5" />
+                            <Minus className="h-4 w-4" />
                           </button>
                           <span
                             className="w-8 text-center text-sm font-medium tabular-nums"
@@ -492,10 +492,10 @@ export function WholesaleSaleDialog({
                           <button
                             type="button"
                             aria-label="Mais pessoas"
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
+                            className="flex h-11 w-11 items-center justify-center rounded-md border border-border"
                             onClick={() => setShares(id, item.profitShares + 1)}
                           >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Plus className="h-4 w-4" />
                           </button>
                         </div>
                       </div>

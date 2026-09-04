@@ -182,7 +182,7 @@ export default function AtacadoPage() {
           <button
             type="button"
             onClick={toggleInsights}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 min-h-11 text-sm font-medium transition-colors hover:bg-muted"
           >
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
             Insights do período
@@ -196,7 +196,7 @@ export default function AtacadoPage() {
           <button
             type="button"
             onClick={() => setResultOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 min-h-11 text-sm font-medium transition-colors hover:bg-muted"
           >
             <Wallet className="h-4 w-4 text-muted-foreground" />
             Resultado do período
