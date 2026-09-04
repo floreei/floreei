@@ -10,6 +10,7 @@ import type {
   EventUpdate,
   Paginated,
   PaymentStatusFilter,
+  PeriodResult,
   QuickSaleInput,
   SalesChannel,
   SalesInsights,
@@ -71,6 +72,25 @@ export function useSalesInsights(filters: SalesInsightsFilters) {
         search: filters.search || undefined,
       }),
     staleTime: 60_000,
+  });
+}
+
+/** Resultado do período (Atacado): lucro por pedido, despesas e líquido. */
+export function usePeriodResult(filters: SalesInsightsFilters, enabled = true) {
+  return useQuery({
+    queryKey: [KEY, "period-result", filters],
+    queryFn: () =>
+      api.get<PeriodResult>("/events/period-result", {
+        from: filters.from || undefined,
+        to: filters.to || undefined,
+        channel: filters.channel,
+        type: filters.type,
+        paymentStatus: filters.paymentStatus,
+        delivered: filters.delivered,
+        search: filters.search || undefined,
+      }),
+    staleTime: 60_000,
+    enabled,
   });
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { PaymentStatusFilter } from "@sistema-flores/types";
-import { BarChart3, Boxes, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { BarChart3, Boxes, ChevronDown, ChevronRight, Plus, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
@@ -9,6 +9,7 @@ import { ReceberButton } from "@/components/events/receber-button";
 import { SaleRowActions } from "@/components/events/sale-row-actions";
 import { SaleItemsInline } from "@/components/events/sale-items-inline";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
+import { PeriodResultDialog } from "@/components/wholesale/period-result-dialog";
 import { useQuickSale } from "@/components/events/quick-sale-provider";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListCard } from "@/components/shared/list-card";
@@ -109,6 +110,16 @@ export default function AtacadoPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggleExpanded = (id: string) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  const [resultOpen, setResultOpen] = useState(false);
+
+  const insightFilters = {
+    from,
+    to,
+    channel: "WHOLESALE" as const,
+    paymentStatus: payment,
+    delivered,
+    search: debouncedSearch || undefined,
+  };
 
   return (
     <div className="space-y-6">
@@ -167,35 +178,38 @@ export default function AtacadoPage() {
       </div>
 
       <div>
-        <button
-          type="button"
-          onClick={toggleInsights}
-          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          Insights do período
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              showInsights && "rotate-180",
-            )}
-          />
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleInsights}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            Insights do período
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform",
+                showInsights && "rotate-180",
+              )}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setResultOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+            Resultado do período
+          </button>
+        </div>
         {showInsights ? (
           <div className="mt-4">
-            <SalesInsightsPanel
-              filters={{
-                from,
-                to,
-                channel: "WHOLESALE",
-                paymentStatus: payment,
-                delivered,
-                search: debouncedSearch || undefined,
-              }}
-            />
+            <SalesInsightsPanel filters={insightFilters} />
           </div>
         ) : null}
       </div>
+
+      <PeriodResultDialog open={resultOpen} onOpenChange={setResultOpen} filters={insightFilters} />
 
       {isLoading ? (
         <Card>
