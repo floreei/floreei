@@ -1,7 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { currentWeekRange, formatShortRange, isWeekRange, shiftWeek } from "@/lib/week";
 import { cn } from "@/lib/utils";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -17,6 +18,7 @@ function presets() {
   return [
     { label: "Todo período", from: "", to: "" },
     { label: "Hoje", from: today, to: today },
+    { label: "Esta semana", ...currentWeekRange(now) },
     { label: "7 dias", from: weekAgo, to: today },
     { label: "Este mês", from: monthStart, to: monthEnd },
   ];
@@ -48,6 +50,12 @@ export function SalesFilters({
 }) {
   const options = presets();
   const activePreset = options.find((p) => p.from === from && p.to === to);
+  const weekMode = isWeekRange(from, to);
+  const otherWeek = weekMode && !activePreset;
+  const goWeek = (delta: number) => {
+    const next = shiftWeek(from, to, delta);
+    onDateChange?.(next.from, next.to);
+  };
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -67,7 +75,17 @@ export function SalesFilters({
 
       {onDateChange ? (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:pb-0">
+          {weekMode ? (
+            <button
+              type="button"
+              aria-label="Semana anterior"
+              onClick={() => goWeek(-1)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : null}
           {options.map((p) => (
             <button
               key={p.label}
@@ -83,6 +101,21 @@ export function SalesFilters({
               {p.label}
             </button>
           ))}
+          {otherWeek ? (
+            <span className="shrink-0 rounded-full border border-primary bg-primary/10 px-3.5 py-1.5 text-sm font-medium tabular-nums text-primary">
+              {formatShortRange(from, to)}
+            </span>
+          ) : null}
+          {weekMode ? (
+            <button
+              type="button"
+              aria-label="Próxima semana"
+              onClick={() => goWeek(1)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
         <div
           className={cn(
