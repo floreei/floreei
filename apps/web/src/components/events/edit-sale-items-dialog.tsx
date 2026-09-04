@@ -46,6 +46,9 @@ interface CartItem {
   quantity: number;
   price: number;
   saleUnit?: ProductUnit;
+  /** Custo unitário já gravado na venda (preservado, sem UI). */
+  unitCost?: number;
+  profitShares?: number;
 }
 const key = (s: Sellable) => `${s.kind}:${s.id}`;
 
@@ -83,6 +86,8 @@ function cartFromEvent(
       quantity: item.quantity,
       price: item.unitSalePrice,
       saleUnit: item.unit,
+      unitCost: item.unitCost ?? undefined,
+      profitShares: item.profitShares,
     };
   }
   return cart;

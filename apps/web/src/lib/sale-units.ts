@@ -32,3 +32,29 @@ export function suggestedUnitPrice(
   if (!hasUnitChoice(p)) return p.price;
   return saleUnit === p.purchaseUnit ? p.price : round2(p.price / (p.packSize ?? 1));
 }
+
+/** Dados de custo do produto para sugerir o custo de uma linha. */
+export interface UnitCosting extends UnitPricing {
+  /** Custo por unidade de compra (ex.: custo do maço). */
+  cost: number;
+}
+
+/**
+ * Custo por unidade de compra: custo atual (por haste) × packSize; se o custo
+ * atual estiver zerado, o preço de compra padrão (que já é por maço).
+ */
+export function productPackCost(p: {
+  currentUnitCost: number;
+  defaultPurchasePrice: number;
+  packSize?: number;
+}): number {
+  const pack = p.packSize ?? 1;
+  if (p.currentUnitCost > 0) return round2(p.currentUnitCost * pack);
+  return p.defaultPurchasePrice;
+}
+
+/** Custo sugerido na unidade escolhida (mesma regra do preço: maço cheio, haste ÷ pacote). */
+export function suggestedUnitCost(p: UnitCosting, saleUnit?: ProductUnit): number {
+  if (!hasUnitChoice(p)) return p.cost;
+  return saleUnit === p.purchaseUnit ? p.cost : round2(p.cost / (p.packSize ?? 1));
+}

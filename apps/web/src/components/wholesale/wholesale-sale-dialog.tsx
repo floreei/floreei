@@ -36,9 +36,11 @@ import { unitLabels } from "@/lib/labels";
 import {
   defaultSaleUnit,
   hasUnitChoice,
+  productPackCost,
+  suggestedUnitCost,
   suggestedUnitPrice,
 } from "@/lib/sale-units";
-import { formatCurrency, todayLocalISO } from "@/lib/utils";
+import { cn, formatCurrency, todayLocalISO } from "@/lib/utils";
 
 const CONSUMER = "__consumer__";
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -49,10 +51,13 @@ interface Sellable {
   name: string;
   /** Preço de venda sugerido (por unidade de compra — o maço, quando houver). */
   price: number;
+  /** Custo por unidade de compra (maço). */
+  cost: number;
   packSize?: number;
   purchaseUnit?: ProductUnit;
   unit?: ProductUnit;
   imageUrl?: string | null;
+  profitShares: number;
 }
 
 interface CartItem {
@@ -60,8 +65,11 @@ interface CartItem {
   quantity: number;
   /** Preço praticado nesta venda (editável). */
   price: number;
+  /** Custo praticado nesta venda, na unidade escolhida (editável). */
+  cost: number;
   /** Unidade escolhida (maço/haste) — só para produto de pacote. */
   saleUnit?: ProductUnit;
+  profitShares: number;
 }
 
 /**
@@ -119,10 +127,12 @@ export function WholesaleSaleDialog({
           id: p.id,
           name: p.name,
           price: p.defaultSalePrice,
+          cost: productPackCost(p),
           packSize: p.packSize,
           purchaseUnit: p.purchaseUnit,
           unit: p.unit,
           imageUrl: p.imageUrl,
+          profitShares: p.profitShares ?? 1,
         })),
     [products],
   );
@@ -136,6 +146,15 @@ export function WholesaleSaleDialog({
 
   const cartItems = Object.values(cart);
   const total = round(cartItems.reduce((s, i) => s + i.quantity * i.price, 0));
+  const totalCost = round(cartItems.reduce((s, i) => s + i.quantity * i.cost, 0));
+  const estimatedProfit = round(total - totalCost);
+  const myProfit = round(
+    cartItems.reduce(
+      (s, i) => s + round(round(i.quantity * (i.price - i.cost)) / i.profitShares),
+      0,
+    ),
+  );
+  const hasSharedProfit = cartItems.some((i) => i.profitShares > 1);
 
   const addSellable = (sellable: Sellable) =>
     setCart((c) => {
@@ -152,7 +171,9 @@ export function WholesaleSaleDialog({
           sellable,
           quantity: 1,
           price: suggestedUnitPrice(sellable, saleUnit),
+          cost: suggestedUnitCost(sellable, saleUnit),
           saleUnit,
+          profitShares: sellable.profitShares,
         },
       };
     });
@@ -163,14 +184,24 @@ export function WholesaleSaleDialog({
       id: product.id,
       name: product.name,
       price: product.defaultSalePrice,
+      cost: productPackCost(product),
       packSize: product.packSize,
       purchaseUnit: product.purchaseUnit,
       unit: product.unit,
       imageUrl: product.imageUrl,
+      profitShares: product.profitShares ?? 1,
     });
 
   const setPrice = (id: string, price: number) =>
     setCart((c) => (c[id] ? { ...c, [id]: { ...c[id], price } } : c));
+
+  const setCost = (id: string, cost: number) =>
+    setCart((c) => (c[id] ? { ...c, [id]: { ...c[id], cost } } : c));
+
+  const setShares = (id: string, profitShares: number) =>
+    setCart((c) =>
+      c[id] ? { ...c, [id]: { ...c[id], profitShares: Math.max(1, profitShares) } } : c,
+    );
 
   const changeSaleUnit = (id: string, saleUnit: ProductUnit) =>
     setCart((c) =>
@@ -181,6 +212,7 @@ export function WholesaleSaleDialog({
               ...c[id],
               saleUnit,
               price: suggestedUnitPrice(c[id].sellable, saleUnit),
+              cost: suggestedUnitCost(c[id].sellable, saleUnit),
             },
           }
         : c,
@@ -216,6 +248,8 @@ export function WholesaleSaleDialog({
           quantity: i.quantity,
           saleUnit: i.saleUnit,
           unitSalePrice: i.price,
+          unitCost: i.cost,
+          profitShares: i.profitShares,
         })),
       });
       if (paid && total > 0) {
@@ -405,21 +439,94 @@ export function WholesaleSaleDialog({
                         </span>
                       </div>
 
-                      {/* Preço unitário editável em linha própria */}
-                      <div className="flex items-center gap-2">
-                        <Label
-                          htmlFor={`price-${id}`}
-                          className="shrink-0 text-xs text-muted-foreground"
-                        >
-                          Preço{item.saleUnit ? `/${unitLabels[item.saleUnit]}` : ""}
-                        </Label>
-                        <CurrencyInput
-                          id={`price-${id}`}
-                          className="h-9"
-                          value={item.price}
-                          onChange={(v) => setPrice(id, v)}
-                        />
+                      {/* Preço e custo unitários editáveis; lucro da linha ao vivo */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor={`price-${id}`}
+                            className="text-xs text-muted-foreground"
+                          >
+                            Preço{item.saleUnit ? `/${unitLabels[item.saleUnit]}` : ""}
+                          </Label>
+                          <CurrencyInput
+                            id={`price-${id}`}
+                            className="h-9"
+                            value={item.price}
+                            onChange={(v) => setPrice(id, v)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor={`cost-${id}`}
+                            className="text-xs text-muted-foreground"
+                          >
+                            Custo{item.saleUnit ? `/${unitLabels[item.saleUnit]}` : ""}
+                          </Label>
+                          <CurrencyInput
+                            id={`cost-${id}`}
+                            className="h-9"
+                            value={item.cost}
+                            onChange={(v) => setCost(id, v)}
+                          />
+                        </div>
                       </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Dividir lucro por</span>
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label="Menos pessoas"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border disabled:opacity-40"
+                            disabled={item.profitShares <= 1}
+                            onClick={() => setShares(id, item.profitShares - 1)}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span
+                            className="w-8 text-center text-sm font-medium tabular-nums"
+                            data-testid={`shares-${id}`}
+                          >
+                            {item.profitShares}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Mais pessoas"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
+                            onClick={() => setShares(id, item.profitShares + 1)}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <p
+                        className={cn(
+                          "text-right text-xs tabular-nums",
+                          item.price - item.cost < 0
+                            ? "text-destructive"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        Lucro da linha:{" "}
+                        <span className="font-medium">
+                          {formatCurrency(round(item.quantity * (item.price - item.cost)))}
+                        </span>
+                        {item.profitShares > 1 ? (
+                          <>
+                            {" "}
+                            · Sua parte:{" "}
+                            <span className="font-medium">
+                              {formatCurrency(
+                                round(
+                                  round(item.quantity * (item.price - item.cost)) /
+                                    item.profitShares,
+                                ),
+                              )}
+                            </span>
+                          </>
+                        ) : null}
+                      </p>
                     </div>
                   );
                 })
@@ -530,6 +637,24 @@ export function WholesaleSaleDialog({
               <p className="whitespace-nowrap font-serif text-xl font-semibold tabular-nums">
                 {formatCurrency(total)}
               </p>
+              <p
+                className={cn(
+                  "text-xs tabular-nums",
+                  estimatedProfit < 0 ? "text-destructive" : "text-muted-foreground",
+                )}
+                data-testid="ws-estimated-profit"
+              >
+                Lucro estimado:{" "}
+                <span className="font-medium">{formatCurrency(estimatedProfit)}</span>
+              </p>
+              {hasSharedProfit ? (
+                <p
+                  className="text-xs tabular-nums text-muted-foreground"
+                  data-testid="ws-my-profit"
+                >
+                  Sua parte: <span className="font-medium">{formatCurrency(myProfit)}</span>
+                </p>
+              ) : null}
             </div>
             <Button
               className="h-12 lg:h-12 flex-1 text-base"
