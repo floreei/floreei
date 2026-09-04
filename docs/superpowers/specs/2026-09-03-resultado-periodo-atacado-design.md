@@ -20,6 +20,7 @@ Tudo isso fica num modal separado para não poluir a listagem.
 - Despesas entram no período pela **data de vencimento** (`dueDate`), pagas ou não; o modal marca o que está em aberto.
 - Semana = segunda a domingo. Preset "Esta semana" + setas para semana anterior/próxima.
 - Campo "Custo" no carrinho aparece **só** no diálogo de venda no atacado. Venda direta (varejo) não muda.
+- **Sociedade (adendo de 2026-09-04):** alguns produtos (ex.: gipsófila, plantio feito em sociedade) têm o **lucro dividido entre N pessoas**. Só o lucro é dividido: o custo da flor fica cheio no produto e na venda. Na compra desses insumos, o que sai do caixa do usuário é a nota ÷ N. O N fica no produto (padrão 1) e é ajustável em cada linha da venda e em cada compra.
 
 ## 1. Custo por item
 
@@ -54,6 +55,40 @@ Tudo isso fica num modal separado para não poluir a listagem.
 - Cada linha do carrinho ganha, abaixo de "Preço", um `CurrencyInput` "Custo" (mesma altura/rótulo) e, à direita, "Lucro: R$ X" = `round(quantity × (price − cost))`, em `tabular-nums`, vermelho quando negativo.
 - No rodapé do carrinho, além do total, uma linha discreta "Lucro estimado: R$ X".
 - Submit envia `unitCost` por item.
+
+## 1b. Sociedade — lucro dividido entre N pessoas
+
+### Regra de dinheiro
+
+Com N sócios, custo `C` cheio e venda `R`:
+
+- `lineProfit = R − C` (lucro da linha, cheio).
+- `myLineProfit = roundMoney(lineProfit / N)`; `partnersLineShare = roundMoney(lineProfit − myLineProfit)`.
+- Compra em sociedade: `total` gravado = `roundMoney((itemsTotal + freight) / N)` (o que o usuário paga); `grossTotal = itemsTotal + freight` (nota cheia). O custo do produto (`currentUnitCost`, via estoque) usa o `unitPrice` cheio.
+
+Exemplo (gipso, N = 3): compra 300 → paga 100; venda 1.500, custo 300, lucro 1.200, sua parte 400, sócios 800. Caixa do usuário: +1.500 − 100 − (800 + 200 reembolso do custo dos sócios) = 400. O acerto com os sócios **não** vira conta a pagar (fora de escopo); o modal mostra a parte deles como linha informativa.
+
+### Dados
+
+- `products.profit_shares` — `int NOT NULL DEFAULT 1`, `≥ 1`. Rótulo: "Lucro dividido entre (pessoas)".
+- `event_items.profit_shares` — `int NOT NULL DEFAULT 1`. Snapshot na venda; pré-preenchido do produto, editável na linha do atacado. Buquê = 1.
+- `events.partners_share` — `decimal(12,2) NOT NULL DEFAULT 0` = Σ `partnersLineShare`. `myProfit = estimatedProfit − partnersShare` (derivado no mapper).
+- `purchases.profit_shares` — `int NOT NULL DEFAULT 1`; `purchases.gross_total` — `decimal(12,2)` (nota cheia). `total` passa a ser a parte do usuário. Backfill: `gross_total = total`.
+
+### Tipos
+
+- `productInputSchema.profitShares: z.coerce.number().int().min(1).default(1)`; `Product.profitShares: number`.
+- `quickSaleItemSchema.profitShares: z.coerce.number().int().min(1).optional()`; `EventItem.profitShares: number`, `EventItem.myLineProfit: number | null`, `EventItem.partnersLineShare: number | null` (null quando `lineProfit` é null).
+- `Event.partnersShare: number`, `Event.myProfit: number`.
+- `purchaseInputSchema.profitShares: z.coerce.number().int().min(1).default(1)`; `Purchase.profitShares: number`, `Purchase.grossTotal: number`.
+- `PeriodResultItem.profitShares`, `.myLineProfit`, `.partnersLineShare`; `PeriodResultOrder.partnersShare`, `.myProfit`; `PeriodResult.sales.partnersShare`, `.myProfit`; `net.value = roundMoney(sales.myProfit − expenses.total)`.
+
+### UI
+
+- Cadastro do produto: campo numérico "Lucro dividido entre" com sufixo "pessoas", padrão 1, dica "Ex.: plantio em sociedade com 2 pessoas = 3".
+- Carrinho do atacado: por linha, seletor "Dividir lucro por" (stepper − 1 +, mínimo 1) pré-preenchido do produto. Quando N > 1 a linha mostra "Sua parte: R$ X" além do lucro. Rodapé: "Lucro estimado" e, se houver alguma linha com N > 1, "Sua parte: R$ X".
+- Compra: campo "Compra em sociedade: dividir por" (stepper, padrão 1). Quando N > 1, o rodapé mostra "Nota: R$ cheio · Sua parte (÷N): R$ X" e o total gravado é a parte. Lista de compras exibe `total` (sua parte) como hoje.
+- Modal Resultado do período: tile "Lucro bruto" ganha, abaixo, "sua parte R$ X" quando `partnersShare > 0`; linha do pedido mostra Venda, Custo, Lucro, **Sua parte**; itens mostram N e sua parte; bloco Líquido: Lucro bruto − Parte dos sócios = Lucro seu; − Despesas = Resultado líquido.
 
 ## 2. Semana no filtro (`sales-filters.tsx`)
 
@@ -124,4 +159,5 @@ interface PeriodResult {
 - Custo por item na venda direta (varejo) e no diálogo de editar itens (só preserva).
 - Cadastro de funcionários, impostos ou custos recorrentes automáticos.
 - Filtrar despesas por canal.
+- Acerto financeiro com os sócios (conta a pagar da parte deles).
 - Exportar/imprimir o resultado.
