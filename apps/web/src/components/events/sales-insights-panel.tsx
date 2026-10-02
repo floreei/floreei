@@ -1,13 +1,14 @@
 "use client";
 
-import type {
-  AtRiskCustomer,
-  IdleItem,
-  PartyRanking,
-  PendingDeliveries,
-  PendingDeliveryCustomer,
-  PendingDeliveryItem,
-  SoldItemRanking,
+import {
+  roundMoney,
+  type AtRiskCustomer,
+  type IdleItem,
+  type PartyRanking,
+  type PendingDeliveries,
+  type PendingDeliveryCustomer,
+  type PendingDeliveryItem,
+  type SoldItemRanking,
 } from "@sistema-flores/types";
 import {
   Flower,
@@ -60,7 +61,7 @@ export function SalesInsightsPanel({ filters }: { filters: SalesInsightsFilters 
         <SectionTitle
           icon={<Truck className="h-4 w-4" />}
           title="Entregas"
-          hint="Vendas do período por cliente — pendentes e já entregues. Desmarque um cliente para tirá-lo da contagem (ex.: pedido futuro)."
+          hint="Vendas do período por cliente — pendentes, já entregues e o total. Desmarque um cliente para tirá-lo da contagem (ex.: pedido futuro)."
         />
         <DeliveriesSection
           pending={data?.pendingDeliveries}
@@ -172,24 +173,38 @@ function IdleList({ items, loading }: { items: IdleItem[]; loading: boolean }) {
   );
 }
 
-type DeliveryView = "pending" | "delivered";
+type DeliveryView = "pending" | "delivered" | "total";
 
 const deliveryViews: Record<
   DeliveryView,
-  { label: string; empty: string; totalLabel: string }
+  {
+    label: string;
+    empty: string;
+    totalLabel: string;
+    /** Como chamar cada venda da aba: [singular, plural]. */
+    saleNoun: [string, string];
+  }
 > = {
   pending: {
     label: "Falta entregar",
     empty: "Nada pendente de entrega no período.",
     totalLabel: "Valor total a entregar",
+    saleNoun: ["entrega", "entregas"],
   },
   delivered: {
     label: "Já entregue",
     empty: "Nenhuma entrega concluída no período.",
     totalLabel: "Valor total entregue",
+    saleNoun: ["entrega", "entregas"],
+  },
+  total: {
+    label: "Total",
+    empty: "Nenhuma venda no período.",
+    totalLabel: "Valor total do período",
+    saleNoun: ["venda", "vendas"],
   },
 };
-const deliveryViewOrder: DeliveryView[] = ["pending", "delivered"];
+const deliveryViewOrder: DeliveryView[] = ["pending", "delivered", "total"];
 
 const customerKey = (id: string | null) => id ?? "sem-cliente";
 
@@ -208,16 +223,63 @@ function countDeliveries(
   const included = customers.filter((c) => !excluded.has(customerKey(c.id)));
   return {
     included,
-    totalQuantity: included.reduce(
-      (sum, c) => sum + c.items.reduce((s, i) => s + i.quantity, 0),
-      0,
-    ),
+    totalQuantity: included.reduce((sum, c) => sum + quantityOf(c), 0),
     salesCount: included.reduce((sum, c) => sum + c.salesCount, 0),
     totalValue: included.reduce((sum, c) => sum + c.totalValue, 0),
   };
 }
 
-/** Abas "Falta entregar" / "Já entregue", cada uma com a própria contagem. */
+const itemKey = (item: PendingDeliveryItem) =>
+  `${item.kind}:${item.id}:${item.unit}`;
+const quantityOf = (c: PendingDeliveryCustomer) =>
+  c.items.reduce((sum, i) => sum + i.quantity, 0);
+
+/** Pendentes + entregues num só consolidado (aba "Total"), por cliente e item. */
+function mergeDeliveries(
+  pending: PendingDeliveries,
+  delivered: PendingDeliveries,
+): PendingDeliveries {
+  const byCustomer = new Map<
+    string,
+    PendingDeliveryCustomer & { byItem: Map<string, PendingDeliveryItem> }
+  >();
+  for (const c of [...pending.customers, ...delivered.customers]) {
+    const key = customerKey(c.id);
+    let entry = byCustomer.get(key);
+    if (!entry) {
+      entry = { ...c, salesCount: 0, totalValue: 0, items: [], byItem: new Map() };
+      byCustomer.set(key, entry);
+    }
+    entry.salesCount += c.salesCount;
+    entry.totalValue = roundMoney(entry.totalValue + c.totalValue);
+    for (const item of c.items) {
+      const prev = entry.byItem.get(itemKey(item));
+      if (prev) {
+        prev.quantity += item.quantity;
+        prev.value = roundMoney(prev.value + item.value);
+      } else {
+        entry.byItem.set(itemKey(item), { ...item });
+      }
+    }
+  }
+  const customers = [...byCustomer.values()]
+    .map(({ byItem, ...c }) => ({
+      ...c,
+      items: [...byItem.values()].sort((a, b) => b.quantity - a.quantity),
+    }))
+    .sort((a, b) => quantityOf(b) - quantityOf(a));
+  return {
+    salesCount: pending.salesCount + delivered.salesCount,
+    totalQuantity: pending.totalQuantity + delivered.totalQuantity,
+    totalValue: roundMoney(pending.totalValue + delivered.totalValue),
+    customers,
+  };
+}
+
+/**
+ * Abas "Falta entregar" / "Já entregue" / "Total", cada uma com a própria
+ * contagem.
+ */
 function DeliveriesSection({
   pending,
   delivered,
@@ -233,7 +295,7 @@ function DeliveriesSection({
   // são simplesmente ignoradas.
   const [excluded, setExcluded] = useState<
     Record<DeliveryView, ReadonlySet<string>>
-  >({ pending: new Set(), delivered: new Set() });
+  >({ pending: new Set(), delivered: new Set(), total: new Set() });
 
   if (loading || !pending || !delivered) {
     return (
@@ -245,10 +307,11 @@ function DeliveriesSection({
     );
   }
 
-  const data = { pending, delivered };
+  const data = { pending, delivered, total: mergeDeliveries(pending, delivered) };
   const counts = {
-    pending: countDeliveries(pending.customers, excluded.pending),
-    delivered: countDeliveries(delivered.customers, excluded.delivered),
+    pending: countDeliveries(data.pending.customers, excluded.pending),
+    delivered: countDeliveries(data.delivered.customers, excluded.delivered),
+    total: countDeliveries(data.total.customers, excluded.total),
   };
 
   return (
@@ -260,7 +323,7 @@ function DeliveriesSection({
             <TabsTrigger
               key={v}
               value={v}
-              className="min-h-11 flex-1 flex-col gap-x-1.5 sm:flex-none sm:flex-row lg:min-h-9"
+              className="min-h-11 flex-1 flex-col gap-x-1.5 px-2 sm:flex-none sm:flex-row sm:px-3 lg:min-h-9"
             >
               {deliveryViews[v].label}
               <span className="text-xs font-normal tabular-nums sm:text-sm">
@@ -312,6 +375,7 @@ function DeliveriesList({
   }
 
   const { included, totalQuantity, salesCount, totalValue } = count;
+  const [saleSingular, salePlural] = deliveryViews[view].saleNoun;
   const hiddenCount = data.customers.length - included.length;
   const noneIncluded = included.length === 0;
   const toggle = (key: string) => {
@@ -338,7 +402,7 @@ function DeliveriesList({
           <span className="font-semibold text-foreground tabular-nums">
             {salesCount}
           </span>{" "}
-          {salesCount === 1 ? "entrega" : "entregas"}
+          {salesCount === 1 ? saleSingular : salePlural}
           {hiddenCount > 0 ? (
             <span>
               {" "}
@@ -381,7 +445,7 @@ function DeliveriesList({
                 </label>
                 <span className="flex shrink-0 items-baseline gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {c.salesCount} {c.salesCount === 1 ? "entrega" : "entregas"}
+                    {c.salesCount} {c.salesCount === 1 ? saleSingular : salePlural}
                   </span>
                   <span className="text-sm font-medium tabular-nums">
                     {formatCurrency(c.totalValue)}
@@ -392,7 +456,7 @@ function DeliveriesList({
                 <ul className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 pl-[26px]">
                   {c.items.map((item) => (
                     <li
-                      key={`${item.kind}:${item.id}:${item.unit}`}
+                      key={itemKey(item)}
                       className="text-xs text-muted-foreground"
                     >
                       <span className="font-medium text-foreground tabular-nums">
@@ -437,7 +501,7 @@ function DeliveryTotals({
   const totals = new Map<string, PendingDeliveryItem>();
   for (const c of customers) {
     for (const item of c.items) {
-      const key = `${item.kind}:${item.id}:${item.unit}`;
+      const key = itemKey(item);
       const prev = totals.get(key);
       if (prev) {
         prev.quantity += item.quantity;
@@ -459,7 +523,7 @@ function DeliveryTotals({
           <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
             {rows.map((item) => (
               <li
-                key={`${item.kind}:${item.id}:${item.unit}`}
+                key={itemKey(item)}
                 className="text-sm text-muted-foreground"
               >
                 <span className="font-semibold text-foreground tabular-nums">

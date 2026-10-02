@@ -121,6 +121,18 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   );
   await expect(page.getByText("Valor total a entregar")).toHaveCount(0);
 
+  // Aba "Total": pendentes + entregues somados (7 + 4 maços, R$ 245 + R$ 140).
+  const totalTab = page.getByRole("tab", { name: /^Total/ });
+  await expect(totalTab).toContainText("11 itens");
+  await totalTab.click();
+  await expect(page.getByText("11 itens em 2 vendas")).toBeVisible();
+  await expect(
+    page.getByText(/11 maços — Girassol Gigante \(R\$\s385,00\)/).first(),
+  ).toBeVisible();
+  await expect(
+    page.locator("p", { hasText: "Valor total do período" }),
+  ).toContainText("385,00");
+
   // 3) Filtro aplicado vai para a URL…
   await page.getByRole("button", { name: "A entregar" }).click();
   await expect(page).toHaveURL(/entrega=nao/);
