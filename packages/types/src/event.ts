@@ -50,7 +50,10 @@ export const eventInputSchema = z.object({
 export type EventInput = z.infer<typeof eventInputSchema>;
 
 /** Atualização parcial de um evento. */
-export const eventUpdateSchema = eventInputSchema.partial();
+export const eventUpdateSchema = eventInputSchema.partial().extend({
+  /** true ⇒ marca a venda como cobrada (agora); false ⇒ volta para "a cobrar". */
+  charged: z.boolean().optional(),
+});
 export type EventUpdate = z.infer<typeof eventUpdateSchema>;
 
 /** Item de uma venda: um **buquê** (arrangementId) OU um **insumo** (productId). */
@@ -138,6 +141,12 @@ export type ConvertQuoteInput = z.infer<typeof convertQuoteSchema>;
 export const paymentStatusFilterSchema = z.enum(["paid", "pending", "overdue"]);
 export type PaymentStatusFilter = z.infer<typeof paymentStatusFilterSchema>;
 
+/** Booleano de query string ("true"/"false"); ausente ⇒ sem filtro. */
+const queryBoolean = z.preprocess(
+  (v) => (v === "true" ? true : v === "false" ? false : v),
+  z.boolean().optional(),
+);
+
 /** Situação de pagamento exibida na venda (selo). */
 export type PaymentStatus = "paid" | "partial" | "pending" | "overdue";
 
@@ -149,10 +158,12 @@ export const eventQuerySchema = paginationQuerySchema.extend({
   customerId: idSchema.optional(),
   paymentStatus: paymentStatusFilterSchema.optional(),
   /** true ⇒ só entregues (DONE); false ⇒ só "a entregar" (CONFIRMED/IN_PROGRESS). */
-  delivered: z.preprocess(
-    (v) => (v === "true" ? true : v === "false" ? false : v),
-    z.boolean().optional(),
-  ),
+  delivered: queryBoolean,
+  /**
+   * Cobrança, só entre vendas em aberto (com saldo, não canceladas):
+   * true ⇒ já cobradas; false ⇒ ainda "a cobrar".
+   */
+  charged: queryBoolean,
   from: dateString.optional(),
   to: dateString.optional(),
 });
@@ -166,10 +177,12 @@ export const insightsQuerySchema = z.object({
   type: eventTypeSchema.optional(),
   paymentStatus: paymentStatusFilterSchema.optional(),
   /** true ⇒ só entregues (DONE); false ⇒ só "a entregar" (CONFIRMED/IN_PROGRESS). */
-  delivered: z.preprocess(
-    (v) => (v === "true" ? true : v === "false" ? false : v),
-    z.boolean().optional(),
-  ),
+  delivered: queryBoolean,
+  /**
+   * Cobrança, só entre vendas em aberto (com saldo, não canceladas):
+   * true ⇒ já cobradas; false ⇒ ainda "a cobrar".
+   */
+  charged: queryBoolean,
   search: z.string().trim().max(120).optional(),
 });
 export type InsightsQuery = z.infer<typeof insightsQuerySchema>;
@@ -213,6 +226,8 @@ export interface Event {
   deliveryDate: string | null;
   /** Vencimento do saldo (venda a prazo) — referência da cobrança. */
   dueDate: string | null;
+  /** Quando a venda foi cobrada (manual ou pela régua) — null = ainda não. */
+  chargedAt: string | null;
   location: string | null;
   status: EventStatus;
   soldValue: number;

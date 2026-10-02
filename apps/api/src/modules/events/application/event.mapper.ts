@@ -50,6 +50,7 @@ export function toEvent(event: EventEntity): Event {
     date: event.date,
     deliveryDate: event.deliveryDate ?? null,
     dueDate: event.dueDate ?? null,
+    chargedAt: event.chargedAt ? iso(event.chargedAt) : null,
     location: event.location,
     status: event.status,
     soldValue: event.soldValue,

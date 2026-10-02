@@ -10,7 +10,7 @@ import type {
   DunningLogEntry,
   PublicCobranca,
 } from "@sistema-flores/types";
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 import { todayISO } from "../../../common/date/today";
 import { roundMoney } from "../../../common/money/money";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
@@ -84,7 +84,10 @@ export class DunningService {
     private readonly tenant: TenantContextService,
   ) {}
 
-  /** Monta a cobrança de uma venda para envio MANUAL (abrir no WhatsApp). */
+  /**
+   * Monta a cobrança de uma venda para envio MANUAL (abrir no WhatsApp) e já
+   * marca a venda como cobrada — o lojista desmarca na listagem se desistir.
+   */
   async buildManualCobranca(eventId: string): Promise<CobrancaMessage> {
     const companyId = this.tenant.getCompanyIdOrThrow();
     const event = await this.events.findOne({
@@ -112,6 +115,7 @@ export class DunningService {
       },
       await this.settingsService.get(),
     );
+    await this.markCharged(companyId, event.id);
     return {
       phone: toPhone(event.customer?.whatsapp ?? event.customer?.phone ?? null),
       message,
@@ -229,9 +233,20 @@ export class DunningService {
           error: res.error ?? null,
         }),
       );
-      if (res.ok) sent++;
+      if (res.ok) {
+        sent++;
+        await this.markCharged(settings.companyId, rem.eventId);
+      }
     }
     return { processed: reminders.length, sent };
+  }
+
+  /** Registra a cobrança na venda, preservando a data se já estava marcada. */
+  private async markCharged(companyId: string, eventId: string): Promise<void> {
+    await this.events.update(
+      { id: eventId, companyId, chargedAt: IsNull() },
+      { chargedAt: new Date() },
+    );
   }
 
   /** Contas a receber com contato cujo vencimento+offset cai hoje e sem log. */

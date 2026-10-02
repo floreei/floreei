@@ -40,6 +40,7 @@ export function useEvents(query: Partial<EventQuery> = {}) {
         customerId: query.customerId,
         paymentStatus: query.paymentStatus,
         delivered: query.delivered,
+        charged: query.charged,
         from: query.from,
         to: query.to,
       }),
@@ -54,6 +55,7 @@ export interface SalesInsightsFilters {
   type?: EventType;
   paymentStatus?: PaymentStatusFilter;
   delivered?: boolean;
+  charged?: boolean;
   search?: string;
 }
 
@@ -69,6 +71,7 @@ export function useSalesInsights(filters: SalesInsightsFilters) {
         type: filters.type,
         paymentStatus: filters.paymentStatus,
         delivered: filters.delivered,
+        charged: filters.charged,
         search: filters.search || undefined,
       }),
     staleTime: 60_000,
@@ -87,6 +90,7 @@ export function usePeriodResult(filters: SalesInsightsFilters, enabled = true) {
         type: filters.type,
         paymentStatus: filters.paymentStatus,
         delivered: filters.delivered,
+        charged: filters.charged,
         search: filters.search || undefined,
       }),
     staleTime: 60_000,

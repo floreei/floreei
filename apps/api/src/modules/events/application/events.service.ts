@@ -381,7 +381,12 @@ export class EventsService {
       await this.customers.findByIdOrFail(input.customerId);
     }
     const previousProfit = Number(event.estimatedProfit);
-    Object.assign(event, input);
+    const { charged, ...fields } = input;
+    Object.assign(event, fields);
+    if (charged !== undefined) {
+      // Remarcar preserva a data da primeira cobrança.
+      event.chargedAt = charged ? (event.chargedAt ?? new Date()) : null;
+    }
     // Mantém o COGS coerente com venda − lucro.
     event.cost = roundMoney(event.soldValue - event.estimatedProfit);
     // Só quando o lucro de cabeçalho realmente muda a parte dos sócios é

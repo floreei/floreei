@@ -4,6 +4,7 @@ import type { EventType, PaymentStatusFilter } from "@sistema-flores/types";
 import { BarChart3, CalendarHeart, ChevronDown, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { ChargeToggle } from "@/components/events/charge-toggle";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
 import { SaleRowActions } from "@/components/events/sale-row-actions";
 import { SalesInsightsPanel } from "@/components/events/sales-insights-panel";
@@ -53,6 +54,14 @@ const deliveryFilters: Array<{ label: string; value?: boolean }> = [
   { label: "A entregar", value: false },
 ];
 
+// Cobrança só existe para venda em aberto: os dois filtros deixam de fora as
+// quitadas e as canceladas.
+const chargeFilters: Array<{ label: string; value?: boolean }> = [
+  { label: "Cobrança: todas" },
+  { label: "Cobradas", value: true },
+  { label: "A cobrar", value: false },
+];
+
 export default function EventsPage() {
   const router = useRouter();
   const defaults = useMemo(() => {
@@ -72,6 +81,9 @@ export default function EventsPage() {
   const deliveredParam = get("entrega");
   const delivered =
     deliveredParam === "sim" ? true : deliveredParam === "nao" ? false : undefined;
+  const chargedParam = get("cobranca");
+  const charged =
+    chargedParam === "sim" ? true : chargedParam === "nao" ? false : undefined;
   const from = get("de");
   const to = get("ate");
   const page = Math.max(1, Number.parseInt(get("pagina"), 10) || 1);
@@ -94,6 +106,7 @@ export default function EventsPage() {
     channel: "RETAIL",
     paymentStatus: payment,
     delivered,
+    charged,
     search: debouncedSearch || undefined,
     from: from || undefined,
     to: to || undefined,
@@ -111,6 +124,11 @@ export default function EventsPage() {
   const changeDelivered = (value: boolean | undefined) =>
     set({
       entrega: value === undefined ? undefined : value ? "sim" : "nao",
+      pagina: undefined,
+    });
+  const changeCharged = (value: boolean | undefined) =>
+    set({
+      cobranca: value === undefined ? undefined : value ? "sim" : "nao",
       pagina: undefined,
     });
   const changeDate = (nextFrom: string, nextTo: string) =>
@@ -187,6 +205,22 @@ export default function EventsPage() {
             </button>
           ))}
         </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0">
+          {chargeFilters.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => changeCharged(f.value)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:px-3 sm:py-1.5",
+                charged === f.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>
@@ -214,6 +248,7 @@ export default function EventsPage() {
                 type,
                 paymentStatus: payment,
                 delivered,
+                charged,
                 search: debouncedSearch || undefined,
               }}
             />
@@ -273,6 +308,7 @@ export default function EventsPage() {
                   <SortableHead column="date" state={sortState} className="hidden md:table-cell">Data</SortableHead>
                   <TableHead>Pagamento</TableHead>
                   <TableHead className="hidden md:table-cell">Entrega</TableHead>
+                  <TableHead className="hidden lg:table-cell">Cobrança</TableHead>
                   <SortableHead column="sold" state={sortState} align="right" className="text-right">Vendido</SortableHead>
                   <TableHead className="hidden text-right lg:table-cell">Saldo</TableHead>
                   <TableHead className="w-14 text-right" />
@@ -314,6 +350,12 @@ export default function EventsPage() {
                     >
                       <DeliveryToggle id={event.id} status={event.status} />
                     </TableCell>
+                    <TableCell
+                      className="hidden lg:table-cell"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ChargeToggle event={event} />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
                       {formatCurrency(event.soldValue)}
                     </TableCell>
@@ -345,7 +387,11 @@ export default function EventsPage() {
         </>
       ) : (
         <Card>
-          {debouncedSearch || type || payment || delivered !== undefined ? (
+          {debouncedSearch ||
+          type ||
+          payment ||
+          delivered !== undefined ||
+          charged !== undefined ? (
             <EmptyState
               className="border-0"
               icon={<CalendarHeart />}

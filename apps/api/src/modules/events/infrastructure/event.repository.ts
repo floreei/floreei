@@ -17,6 +17,17 @@ const SORT: Record<string, string> = {
   customer: "customer.name",
 };
 
+/**
+ * Cláusula do filtro de cobrança (alias `event`). Só considera vendas em
+ * aberto — com saldo e não canceladas —, as únicas em que há o que cobrar:
+ * `true` ⇒ já cobradas; `false` ⇒ ainda a cobrar.
+ */
+export function chargedWhere(charged: boolean): string {
+  return `event.status <> 'CANCELED' AND event.received_value < event.sold_value AND event.charged_at IS ${
+    charged ? "NOT NULL" : "NULL"
+  }`;
+}
+
 @Injectable()
 export class EventRepository extends TenantScopedRepository<EventEntity> {
   constructor(
@@ -65,6 +76,9 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
       qb.andWhere("event.status = 'DONE'");
     } else if (query.delivered === false) {
       qb.andWhere("event.status IN ('CONFIRMED', 'IN_PROGRESS')");
+    }
+    if (query.charged !== undefined) {
+      qb.andWhere(chargedWhere(query.charged));
     }
     if (query.from) {
       qb.andWhere("event.date >= :from", { from: query.from });

@@ -32,10 +32,15 @@ export function useDunningLog() {
   });
 }
 
-/** Monta a cobrança de uma venda para envio manual (abrir no WhatsApp). */
+/**
+ * Monta a cobrança de uma venda para envio manual (abrir no WhatsApp). A API
+ * já marca a venda como cobrada — por isso as listagens de vendas recarregam.
+ */
 export function useSendCobranca() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (eventId: string) =>
       api.post<CobrancaMessage>(`/dunning/send/${eventId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
   });
 }

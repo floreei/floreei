@@ -1,5 +1,6 @@
 import type { InsightsQuery } from "@sistema-flores/types";
 import type { ObjectLiteral, SelectQueryBuilder } from "typeorm";
+import { chargedWhere } from "../infrastructure/event.repository";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -55,6 +56,7 @@ export function applyEventListFilters(
     else if (f.delivered === false)
       qb.andWhere("event.status IN ('CONFIRMED', 'IN_PROGRESS')");
   }
+  if (f.charged !== undefined) qb.andWhere(chargedWhere(f.charged));
   if (f.search) {
     qb.andWhere("(event.title ILIKE :s OR customer.name ILIKE :s)", {
       s: `%${f.search}%`,

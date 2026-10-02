@@ -46,6 +46,10 @@ export class EventEntity extends TenantOwnedEntity {
   @Column({ name: "due_date", type: "date", nullable: true })
   dueDate!: string | null;
 
+  /** Quando a venda foi cobrada (manual ou pela régua); null = a cobrar. */
+  @Column({ name: "charged_at", type: "timestamptz", nullable: true })
+  chargedAt!: Date | null;
+
   @Column({ type: "varchar", length: 255, nullable: true })
   location!: string | null;
 
