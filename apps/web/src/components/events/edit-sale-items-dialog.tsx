@@ -1,6 +1,10 @@
 "use client";
 
-import type { Event, ProductUnit } from "@sistema-flores/types";
+import {
+  isFractionalUnit,
+  type Event,
+  type ProductUnit,
+} from "@sistema-flores/types";
 import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { QuantityInput } from "@/components/events/quantity-input";
 import { UnitToggle } from "@/components/events/unit-toggle";
 import { useArrangements } from "@/lib/api/arrangements";
 import { useProducts } from "@/lib/api/catalog";
@@ -208,6 +213,9 @@ export function EditSaleItemsDialog({
       }
       return { ...c, [k]: { ...cur, quantity } };
     });
+  /** Quantidade digitada direto no campo (sempre > 0 — remover é pela lixeira). */
+  const setQty = (k: string, quantity: number) =>
+    setCart((c) => (c[k] ? { ...c, [k]: { ...c[k], quantity } } : c));
 
   const total = mode === "ITEMS" ? itemsSum : round(fixedValue);
   const canSubmit = cartItems.length > 0;
@@ -332,9 +340,14 @@ export function EditSaleItemsDialog({
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
-                        <span className="w-6 text-center text-sm tabular-nums">
-                          {item.quantity}
-                        </span>
+                        <QuantityInput
+                          label={`Quantidade de ${item.sellable.name}`}
+                          value={item.quantity}
+                          onChange={(q) => setQty(k, q)}
+                          fractional={
+                            item.saleUnit ? isFractionalUnit(item.saleUnit) : false
+                          }
+                        />
                         <button
                           type="button"
                           aria-label="Mais"

@@ -77,4 +77,27 @@ test("detalhar uma venda avulsa: adiciona itens mantendo o valor fixo", async ({
   expect(body.soldValue).toBe(100);
   expect(body.items).toHaveLength(1);
   expect(body.items[0].description).toBe("Rosa Bonita");
+
+  // Quantidade digitada direto no campo, sem clicar 14 vezes no "+".
+  await page.getByRole("button", { name: "Editar itens" }).click();
+  const qty = page.getByRole("textbox", { name: "Quantidade de Rosa Bonita" });
+  await expect(qty).toHaveValue("1");
+  // Campo vazio durante a digitação não remove o item; ao sair, volta o valor.
+  await qty.fill("");
+  await qty.blur();
+  await expect(qty).toHaveValue("1");
+  await qty.fill("15");
+  // Os botões continuam valendo a partir do valor digitado.
+  await page.getByRole("button", { name: "Mais", exact: true }).click();
+  await expect(qty).toHaveValue("16");
+  await page.getByRole("button", { name: "Menos", exact: true }).click();
+  await expect(qty).toHaveValue("15");
+  await page.getByRole("button", { name: /Salvar itens/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Editar itens vendidos" }),
+  ).toHaveCount(0);
+  const edited = await (
+    await page.request.get(`${API}/events/${saleId}`, { headers: auth })
+  ).json();
+  expect(edited.items[0].quantity).toBe(15);
 });
