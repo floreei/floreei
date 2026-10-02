@@ -221,6 +221,78 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     ]);
   });
 
+  it("delivered agrega itens já entregues por cliente, sem as pendências", async () => {
+    const cat = await (
+      await http.post("/api/categories").set(auth()).send({ name: "Rosas E" }).expect(201)
+    ).body;
+    const prod = await (
+      await http
+        .post("/api/products")
+        .set(auth())
+        .send({ categoryId: cat.id, name: "Rosa Vermelha", unit: "MACO", defaultSalePrice: 30 })
+        .expect(201)
+    ).body;
+    const customer = await (
+      await http.post("/api/customers").set(auth()).send({ name: "Feira do Centro" }).expect(201)
+    ).body;
+
+    // Entregues: duas vendas do mesmo cliente somam 9 + 3 maços.
+    for (const quantity of [9, 3]) {
+      await http
+        .post("/api/events/quick")
+        .set(auth())
+        .send({
+          channel: "WHOLESALE",
+          customerId: customer.id,
+          delivered: true,
+          items: [{ productId: prod.id, quantity, unitSalePrice: 25 }],
+        })
+        .expect(201);
+    }
+    // Pendente: não pode aparecer nos entregues.
+    await http
+      .post("/api/events/quick")
+      .set(auth())
+      .send({
+        channel: "WHOLESALE",
+        customerId: customer.id,
+        items: [{ productId: prod.id, quantity: 5, unitSalePrice: 25 }],
+      })
+      .expect(201);
+
+    // O filtro `delivered` da tela não muda a seção (ela já fixa o status).
+    for (const delivered of [undefined, false]) {
+      const res = await http
+        .get("/api/events/insights")
+        .query({ channel: "WHOLESALE", delivered })
+        .set(auth())
+        .expect(200);
+
+      const dl = res.body.delivered;
+      expect(dl.salesCount).toBe(2);
+      expect(dl.totalQuantity).toBe(12);
+      expect(dl.totalValue).toBe(300);
+      expect(dl.customers).toHaveLength(1);
+      expect(dl.customers[0]).toMatchObject({
+        id: customer.id,
+        name: "Feira do Centro",
+        salesCount: 2,
+        totalValue: 300,
+      });
+      expect(dl.customers[0].items).toEqual([
+        expect.objectContaining({
+          id: prod.id,
+          name: "Rosa Vermelha",
+          kind: "product",
+          quantity: 12,
+          unit: "MACO",
+          value: 300,
+        }),
+      ]);
+      expect(res.body.pendingDeliveries.totalQuantity).toBe(5);
+    }
+  });
+
   it("pendingDeliveries agrupa venda sem cliente e sem itens (valor livre)", async () => {
     await http
       .post("/api/events/quick")

@@ -5,6 +5,7 @@ import type {
   IdleItem,
   PartyRanking,
   PendingDeliveries,
+  PendingDeliveryCustomer,
   PendingDeliveryItem,
   SoldItemRanking,
 } from "@sistema-flores/types";
@@ -18,8 +19,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { RankingList, type RankRow } from "@/components/reports/ranking-list";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useSalesInsights,
   type SalesInsightsFilters,
@@ -56,10 +59,14 @@ export function SalesInsightsPanel({ filters }: { filters: SalesInsightsFilters 
       <Card className="space-y-4 p-5 lg:col-span-2">
         <SectionTitle
           icon={<Truck className="h-4 w-4" />}
-          title="Falta entregar"
-          hint="Vendas confirmadas ainda não entregues no período — por cliente. Desmarque um cliente para tirá-lo da contagem (ex.: pedido futuro)."
+          title="Entregas"
+          hint="Vendas do período por cliente — pendentes e já entregues. Desmarque um cliente para tirá-lo da contagem (ex.: pedido futuro)."
         />
-        <PendingDeliveriesList data={data?.pendingDeliveries} loading={isLoading} />
+        <DeliveriesSection
+          pending={data?.pendingDeliveries}
+          delivered={data?.delivered}
+          loading={isLoading}
+        />
       </Card>
 
       <Card className="space-y-5 p-5">
@@ -165,27 +172,70 @@ function IdleList({ items, loading }: { items: IdleItem[]; loading: boolean }) {
   );
 }
 
-function PendingDeliveriesList({
-  data,
+type DeliveryView = "pending" | "delivered";
+
+const deliveryViews: Record<
+  DeliveryView,
+  { label: string; empty: string; totalLabel: string }
+> = {
+  pending: {
+    label: "Falta entregar",
+    empty: "Nada pendente de entrega no período.",
+    totalLabel: "Valor total a entregar",
+  },
+  delivered: {
+    label: "Já entregue",
+    empty: "Nenhuma entrega concluída no período.",
+    totalLabel: "Valor total entregue",
+  },
+};
+const deliveryViewOrder: DeliveryView[] = ["pending", "delivered"];
+
+const customerKey = (id: string | null) => id ?? "sem-cliente";
+
+interface DeliveryCount {
+  included: PendingDeliveryCustomer[];
+  totalQuantity: number;
+  salesCount: number;
+  totalValue: number;
+}
+
+/** Contagem só dos clientes marcados. */
+function countDeliveries(
+  customers: PendingDeliveryCustomer[],
+  excluded: ReadonlySet<string>,
+): DeliveryCount {
+  const included = customers.filter((c) => !excluded.has(customerKey(c.id)));
+  return {
+    included,
+    totalQuantity: included.reduce(
+      (sum, c) => sum + c.items.reduce((s, i) => s + i.quantity, 0),
+      0,
+    ),
+    salesCount: included.reduce((sum, c) => sum + c.salesCount, 0),
+    totalValue: included.reduce((sum, c) => sum + c.totalValue, 0),
+  };
+}
+
+/** Abas "Falta entregar" / "Já entregue", cada uma com a própria contagem. */
+function DeliveriesSection({
+  pending,
+  delivered,
   loading,
 }: {
-  data: PendingDeliveries | undefined;
+  pending: PendingDeliveries | undefined;
+  delivered: PendingDeliveries | undefined;
   loading: boolean;
 }) {
+  const [view, setView] = useState<DeliveryView>("pending");
   // Clientes desmarcados saem da contagem (só na tela — não altera nada no
-  // servidor). Chaves que sumirem com a troca de filtros são simplesmente
-  // ignoradas.
-  const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
-  const keyOf = (id: string | null) => id ?? "sem-cliente";
-  const toggle = (key: string) =>
-    setExcluded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  // servidor), separados por aba. Chaves que sumirem com a troca de filtros
+  // são simplesmente ignoradas.
+  const [excluded, setExcluded] = useState<
+    Record<DeliveryView, ReadonlySet<string>>
+  >({ pending: new Set(), delivered: new Set() });
 
-  if (loading || !data) {
+  if (loading || !pending || !delivered) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 2 }).map((_, i) => (
@@ -194,45 +244,122 @@ function PendingDeliveriesList({
       </div>
     );
   }
+
+  const data = { pending, delivered };
+  const counts = {
+    pending: countDeliveries(pending.customers, excluded.pending),
+    delivered: countDeliveries(delivered.customers, excluded.delivered),
+  };
+
+  return (
+    <Tabs value={view} onValueChange={(v) => setView(v as DeliveryView)}>
+      <TabsList className="h-auto w-full sm:w-auto">
+        {deliveryViewOrder.map((v) => {
+          const quantity = counts[v].totalQuantity;
+          return (
+            <TabsTrigger
+              key={v}
+              value={v}
+              className="min-h-11 flex-1 flex-col gap-x-1.5 sm:flex-none sm:flex-row lg:min-h-9"
+            >
+              {deliveryViews[v].label}
+              <span className="text-xs font-normal tabular-nums sm:text-sm">
+                <span aria-hidden className="hidden sm:inline">
+                  ·{" "}
+                </span>
+                {quantity} {quantity === 1 ? "item" : "itens"}
+              </span>
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
+      {deliveryViewOrder.map((v) => (
+        <TabsContent key={v} value={v} className="mt-3">
+          <DeliveriesList
+            view={v}
+            data={data[v]}
+            count={counts[v]}
+            excluded={excluded[v]}
+            onExcludedChange={(next) =>
+              setExcluded((prev) => ({ ...prev, [v]: next }))
+            }
+          />
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
+function DeliveriesList({
+  view,
+  data,
+  count,
+  excluded,
+  onExcludedChange,
+}: {
+  view: DeliveryView;
+  data: PendingDeliveries;
+  count: DeliveryCount;
+  excluded: ReadonlySet<string>;
+  onExcludedChange: (next: ReadonlySet<string>) => void;
+}) {
   if (data.salesCount === 0) {
     return (
       <p className="py-4 text-center text-sm text-muted-foreground">
-        Nada pendente de entrega no período.
+        {deliveryViews[view].empty}
       </p>
     );
   }
 
-  const included = data.customers.filter((c) => !excluded.has(keyOf(c.id)));
-  const totalQuantity = included.reduce(
-    (sum, c) => sum + c.items.reduce((s, i) => s + i.quantity, 0),
-    0,
-  );
-  const salesCount = included.reduce((sum, c) => sum + c.salesCount, 0);
-  const totalValue = included.reduce((sum, c) => sum + c.totalValue, 0);
+  const { included, totalQuantity, salesCount, totalValue } = count;
   const hiddenCount = data.customers.length - included.length;
+  const noneIncluded = included.length === 0;
+  const toggle = (key: string) => {
+    const next = new Set(excluded);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onExcludedChange(next);
+  };
+  const toggleAll = () =>
+    onExcludedChange(
+      noneIncluded
+        ? new Set()
+        : new Set(data.customers.map((c) => customerKey(c.id))),
+    );
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        <span className="font-semibold text-foreground tabular-nums">
-          {totalQuantity}
-        </span>{" "}
-        {totalQuantity === 1 ? "item" : "itens"} em{" "}
-        <span className="font-semibold text-foreground tabular-nums">
-          {salesCount}
-        </span>{" "}
-        {salesCount === 1 ? "entrega" : "entregas"}
-        {hiddenCount > 0 ? (
-          <span>
-            {" "}
-            · {hiddenCount} {hiddenCount === 1 ? "cliente fora" : "clientes fora"}{" "}
-            da contagem
-          </span>
-        ) : null}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground tabular-nums">
+            {totalQuantity}
+          </span>{" "}
+          {totalQuantity === 1 ? "item" : "itens"} em{" "}
+          <span className="font-semibold text-foreground tabular-nums">
+            {salesCount}
+          </span>{" "}
+          {salesCount === 1 ? "entrega" : "entregas"}
+          {hiddenCount > 0 ? (
+            <span>
+              {" "}
+              · {hiddenCount} {hiddenCount === 1 ? "cliente fora" : "clientes fora"}{" "}
+              da contagem
+            </span>
+          ) : null}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-11 shrink-0"
+          onClick={toggleAll}
+        >
+          {noneIncluded ? "Marcar todos" : "Desmarcar todos"}
+        </Button>
+      </div>
       <ul className="divide-y divide-border">
         {data.customers.map((c) => {
-          const key = keyOf(c.id);
+          const key = customerKey(c.id);
           const active = !excluded.has(key);
           return (
             <li
@@ -288,18 +415,24 @@ function PendingDeliveriesList({
           );
         })}
       </ul>
-      <PendingTotals customers={included} totalValue={totalValue} />
+      <DeliveryTotals
+        customers={included}
+        totalValue={totalValue}
+        totalLabel={deliveryViews[view].totalLabel}
+      />
     </div>
   );
 }
 
 /** Somatório por produto (só clientes marcados) + valor total. */
-function PendingTotals({
+function DeliveryTotals({
   customers,
   totalValue,
+  totalLabel,
 }: {
-  customers: PendingDeliveries["customers"];
+  customers: PendingDeliveryCustomer[];
   totalValue: number;
+  totalLabel: string;
 }) {
   const totals = new Map<string, PendingDeliveryItem>();
   for (const c of customers) {
@@ -343,7 +476,7 @@ function PendingTotals({
         </div>
       ) : null}
       <p className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="font-semibold">Valor total a entregar</span>
+        <span className="font-semibold">{totalLabel}</span>
         <span className="font-semibold tabular-nums">
           {formatCurrency(totalValue)}
         </span>

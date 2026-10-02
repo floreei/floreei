@@ -51,22 +51,27 @@ export interface PendingDeliveryCustomer {
   items: PendingDeliveryItem[];
 }
 
-/** Consolidado do que falta entregar no período filtrado. */
+/**
+ * Consolidado de entregas no período filtrado. O mesmo formato serve às duas
+ * visões: o que falta entregar (`pendingDeliveries`) e o que já foi entregue
+ * (`delivered`).
+ */
 export interface PendingDeliveries {
-  /** Vendas confirmadas/em andamento (não entregues, não canceladas). */
+  /** Vendas da visão: confirmadas/em andamento (pendentes) ou concluídas (entregues). */
   salesCount: number;
-  /** Soma das quantidades de todos os itens pendentes (unidades mistas). */
+  /** Soma das quantidades de todos os itens da visão (unidades mistas). */
   totalQuantity: number;
-  /** Valor de venda somado de todos os pedidos pendentes. */
+  /** Valor de venda somado de todos os pedidos da visão. */
   totalValue: number;
-  /** Ordenado por quantidade pendente (desc). */
+  /** Ordenado por quantidade (desc). */
   customers: PendingDeliveryCustomer[];
 }
 
 /**
  * Insights práticos da tela de Vendas, no período filtrado. "Mais" mostra o
  * que puxa a receita; "parados/em risco" é o que vira ação (empurrar item
- * encalhado, reativar cliente sumido); "falta entregar" é a rota do dia.
+ * encalhado, reativar cliente sumido); "falta entregar" é a rota do dia e
+ * "já entregue" é a conferência do que saiu.
  */
 export interface SalesInsights {
   from: string;
@@ -76,4 +81,6 @@ export interface SalesInsights {
   topCustomers: PartyRanking[];
   atRiskCustomers: AtRiskCustomer[];
   pendingDeliveries: PendingDeliveries;
+  /** Vendas já entregues (DONE) no período, no mesmo formato das pendências. */
+  delivered: PendingDeliveries;
 }

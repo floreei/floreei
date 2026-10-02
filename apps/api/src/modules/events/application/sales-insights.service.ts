@@ -28,6 +28,9 @@ import { EventRepository } from "../infrastructure/event.repository";
 /** Filtros normalizados (período resolvido) aplicados às queries de insight. */
 type InsightsFilters = EventListFilters;
 
+const PENDING_STATUS_WHERE = "event.status IN ('CONFIRMED', 'IN_PROGRESS')";
+const DELIVERED_STATUS_WHERE = "event.status = 'DONE'";
+
 /**
  * Insights práticos da tela de Vendas (gated por SALES). Reaproveita os padrões
  * de query dos relatórios para "mais vendido / top cliente" e adiciona os que o
@@ -54,14 +57,21 @@ export class SalesInsightsService {
   async generate(query: InsightsQuery): Promise<SalesInsights> {
     const { from, to } = defaultMonthRange(query.from, query.to);
     const f: InsightsFilters = { ...query, from, to };
-    const [topItems, idleItems, topCustomers, atRiskCustomers, pendingDeliveries] =
-      await Promise.all([
-        this.topItems(f),
-        this.idleItems(from, to, query.channel),
-        this.topCustomers(f),
-        this.atRiskCustomers(from, query.channel),
-        this.pendingDeliveries(f),
-      ]);
+    const [
+      topItems,
+      idleItems,
+      topCustomers,
+      atRiskCustomers,
+      pendingDeliveries,
+      delivered,
+    ] = await Promise.all([
+      this.topItems(f),
+      this.idleItems(from, to, query.channel),
+      this.topCustomers(f),
+      this.atRiskCustomers(from, query.channel),
+      this.deliveries(f, PENDING_STATUS_WHERE),
+      this.deliveries(f, DELIVERED_STATUS_WHERE),
+    ]);
     return {
       from,
       to,
@@ -70,6 +80,7 @@ export class SalesInsightsService {
       topCustomers,
       atRiskCustomers,
       pendingDeliveries,
+      delivered,
     };
   }
 
@@ -251,13 +262,15 @@ export class SalesInsightsService {
   }
 
   /**
-   * O que falta entregar no período: vendas CONFIRMED/IN_PROGRESS agrupadas
-   * por cliente, com as quantidades por item. Ignora o filtro `delivered`
-   * (a seção já é, por definição, "não entregue").
+   * Entregas do período numa situação fixa — o que falta entregar
+   * (CONFIRMED/IN_PROGRESS) ou o que já foi entregue (DONE) — agrupadas por
+   * cliente, com as quantidades por item. Ignora o filtro `delivered` (cada
+   * visão já fixa o status por definição).
    */
-  private async pendingDeliveries(f: InsightsFilters): Promise<PendingDeliveries> {
-    const pendingWhere = "event.status IN ('CONFIRMED', 'IN_PROGRESS')";
-
+  private async deliveries(
+    f: InsightsFilters,
+    statusWhere: string,
+  ): Promise<PendingDeliveries> {
     const salesQb = this.events
       .qb("event")
       .leftJoin("event.customer", "customer")
@@ -265,7 +278,7 @@ export class SalesInsightsService {
       .addSelect("MAX(customer.name)", "customerName")
       .addSelect("COUNT(*)", "salesCount")
       .addSelect("COALESCE(SUM(event.sold_value),0)", "totalValue")
-      .andWhere(pendingWhere)
+      .andWhere(statusWhere)
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
     applyEventListFilters(salesQb, f, { skipDelivered: true });
     const sales = await salesQb
@@ -292,7 +305,7 @@ export class SalesInsightsService {
       .addSelect("SUM(ei.quantity)", "quantity")
       .addSelect("COALESCE(SUM(ei.line_total),0)", "value")
       .where("event.company_id = :cid", { cid })
-      .andWhere(pendingWhere)
+      .andWhere(statusWhere)
       .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
       .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
     applyEventListFilters(itemsQb, f, { skipDelivered: true });
@@ -338,11 +351,11 @@ export class SalesInsightsService {
       });
     }
 
-    const pendingOf = (c: PendingDeliveryCustomer) =>
+    const quantityOf = (c: PendingDeliveryCustomer) =>
       c.items.reduce((sum, i) => sum + i.quantity, 0);
     const customers = [...byCustomer.values()];
     for (const c of customers) c.items.sort((a, b) => b.quantity - a.quantity);
-    customers.sort((a, b) => pendingOf(b) - pendingOf(a));
+    customers.sort((a, b) => quantityOf(b) - quantityOf(a));
 
     return {
       salesCount: sales.reduce((s, r) => s + (Number(r.salesCount) || 0), 0),

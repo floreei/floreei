@@ -55,9 +55,26 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   await expect(page.locator("table").getByText("Girassol Gigante")).toBeVisible();
   await expect(page.locator("table").getByText("7 Maço")).toBeVisible();
 
+  // Já entregue: 4 maços para o mesmo cliente. Criada depois da conferência
+  // da tabela (que segue com uma linha só); os insights só são buscados ao abrir.
+  await page.request.post(`${API}/events/quick`, {
+    headers: auth,
+    data: {
+      channel: "WHOLESALE",
+      customerId: customer.id,
+      delivered: true,
+      items: [{ productId: prod.id, quantity: 4, unitSalePrice: 35 }],
+    },
+  });
+
   // 2) Insights com "Falta entregar" respeitando o período atual.
   await page.getByRole("button", { name: "Insights do período" }).click();
-  await expect(page.getByText("Falta entregar")).toBeVisible();
+  const pendingTab = page.getByRole("tab", { name: /Falta entregar/ });
+  const deliveredTab = page.getByRole("tab", { name: /Já entregue/ });
+  // As duas contagens ficam visíveis nas abas, sem precisar clicar.
+  await expect(pendingTab).toContainText("7 itens");
+  await expect(deliveredTab).toContainText("4 itens");
+  await expect(pendingTab).toHaveAttribute("aria-selected", "true");
   // O nome também aparece na tabela — o primeiro na DOM é o do painel de insights.
   await expect(page.getByText("Mercado das Flores").first()).toBeVisible();
   // Somatório por produto no rodapé da seção, com valor de venda.
@@ -82,6 +99,27 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
     .getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" })
     .check();
   await expect(totalRow).toContainText("245,00");
+
+  // "Desmarcar todos" zera a contagem de uma vez e vira "Marcar todos".
+  await page.getByRole("button", { name: "Desmarcar todos" }).click();
+  await expect(totalRow).toContainText("0,00");
+  await expect(pendingTab).toContainText("0 itens");
+  await expect(
+    page.getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" }),
+  ).not.toBeChecked();
+  await page.getByRole("button", { name: "Marcar todos" }).click();
+  await expect(totalRow).toContainText("245,00");
+  await expect(pendingTab).toContainText("7 itens");
+
+  // Aba "Já entregue": mesma visão, só com o que já saiu (4 × R$ 35 = R$ 140).
+  await deliveredTab.click();
+  await expect(
+    page.getByText(/4 maços — Girassol Gigante \(R\$\s140,00\)/).first(),
+  ).toBeVisible();
+  await expect(page.locator("p", { hasText: "Valor total entregue" })).toContainText(
+    "140,00",
+  );
+  await expect(page.getByText("Valor total a entregar")).toHaveCount(0);
 
   // 3) Filtro aplicado vai para a URL…
   await page.getByRole("button", { name: "A entregar" }).click();
