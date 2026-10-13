@@ -30,24 +30,34 @@ export interface AtRiskCustomer {
   total: number;
 }
 
-/** Item (produto ou buquê) pendente de entrega, com quantidade somada. */
+/** Item (produto ou buquê) de um pedido, com as linhas do mesmo produto somadas. */
 export interface PendingDeliveryItem {
   id: string;
   name: string;
   kind: "product" | "arrangement";
   quantity: number;
   unit: ProductUnit;
-  /** Valor de venda somado (line_total) das linhas pendentes deste item. */
+  /** Valor de venda somado (line_total) das linhas deste item no pedido. */
   value: number;
 }
 
-/** Cliente com vendas a entregar no período (null = venda sem cliente). */
-export interface PendingDeliveryCustomer {
-  id: string | null;
-  name: string | null;
-  salesCount: number;
-  /** Soma do valor de venda (sold_value) dos pedidos pendentes do cliente. */
+/**
+ * Um pedido (venda) da visão de entregas. Cada venda vem separada — o mesmo
+ * cliente com pedidos para dias diferentes aparece uma vez por pedido.
+ */
+export interface PendingDeliverySale {
+  /** id da venda. */
+  id: string;
+  /** null = venda sem cliente. */
+  customerId: string | null;
+  customerName: string | null;
+  /** Data da venda (AAAA-MM-DD). */
+  date: string;
+  /** Data de entrega combinada, ou null quando não informada (usa-se `date`). */
+  deliveryDate: string | null;
+  /** Valor de venda (sold_value) do pedido. */
   totalValue: number;
+  /** Ordenado por quantidade (desc). */
   items: PendingDeliveryItem[];
 }
 
@@ -63,8 +73,11 @@ export interface PendingDeliveries {
   totalQuantity: number;
   /** Valor de venda somado de todos os pedidos da visão. */
   totalValue: number;
-  /** Ordenado por quantidade (desc). */
-  customers: PendingDeliveryCustomer[];
+  /**
+   * Um por pedido, ordenado pela data efetiva (`deliveryDate ?? date`)
+   * crescente, depois nome do cliente, depois id.
+   */
+  sales: PendingDeliverySale[];
 }
 
 /**

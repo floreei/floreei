@@ -4,7 +4,9 @@ import {
   currentMonthRange,
   formatCurrency,
   formatDate,
+  formatDateWithWeekday,
   formatPercent,
+  formatWeekdayShort,
   todayLocalISO,
 } from "./utils";
 
@@ -40,6 +42,29 @@ describe("formatDate", () => {
 
   it("devolve travessão quando vazio", () => {
     expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("formatWeekdayShort", () => {
+  it("abrevia o dia da semana sem ponto final e mostra dia/mês", () => {
+    // 2026-10-14 é uma quarta-feira.
+    expect(formatWeekdayShort("2026-10-14")).toBe("qua 14/10");
+  });
+
+  it("funciona na virada de mês e no domingo", () => {
+    // 2026-11-01 é um domingo.
+    expect(formatWeekdayShort("2026-11-01")).toBe("dom 01/11");
+  });
+});
+
+describe("formatDateWithWeekday", () => {
+  it("escreve o dia da semana por extenso com a data completa", () => {
+    expect(formatDateWithWeekday("2026-10-14")).toBe("quarta-feira, 14/10/2026");
+  });
+
+  it("segunda-feira sai com inicial minúscula, como no pt-BR", () => {
+    // 2026-10-12 é uma segunda-feira.
+    expect(formatDateWithWeekday("2026-10-12")).toBe("segunda-feira, 12/10/2026");
   });
 });
 

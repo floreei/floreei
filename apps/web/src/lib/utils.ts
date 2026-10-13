@@ -23,7 +23,6 @@ export function formatPercent(value: number): string {
   }).format(value / 100);
 }
 
-/** Formata uma data "AAAA-MM-DD" como "20 de set. de 2026". */
 /** Data de hoje no fuso local, no formato "AAAA-MM-DD" (para <input type="date">). */
 export function todayLocalISO(): string {
   const now = new Date();
@@ -46,16 +45,44 @@ export function currentMonthRange(): { from: string; to: string } {
   return { from: `${y}-${m}-01`, to: `${y}-${m}-${pad(lastDay)}` };
 }
 
+/** "AAAA-MM-DD" → Date no fuso local (sem deslocamento de UTC). */
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
-  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
-  const date = new Date(year, (month ?? 1) - 1, day ?? 1);
   // Numérico e compacto (padrão brasileiro), melhor para tabelas: 02/07/2026.
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  }).format(parseLocalDate(value));
+}
+
+/**
+ * "qua 14/10" — dia da semana abreviado + dia/mês, para listas por dia. O Intl
+ * pt-BR abrevia com ponto ("qua."), que sai para ficar mais limpo.
+ */
+export function formatWeekdayShort(value: string): string {
+  const date = parseLocalDate(value);
+  const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "short" })
+    .format(date)
+    .replace(".", "");
+  const dayMonth = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
   }).format(date);
+  return `${weekday} ${dayMonth}`;
+}
+
+/** "quarta-feira, 14/10/2026" — por extenso, para cabeçalhos de dia. */
+export function formatDateWithWeekday(value: string): string {
+  const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(
+    parseLocalDate(value),
+  );
+  return `${weekday}, ${formatDate(value)}`;
 }
 
 /** Formata uma chave "AAAA-MM" como "set/26". */

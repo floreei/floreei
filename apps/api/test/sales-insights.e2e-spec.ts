@@ -1,4 +1,5 @@
 import request from "supertest";
+import { todayISO } from "../src/common/date/today";
 import { bearer, registerCompany } from "./utils/auth-helper";
 import { createTestApp, TestApp } from "./utils/test-app";
 
@@ -156,7 +157,7 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     expect(pending.body.data[0].title).toBe("A prazo");
   });
 
-  it("pendingDeliveries agrega itens não entregues por cliente", async () => {
+  it("pendingDeliveries lista cada pedido não entregue, com datas e itens", async () => {
     const cat = await (
       await http.post("/api/categories").set(auth()).send({ name: "Rosas P" }).expect(201)
     ).body;
@@ -171,13 +172,16 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
       await http.post("/api/customers").set(auth()).send({ name: "Mercado Central" }).expect(201)
     ).body;
 
-    // Pendente: 5 maços para o Mercado Central.
-    await http
+    // Pendente: 5 maços para o Mercado Central, entrega combinada para dia 20.
+    const today = todayISO();
+    const delivery = `${today.slice(0, 8)}20`;
+    const pendente = await http
       .post("/api/events/quick")
       .set(auth())
       .send({
         channel: "WHOLESALE",
         customerId: customer.id,
+        deliveryDate: delivery,
         items: [{ productId: prod.id, quantity: 5, unitSalePrice: 25 }],
       })
       .expect(201);
@@ -202,14 +206,16 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     expect(pd.salesCount).toBe(1);
     expect(pd.totalQuantity).toBe(5);
     expect(pd.totalValue).toBe(125);
-    expect(pd.customers).toHaveLength(1);
-    expect(pd.customers[0]).toMatchObject({
-      id: customer.id,
-      name: "Mercado Central",
-      salesCount: 1,
+    expect(pd.sales).toHaveLength(1);
+    expect(pd.sales[0]).toMatchObject({
+      id: pendente.body.id,
+      customerId: customer.id,
+      customerName: "Mercado Central",
+      date: today,
+      deliveryDate: delivery,
       totalValue: 125,
     });
-    expect(pd.customers[0].items).toEqual([
+    expect(pd.sales[0].items).toEqual([
       expect.objectContaining({
         id: prod.id,
         name: "Rosa Colombiana",
@@ -221,7 +227,105 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     ]);
   });
 
-  it("delivered agrega itens já entregues por cliente, sem as pendências", async () => {
+  it("pedidos do mesmo cliente vêm separados, na ordem da data de entrega (ou da venda)", async () => {
+    const cat = await (
+      await http.post("/api/categories").set(auth()).send({ name: "Gipsos" }).expect(201)
+    ).body;
+    const prod = await (
+      await http
+        .post("/api/products")
+        .set(auth())
+        .send({ categoryId: cat.id, name: "Gipso", unit: "MACO", defaultSalePrice: 10 })
+        .expect(201)
+    ).body;
+    const customer = await (
+      await http.post("/api/customers").set(auth()).send({ name: "Feira Grande" }).expect(201)
+    ).body;
+    const ym = todayISO().slice(0, 8);
+    const mk = (quantity: number, extra: Record<string, unknown>) =>
+      http
+        .post("/api/events/quick")
+        .set(auth())
+        .send({
+          channel: "WHOLESALE",
+          customerId: customer.id,
+          items: [{ productId: prod.id, quantity, unitSalePrice: 10 }],
+          ...extra,
+        })
+        .expect(201);
+
+    // Dia 25 (entrega), dia 05 (entrega) e um sem data de entrega vendido no dia 10.
+    const d25 = await mk(50, { deliveryDate: `${ym}25` });
+    const d05 = await mk(335, { deliveryDate: `${ym}05` });
+    const semEntrega = await mk(100, { date: `${ym}10` });
+
+    const res = await http
+      .get("/api/events/insights")
+      .query({ channel: "WHOLESALE" })
+      .set(auth())
+      .expect(200);
+
+    const pd = res.body.pendingDeliveries;
+    expect(pd.salesCount).toBe(3);
+    expect(pd.totalQuantity).toBe(485);
+    expect(pd.sales.map((s: { id: string }) => s.id)).toEqual([
+      d05.body.id,
+      semEntrega.body.id,
+      d25.body.id,
+    ]);
+    expect(pd.sales[1]).toMatchObject({ date: `${ym}10`, deliveryDate: null });
+    expect(pd.sales.map((s: { items: { quantity: number }[] }) => s.items[0].quantity)).toEqual([
+      335, 100, 50,
+    ]);
+  });
+
+  it("o período das entregas vale pelo dia de entrega, não pelo dia da venda", async () => {
+    const cat = await (
+      await http.post("/api/categories").set(auth()).send({ name: "Lírios V" }).expect(201)
+    ).body;
+    const prod = await (
+      await http
+        .post("/api/products")
+        .set(auth())
+        .send({ categoryId: cat.id, name: "Lírio", unit: "MACO", defaultSalePrice: 10 })
+        .expect(201)
+    ).body;
+    const mk = (data: Record<string, unknown>) =>
+      http
+        .post("/api/events/quick")
+        .set(auth())
+        .send({
+          channel: "WHOLESALE",
+          items: [{ productId: prod.id, quantity: 1, unitSalePrice: 10 }],
+          ...data,
+        })
+        .expect(201);
+
+    // Vendida em outubro, entrega em novembro → só aparece em novembro.
+    const proximoMes = await mk({ date: "2026-10-28", deliveryDate: "2026-11-05" });
+    // Vendida em setembro, entrega em outubro → aparece em outubro.
+    const mesPassado = await mk({ date: "2026-09-30", deliveryDate: "2026-10-02" });
+
+    const outubro = await http
+      .get("/api/events/insights")
+      .query({ channel: "WHOLESALE", from: "2026-10-01", to: "2026-10-31" })
+      .set(auth())
+      .expect(200);
+    expect(outubro.body.pendingDeliveries.sales.map((s: { id: string }) => s.id)).toEqual([
+      mesPassado.body.id,
+    ]);
+
+    const novembro = await http
+      .get("/api/events/insights")
+      .query({ channel: "WHOLESALE", from: "2026-11-01", to: "2026-11-30" })
+      .set(auth())
+      .expect(200);
+    expect(novembro.body.pendingDeliveries.sales.map((s: { id: string }) => s.id)).toEqual([
+      proximoMes.body.id,
+    ]);
+  });
+
+  it("delivered lista os pedidos já entregues, sem as pendências", async () => {
     const cat = await (
       await http.post("/api/categories").set(auth()).send({ name: "Rosas E" }).expect(201)
     ).body;
@@ -236,7 +340,7 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
       await http.post("/api/customers").set(auth()).send({ name: "Feira do Centro" }).expect(201)
     ).body;
 
-    // Entregues: duas vendas do mesmo cliente somam 9 + 3 maços.
+    // Entregues: duas vendas do mesmo cliente (9 e 3 maços).
     for (const quantity of [9, 3]) {
       await http
         .post("/api/events/quick")
@@ -272,28 +376,33 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
       expect(dl.salesCount).toBe(2);
       expect(dl.totalQuantity).toBe(12);
       expect(dl.totalValue).toBe(300);
-      expect(dl.customers).toHaveLength(1);
-      expect(dl.customers[0]).toMatchObject({
-        id: customer.id,
-        name: "Feira do Centro",
-        salesCount: 2,
-        totalValue: 300,
+      // Duas vendas do mesmo cliente são dois pedidos — não somam.
+      expect(dl.sales).toHaveLength(2);
+      for (const sale of dl.sales) {
+        expect(sale).toMatchObject({
+          customerId: customer.id,
+          customerName: "Feira do Centro",
+        });
+      }
+      expect(
+        dl.sales.map((s: { totalValue: number }) => s.totalValue).sort((a: number, b: number) => a - b),
+      ).toEqual([75, 225]);
+      expect(
+        dl.sales.flatMap((s: { items: { quantity: number }[] }) =>
+          s.items.map((i) => i.quantity),
+        ),
+      ).toEqual(expect.arrayContaining([9, 3]));
+      expect(dl.sales[0].items[0]).toMatchObject({
+        id: prod.id,
+        name: "Rosa Vermelha",
+        kind: "product",
+        unit: "MACO",
       });
-      expect(dl.customers[0].items).toEqual([
-        expect.objectContaining({
-          id: prod.id,
-          name: "Rosa Vermelha",
-          kind: "product",
-          quantity: 12,
-          unit: "MACO",
-          value: 300,
-        }),
-      ]);
       expect(res.body.pendingDeliveries.totalQuantity).toBe(5);
     }
   });
 
-  it("pendingDeliveries agrupa venda sem cliente e sem itens (valor livre)", async () => {
+  it("pendingDeliveries lista venda sem cliente e sem itens (valor livre)", async () => {
     await http
       .post("/api/events/quick")
       .set(auth())
@@ -310,9 +419,9 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     expect(pd.salesCount).toBe(1);
     expect(pd.totalQuantity).toBe(0);
     expect(pd.totalValue).toBe(80);
-    expect(pd.customers[0]).toMatchObject({
-      id: null,
-      salesCount: 1,
+    expect(pd.sales[0]).toMatchObject({
+      customerId: null,
+      customerName: null,
       totalValue: 80,
       items: [],
     });
@@ -386,7 +495,7 @@ describe("Vendas — insights e filtro de pagamento (e2e)", () => {
     expect(sIds).toContain(prazoId);
     expect(sIds).not.toContain(pagoId);
     expect(
-      searched.body.pendingDeliveries.customers.map((c: { id: string | null }) => c.id),
+      searched.body.pendingDeliveries.sales.map((s: { customerId: string | null }) => s.customerId),
     ).toEqual([beto.id]);
   });
 });

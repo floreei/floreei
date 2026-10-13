@@ -15,7 +15,8 @@ export function whatsappHref(
   return `https://wa.me/${withCountry}?text=${encodeURIComponent(text)}`;
 }
 
-const fmtQty = (q: number): string =>
+/** Quantidade sem zeros à direita, vírgula decimal: 7 → "7", 2.5 → "2,5". */
+export const fmtQty = (q: number): string =>
   Number.isInteger(q) ? String(q) : q.toFixed(3).replace(/\.?0+$/, "").replace(".", ",");
 
 interface OrderLine {

@@ -3,6 +3,22 @@ import { firebaseIdToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
+/** Hoje no fuso local, "AAAA-MM-DD" (mesma regra do app). */
+const todayISO = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+const localDate = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+/** "quarta-feira, 14/10/2026" — como o cabeçalho do dia nos insights. */
+const longDay = (iso: string) =>
+  `${new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(localDate(iso))}, ${new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(localDate(iso))}`;
+/** "qua 14/10" — como no rótulo do checkbox de cada pedido. */
+const shortDay = (iso: string) =>
+  `${new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(localDate(iso)).replace(".", "")} ${new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(localDate(iso))}`;
+
 test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do detalhe", async ({
   page,
 }) => {
@@ -38,12 +54,14 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
       data: { name: "Mercado das Flores" },
     })
   ).json();
-  // Pendente de entrega: 7 maços.
+  // Pendente de entrega: 7 maços, entrega combinada para hoje.
+  const today = todayISO();
   await page.request.post(`${API}/events/quick`, {
     headers: auth,
     data: {
       channel: "WHOLESALE",
       customerId: customer.id,
+      deliveryDate: today,
       items: [{ productId: prod.id, quantity: 7, unitSalePrice: 35 }],
     },
   });
@@ -77,6 +95,8 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   await expect(pendingTab).toHaveAttribute("aria-selected", "true");
   // O nome também aparece na tabela — o primeiro na DOM é o do painel de insights.
   await expect(page.getByText("Mercado das Flores").first()).toBeVisible();
+  // Pedidos agrupados por dia, com o dia da semana por extenso no cabeçalho.
+  await expect(page.getByText(longDay(today)).first()).toBeVisible();
   // Somatório por produto no rodapé da seção, com valor de venda.
   await expect(page.getByText("Total por produto")).toBeVisible();
   // O detalhamento por cliente tem o mesmo texto — basta um visível.
@@ -88,25 +108,31 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   const totalRow = page.locator("p", { hasText: "Valor total a entregar" });
   await expect(totalRow).toContainText("245,00");
 
-  // Desmarcar um cliente tira os pedidos dele da contagem…
-  await page
-    .getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" })
-    .uncheck();
+  // Resumo por dia (o que vai para a rua): tipo, quantidade e dia, SEM preço.
+  const summary = page.getByTestId("day-summary");
+  await expect(summary).toContainText("7 maços de Girassol Gigante");
+  await expect(summary).not.toContainText("R$");
+  await expect(summary.getByRole("button", { name: "Copiar" })).toBeVisible();
+  await expect(
+    summary.getByRole("button", { name: "Imprimir / Salvar PDF" }),
+  ).toBeVisible();
+
+  // Desmarcar um pedido tira ele da contagem…
+  const pendingOrder = `Incluir pedido de Mercado das Flores em ${shortDay(today)} na contagem`;
+  await page.getByRole("checkbox", { name: pendingOrder }).uncheck();
   await expect(totalRow).toContainText("0,00");
-  await expect(page.getByText("1 cliente fora da contagem")).toBeVisible();
+  await expect(page.getByText("1 pedido fora da contagem")).toBeVisible();
+  // …inclusive do resumo por dia, que some sem pedido marcado.
+  await expect(page.getByTestId("day-summary")).toHaveCount(0);
   // …e marcar de novo devolve.
-  await page
-    .getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" })
-    .check();
+  await page.getByRole("checkbox", { name: pendingOrder }).check();
   await expect(totalRow).toContainText("245,00");
 
   // "Desmarcar todos" zera a contagem de uma vez e vira "Marcar todos".
   await page.getByRole("button", { name: "Desmarcar todos" }).click();
   await expect(totalRow).toContainText("0,00");
   await expect(pendingTab).toContainText("0 itens");
-  await expect(
-    page.getByRole("checkbox", { name: "Incluir Mercado das Flores na contagem" }),
-  ).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: pendingOrder })).not.toBeChecked();
   await page.getByRole("button", { name: "Marcar todos" }).click();
   await expect(totalRow).toContainText("245,00");
   await expect(pendingTab).toContainText("7 itens");
@@ -121,13 +147,17 @@ test("atacado: itens expansíveis na listagem e filtros persistem ao voltar do d
   );
   await expect(page.getByText("Valor total a entregar")).toHaveCount(0);
 
-  // Aba "Total": pendentes + entregues somados (7 + 4 maços, R$ 245 + R$ 140).
+  // Aba "Total": pendentes + entregues (7 + 4 maços, R$ 245 + R$ 140). Os dois
+  // pedidos do mesmo cliente seguem separados; só o "Total por produto" soma.
   const totalTab = page.getByRole("tab", { name: /^Total/ });
   await expect(totalTab).toContainText("11 itens");
   await totalTab.click();
   await expect(page.getByText("11 itens em 2 vendas")).toBeVisible();
   await expect(
-    page.getByText(/11 maços — Girassol Gigante \(R\$\s385,00\)/).first(),
+    page.getByRole("checkbox", { name: /Incluir pedido de Mercado das Flores/ }),
+  ).toHaveCount(2);
+  await expect(
+    page.getByText(/11 maços — Girassol Gigante \(R\$\s385,00\)/),
   ).toBeVisible();
   await expect(
     page.locator("p", { hasText: "Valor total do período" }),

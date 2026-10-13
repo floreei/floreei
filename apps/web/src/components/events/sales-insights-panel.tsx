@@ -6,19 +6,23 @@ import {
   type IdleItem,
   type PartyRanking,
   type PendingDeliveries,
-  type PendingDeliveryCustomer,
   type PendingDeliveryItem,
+  type PendingDeliverySale,
   type SoldItemRanking,
 } from "@sistema-flores/types";
 import {
+  Check,
+  Copy,
   Flower,
   Package,
+  Printer,
   TrendingDown,
   TrendingUp,
   Truck,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { RankingList, type RankRow } from "@/components/reports/ranking-list";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,8 +32,24 @@ import {
   useSalesInsights,
   type SalesInsightsFilters,
 } from "@/lib/api/events";
+import {
+  addQuantity,
+  buildDaySummary,
+  daySummaryText,
+  saleDay,
+  summaryDayHeading,
+  summaryLineText,
+  type DaySummaryLine,
+} from "@/lib/delivery-summary";
 import { unitLabels } from "@/lib/labels";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { fmtQty } from "@/lib/whatsapp";
+import {
+  cn,
+  formatCurrency,
+  formatDate,
+  formatDateWithWeekday,
+  formatWeekdayShort,
+} from "@/lib/utils";
 
 function itemRows(items: SoldItemRanking[]): RankRow[] {
   return items.map((i) => ({
@@ -61,11 +81,12 @@ export function SalesInsightsPanel({ filters }: { filters: SalesInsightsFilters 
         <SectionTitle
           icon={<Truck className="h-4 w-4" />}
           title="Entregas"
-          hint="Vendas do período por cliente — pendentes, já entregues e o total. Desmarque um cliente para tirá-lo da contagem (ex.: pedido futuro)."
+          hint="Pedidos agrupados pelo dia de entrega (ou da venda, se não houver) dentro do período — pendentes, já entregues e o total. Desmarque um pedido para tirá-lo da contagem."
         />
         <DeliveriesSection
           pending={data?.pendingDeliveries}
           delivered={data?.delivered}
+          period={data ? `${formatDate(data.from)} a ${formatDate(data.to)}` : ""}
           loading={isLoading}
         />
       </Card>
@@ -206,74 +227,63 @@ const deliveryViews: Record<
 };
 const deliveryViewOrder: DeliveryView[] = ["pending", "delivered", "total"];
 
-const customerKey = (id: string | null) => id ?? "sem-cliente";
-
 interface DeliveryCount {
-  included: PendingDeliveryCustomer[];
+  included: PendingDeliverySale[];
   totalQuantity: number;
   salesCount: number;
   totalValue: number;
 }
 
-/** Contagem só dos clientes marcados. */
+const itemKey = (item: PendingDeliveryItem) =>
+  `${item.kind}:${item.id}:${item.unit}`;
+const quantityOf = (s: PendingDeliverySale) =>
+  s.items.reduce((sum, i) => addQuantity(sum, i.quantity), 0);
+
+/** Contagem só dos pedidos marcados. */
 function countDeliveries(
-  customers: PendingDeliveryCustomer[],
+  sales: PendingDeliverySale[],
   excluded: ReadonlySet<string>,
 ): DeliveryCount {
-  const included = customers.filter((c) => !excluded.has(customerKey(c.id)));
+  const included = sales.filter((s) => !excluded.has(s.id));
   return {
     included,
-    totalQuantity: included.reduce((sum, c) => sum + quantityOf(c), 0),
-    salesCount: included.reduce((sum, c) => sum + c.salesCount, 0),
-    totalValue: included.reduce((sum, c) => sum + c.totalValue, 0),
+    totalQuantity: included.reduce((sum, s) => addQuantity(sum, quantityOf(s)), 0),
+    salesCount: included.length,
+    totalValue: roundMoney(included.reduce((sum, s) => sum + s.totalValue, 0)),
   };
 }
 
-const itemKey = (item: PendingDeliveryItem) =>
-  `${item.kind}:${item.id}:${item.unit}`;
-const quantityOf = (c: PendingDeliveryCustomer) =>
-  c.items.reduce((sum, i) => sum + i.quantity, 0);
+/** Mesma ordem da API: dia efetivo, nome do cliente, id. */
+const bySaleOrder = (a: PendingDeliverySale, b: PendingDeliverySale) =>
+  saleDay(a).localeCompare(saleDay(b)) ||
+  (a.customerName ?? "").localeCompare(b.customerName ?? "", "pt-BR") ||
+  a.id.localeCompare(b.id);
 
-/** Pendentes + entregues num só consolidado (aba "Total"), por cliente e item. */
+/** Pendentes + entregues numa lista só (aba "Total"), sem somar pedidos. */
 function mergeDeliveries(
   pending: PendingDeliveries,
   delivered: PendingDeliveries,
 ): PendingDeliveries {
-  const byCustomer = new Map<
-    string,
-    PendingDeliveryCustomer & { byItem: Map<string, PendingDeliveryItem> }
-  >();
-  for (const c of [...pending.customers, ...delivered.customers]) {
-    const key = customerKey(c.id);
-    let entry = byCustomer.get(key);
-    if (!entry) {
-      entry = { ...c, salesCount: 0, totalValue: 0, items: [], byItem: new Map() };
-      byCustomer.set(key, entry);
-    }
-    entry.salesCount += c.salesCount;
-    entry.totalValue = roundMoney(entry.totalValue + c.totalValue);
-    for (const item of c.items) {
-      const prev = entry.byItem.get(itemKey(item));
-      if (prev) {
-        prev.quantity += item.quantity;
-        prev.value = roundMoney(prev.value + item.value);
-      } else {
-        entry.byItem.set(itemKey(item), { ...item });
-      }
-    }
-  }
-  const customers = [...byCustomer.values()]
-    .map(({ byItem, ...c }) => ({
-      ...c,
-      items: [...byItem.values()].sort((a, b) => b.quantity - a.quantity),
-    }))
-    .sort((a, b) => quantityOf(b) - quantityOf(a));
   return {
     salesCount: pending.salesCount + delivered.salesCount,
-    totalQuantity: pending.totalQuantity + delivered.totalQuantity,
+    totalQuantity: addQuantity(pending.totalQuantity, delivered.totalQuantity),
     totalValue: roundMoney(pending.totalValue + delivered.totalValue),
-    customers,
+    sales: [...pending.sales, ...delivered.sales].sort(bySaleOrder),
   };
+}
+
+/** Pedidos agrupados pelo dia efetivo, mantendo a ordem recebida. */
+function groupByDay(
+  sales: PendingDeliverySale[],
+): Array<{ date: string; sales: PendingDeliverySale[] }> {
+  const days: Array<{ date: string; sales: PendingDeliverySale[] }> = [];
+  for (const sale of sales) {
+    const date = saleDay(sale);
+    const last = days[days.length - 1];
+    if (last && last.date === date) last.sales.push(sale);
+    else days.push({ date, sales: [sale] });
+  }
+  return days;
 }
 
 /**
@@ -283,16 +293,19 @@ function mergeDeliveries(
 function DeliveriesSection({
   pending,
   delivered,
+  period,
   loading,
 }: {
   pending: PendingDeliveries | undefined;
   delivered: PendingDeliveries | undefined;
+  /** "01/10/2026 a 31/10/2026" — vai no título do resumo exportado. */
+  period: string;
   loading: boolean;
 }) {
   const [view, setView] = useState<DeliveryView>("pending");
-  // Clientes desmarcados saem da contagem (só na tela — não altera nada no
-  // servidor), separados por aba. Chaves que sumirem com a troca de filtros
-  // são simplesmente ignoradas.
+  // Pedidos desmarcados saem da contagem (só na tela — não altera nada no
+  // servidor), separados por aba. Ids que sumirem com a troca de filtros são
+  // simplesmente ignorados.
   const [excluded, setExcluded] = useState<
     Record<DeliveryView, ReadonlySet<string>>
   >({ pending: new Set(), delivered: new Set(), total: new Set() });
@@ -309,9 +322,9 @@ function DeliveriesSection({
 
   const data = { pending, delivered, total: mergeDeliveries(pending, delivered) };
   const counts = {
-    pending: countDeliveries(data.pending.customers, excluded.pending),
-    delivered: countDeliveries(data.delivered.customers, excluded.delivered),
-    total: countDeliveries(data.total.customers, excluded.total),
+    pending: countDeliveries(data.pending.sales, excluded.pending),
+    delivered: countDeliveries(data.delivered.sales, excluded.delivered),
+    total: countDeliveries(data.total.sales, excluded.total),
   };
 
   return (
@@ -330,7 +343,7 @@ function DeliveriesSection({
                 <span aria-hidden className="hidden sm:inline">
                   ·{" "}
                 </span>
-                {quantity} {quantity === 1 ? "item" : "itens"}
+                {fmtQty(quantity)} {quantity === 1 ? "item" : "itens"}
               </span>
             </TabsTrigger>
           );
@@ -342,6 +355,7 @@ function DeliveriesSection({
             view={v}
             data={data[v]}
             count={counts[v]}
+            period={period}
             excluded={excluded[v]}
             onExcludedChange={(next) =>
               setExcluded((prev) => ({ ...prev, [v]: next }))
@@ -357,12 +371,14 @@ function DeliveriesList({
   view,
   data,
   count,
+  period,
   excluded,
   onExcludedChange,
 }: {
   view: DeliveryView;
   data: PendingDeliveries;
   count: DeliveryCount;
+  period: string;
   excluded: ReadonlySet<string>;
   onExcludedChange: (next: ReadonlySet<string>) => void;
 }) {
@@ -376,19 +392,17 @@ function DeliveriesList({
 
   const { included, totalQuantity, salesCount, totalValue } = count;
   const [saleSingular, salePlural] = deliveryViews[view].saleNoun;
-  const hiddenCount = data.customers.length - included.length;
+  const hiddenCount = data.sales.length - included.length;
   const noneIncluded = included.length === 0;
-  const toggle = (key: string) => {
+  const toggle = (id: string) => {
     const next = new Set(excluded);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     onExcludedChange(next);
   };
   const toggleAll = () =>
     onExcludedChange(
-      noneIncluded
-        ? new Set()
-        : new Set(data.customers.map((c) => customerKey(c.id))),
+      noneIncluded ? new Set() : new Set(data.sales.map((s) => s.id)),
     );
 
   return (
@@ -396,7 +410,7 @@ function DeliveriesList({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground tabular-nums">
-            {totalQuantity}
+            {fmtQty(totalQuantity)}
           </span>{" "}
           {totalQuantity === 1 ? "item" : "itens"} em{" "}
           <span className="font-semibold text-foreground tabular-nums">
@@ -406,7 +420,7 @@ function DeliveriesList({
           {hiddenCount > 0 ? (
             <span>
               {" "}
-              · {hiddenCount} {hiddenCount === 1 ? "cliente fora" : "clientes fora"}{" "}
+              · {hiddenCount} {hiddenCount === 1 ? "pedido fora" : "pedidos fora"}{" "}
               da contagem
             </span>
           ) : null}
@@ -415,97 +429,121 @@ function DeliveriesList({
           type="button"
           variant="outline"
           size="sm"
-          className="h-11 shrink-0"
+          className="min-h-11 shrink-0"
           onClick={toggleAll}
         >
           {noneIncluded ? "Marcar todos" : "Desmarcar todos"}
         </Button>
       </div>
-      <ul className="divide-y divide-border">
-        {data.customers.map((c) => {
-          const key = customerKey(c.id);
-          const active = !excluded.has(key);
-          return (
-            <li
-              key={key}
-              className={cn("py-2.5 transition-opacity", !active && "opacity-45")}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <label className="flex min-h-[44px] min-w-0 cursor-pointer items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 shrink-0 accent-primary"
-                    checked={active}
-                    onChange={() => toggle(key)}
-                    aria-label={`Incluir ${c.name ?? "Sem cliente"} na contagem`}
-                  />
-                  <span className="truncate text-sm font-medium">
-                    {c.name ?? "Sem cliente"}
-                  </span>
-                </label>
-                <span className="flex shrink-0 items-baseline gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    {c.salesCount} {c.salesCount === 1 ? saleSingular : salePlural}
-                  </span>
-                  <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(c.totalValue)}
-                  </span>
-                </span>
-              </div>
-              {c.items.length > 0 ? (
-                <ul className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 pl-[26px]">
-                  {c.items.map((item) => (
-                    <li
-                      key={itemKey(item)}
-                      className="text-xs text-muted-foreground"
-                    >
-                      <span className="font-medium text-foreground tabular-nums">
-                        {item.quantity}
-                      </span>{" "}
-                      {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
-                      {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
-                      <span className="tabular-nums">
-                        ({formatCurrency(item.value)})
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-0.5 pl-[26px] text-xs text-muted-foreground">
-                  Venda de valor livre (sem itens detalhados).
-                </p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <div className="space-y-4">
+        {groupByDay(data.sales).map(({ date, sales }) => (
+          <section key={date}>
+            <h4 className="text-sm font-semibold first-letter:uppercase">
+              {formatDateWithWeekday(date)}
+            </h4>
+            <ul className="divide-y divide-border">
+              {sales.map((sale) => (
+                <SaleRow
+                  key={sale.id}
+                  sale={sale}
+                  active={!excluded.has(sale.id)}
+                  onToggle={() => toggle(sale.id)}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
       <DeliveryTotals
-        customers={included}
+        sales={included}
         totalValue={totalValue}
         totalLabel={deliveryViews[view].totalLabel}
+      />
+      <DaySummary
+        sales={included}
+        title={`Entregas — ${deliveryViews[view].label}`}
+        period={period}
       />
     </div>
   );
 }
 
-/** Somatório por produto (só clientes marcados) + valor total. */
+/** Um pedido: checkbox de contagem, cliente, valor e itens. */
+function SaleRow({
+  sale,
+  active,
+  onToggle,
+}: {
+  sale: PendingDeliverySale;
+  active: boolean;
+  onToggle: () => void;
+}) {
+  const name = sale.customerName ?? "Sem cliente";
+  return (
+    <li className={cn("py-2.5 transition-opacity", !active && "opacity-45")}>
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex min-h-[44px] min-w-0 cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-0.5">
+          <input
+            type="checkbox"
+            className="h-5 w-5 shrink-0 accent-primary"
+            checked={active}
+            onChange={onToggle}
+            aria-label={`Incluir pedido de ${name} em ${formatWeekdayShort(saleDay(sale))} na contagem`}
+          />
+          <span className="truncate text-sm font-medium">{name}</span>
+          {sale.deliveryDate ? null : (
+            <span
+              className="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+              title="Pedido sem data de entrega combinada — mostrado pela data da venda."
+            >
+              data da venda
+            </span>
+          )}
+        </label>
+        <span className="shrink-0 text-sm font-medium tabular-nums">
+          {formatCurrency(sale.totalValue)}
+        </span>
+      </div>
+      {sale.items.length > 0 ? (
+        <ul className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 pl-[26px]">
+          {sale.items.map((item) => (
+            <li key={itemKey(item)} className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground tabular-nums">
+                {fmtQty(item.quantity)}
+              </span>{" "}
+              {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
+              {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
+              <span className="tabular-nums">({formatCurrency(item.value)})</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-0.5 pl-[26px] text-xs text-muted-foreground">
+          Venda de valor livre (sem itens detalhados).
+        </p>
+      )}
+    </li>
+  );
+}
+
+/** Somatório por produto (só pedidos marcados) + valor total. */
 function DeliveryTotals({
-  customers,
+  sales,
   totalValue,
   totalLabel,
 }: {
-  customers: PendingDeliveryCustomer[];
+  sales: PendingDeliverySale[];
   totalValue: number;
   totalLabel: string;
 }) {
   const totals = new Map<string, PendingDeliveryItem>();
-  for (const c of customers) {
-    for (const item of c.items) {
+  for (const s of sales) {
+    for (const item of s.items) {
       const key = itemKey(item);
       const prev = totals.get(key);
       if (prev) {
-        prev.quantity += item.quantity;
-        prev.value += item.value;
+        prev.quantity = addQuantity(prev.quantity, item.quantity);
+        prev.value = roundMoney(prev.value + item.value);
       } else {
         totals.set(key, { ...item });
       }
@@ -527,7 +565,7 @@ function DeliveryTotals({
                 className="text-sm text-muted-foreground"
               >
                 <span className="font-semibold text-foreground tabular-nums">
-                  {item.quantity}
+                  {fmtQty(item.quantity)}
                 </span>{" "}
                 {(unitLabels[item.unit] ?? item.unit).toLowerCase()}
                 {item.quantity === 1 ? "" : "s"} — {item.name}{" "}
@@ -546,6 +584,177 @@ function DeliveryTotals({
         </span>
       </p>
     </div>
+  );
+}
+
+/** Linhas do resumo agrupadas por dia, para a tela e para a impressão. */
+function groupSummaryByDay(
+  lines: DaySummaryLine[],
+): Array<{ date: string; lines: DaySummaryLine[] }> {
+  const days: Array<{ date: string; lines: DaySummaryLine[] }> = [];
+  for (const line of lines) {
+    const last = days[days.length - 1];
+    if (last && last.date === line.date) last.lines.push(line);
+    else days.push({ date: line.date, lines: [line] });
+  }
+  return days;
+}
+
+/**
+ * "O que vai para a rua": quantidade por produto e dia, SEM preço, com
+ * Copiar (texto puro) e Imprimir / Salvar PDF (só este bloco sai no papel).
+ */
+function DaySummary({
+  sales,
+  title,
+  period,
+}: {
+  sales: PendingDeliverySale[];
+  title: string;
+  period: string;
+}) {
+  const lines = useMemo(() => buildDaySummary(sales), [sales]);
+  const [copied, setCopied] = useState(false);
+  if (lines.length === 0) return null;
+
+  const days = groupSummaryByDay(lines);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(daySummaryText({ title, period, lines }));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard indisponível (contexto inseguro): o texto segue visível na tela.
+    }
+  };
+  const print = () => {
+    // Liga o modo "só o resumo" (CSS abaixo) e troca o título da aba, que vira
+    // o nome do arquivo quando o navegador salva em PDF. Tudo volta no afterprint.
+    const previous = document.title;
+    const restore = () => {
+      document.body.classList.remove(PRINT_MODE_CLASS);
+      document.title = previous;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    document.body.classList.add(PRINT_MODE_CLASS);
+    document.title = `${title} — ${period}`;
+    window.print();
+  };
+
+  return (
+    <div data-testid="day-summary" className="space-y-3 border-t border-border pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Resumo por dia
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Tipo, quantidade e dia — sem preço. Para copiar ou imprimir.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-h-11"
+            onClick={copy}
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span aria-live="polite">{copied ? "Copiado" : "Copiar"}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-h-11"
+            onClick={print}
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir / Salvar PDF
+          </Button>
+        </div>
+      </div>
+      <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+        {days.map((day) => (
+          <li key={day.date}>
+            <p className="text-sm font-semibold">{summaryDayHeading(day.date)}</p>
+            <ul className="mt-0.5 space-y-0.5">
+              {day.lines.map((line) => (
+                <li
+                  key={summaryKey(line)}
+                  className="text-sm tabular-nums text-muted-foreground"
+                >
+                  {summaryLineText(line)}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+      <DaySummaryPrint title={title} period={period} days={days} />
+    </div>
+  );
+}
+
+const summaryKey = (line: DaySummaryLine) => `${line.kind}:${line.id}:${line.unit}`;
+
+/** Classe no <body> enquanto o resumo está sendo impresso. */
+const PRINT_MODE_CLASS = "printing-delivery-summary";
+const PRINT_ID = "delivery-summary-print";
+
+/**
+ * Versão para papel do resumo: vai num portal direto no <body>, invisível na
+ * tela. Só quando o botão Imprimir liga `PRINT_MODE_CLASS` é que o resto da
+ * página sai do fluxo (display:none, sem páginas em branco) e este bloco
+ * aparece. Um Ctrl+P avulso continua imprimindo a página normal.
+ */
+function DaySummaryPrint({
+  title,
+  period,
+  days,
+}: {
+  title: string;
+  period: string;
+  days: Array<{ date: string; lines: DaySummaryLine[] }>;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    return () => document.body.classList.remove(PRINT_MODE_CLASS);
+  }, []);
+  if (!mounted) return null;
+
+  return createPortal(
+    <>
+      <style>{`
+        @media print {
+          body.${PRINT_MODE_CLASS} > *:not(#${PRINT_ID}) { display: none !important; }
+          body.${PRINT_MODE_CLASS} #${PRINT_ID} { display: block !important; }
+          @page { margin: 14mm; }
+        }
+      `}</style>
+      <div id={PRINT_ID} className="hidden bg-white text-black">
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        <p className="mt-1 text-base">{period}</p>
+        <div className="mt-6 space-y-5">
+          {days.map((day) => (
+            <section key={day.date}>
+              <h2 className="border-b border-black/30 pb-1 text-lg font-semibold">
+                {summaryDayHeading(day.date)}
+              </h2>
+              <ul className="mt-2 space-y-1 text-lg tabular-nums">
+                {day.lines.map((line) => (
+                  <li key={summaryKey(line)}>{summaryLineText(line)}</li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </div>
+    </>,
+    document.body,
   );
 }
 

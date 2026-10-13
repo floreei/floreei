@@ -6,7 +6,7 @@ import type {
   InsightsQuery,
   PartyRanking,
   PendingDeliveries,
-  PendingDeliveryCustomer,
+  PendingDeliverySale,
   ProductUnit,
   SalesChannel,
   SalesInsights,
@@ -30,6 +30,13 @@ type InsightsFilters = EventListFilters;
 
 const PENDING_STATUS_WHERE = "event.status IN ('CONFIRMED', 'IN_PROGRESS')";
 const DELIVERED_STATUS_WHERE = "event.status = 'DONE'";
+/**
+ * As entregas são filtradas pelo DIA EFETIVO de entrega (combinado, senão o da
+ * venda) — é o que a rota do dia precisa. Os demais insights seguem pela data
+ * da venda.
+ */
+const DELIVERY_DAY_IN_PERIOD =
+  "COALESCE(event.delivery_date, event.date) BETWEEN :from AND :to";
 
 /**
  * Insights práticos da tela de Vendas (gated por SALES). Reaproveita os padrões
@@ -263,8 +270,10 @@ export class SalesInsightsService {
 
   /**
    * Entregas do período numa situação fixa — o que falta entregar
-   * (CONFIRMED/IN_PROGRESS) ou o que já foi entregue (DONE) — agrupadas por
-   * cliente, com as quantidades por item. Ignora o filtro `delivered` (cada
+   * (CONFIRMED/IN_PROGRESS) ou o que já foi entregue (DONE) — um pedido por
+   * venda, com as quantidades por item. O mesmo cliente com pedidos para dias
+   * diferentes aparece uma vez por pedido. O período vale pelo dia efetivo de
+   * entrega (`delivery_date`, senão `date`). Ignora o filtro `delivered` (cada
    * visão já fixa o status por definição).
    */
   private async deliveries(
@@ -274,21 +283,23 @@ export class SalesInsightsService {
     const salesQb = this.events
       .qb("event")
       .leftJoin("event.customer", "customer")
-      .select("customer.id", "customerId")
-      .addSelect("MAX(customer.name)", "customerName")
-      .addSelect("COUNT(*)", "salesCount")
-      .addSelect("COALESCE(SUM(event.sold_value),0)", "totalValue")
+      .select("event.id", "id")
+      .addSelect("customer.id", "customerId")
+      .addSelect("customer.name", "customerName")
+      .addSelect("TO_CHAR(event.date, 'YYYY-MM-DD')", "date")
+      .addSelect("TO_CHAR(event.delivery_date, 'YYYY-MM-DD')", "deliveryDate")
+      .addSelect("event.sold_value", "totalValue")
       .andWhere(statusWhere)
-      .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to });
+      .andWhere(DELIVERY_DAY_IN_PERIOD, { from: f.from, to: f.to });
     applyEventListFilters(salesQb, f, { skipDelivered: true });
-    const sales = await salesQb
-      .groupBy("customer.id")
-      .getRawMany<{
-        customerId: string | null;
-        customerName: string | null;
-        salesCount: string;
-        totalValue: string;
-      }>();
+    const sales = await salesQb.getRawMany<{
+      id: string;
+      customerId: string | null;
+      customerName: string | null;
+      date: string;
+      deliveryDate: string | null;
+      totalValue: string;
+    }>();
 
     const cid = this.tenant.getCompanyIdOrThrow();
     const kindExpr =
@@ -297,7 +308,7 @@ export class SalesInsightsService {
       .createQueryBuilder("ei")
       .innerJoin("ei.event", "event")
       .leftJoin("event.customer", "customer")
-      .select("customer.id", "customerId")
+      .select("event.id", "saleId")
       .addSelect("COALESCE(ei.product_id, ei.arrangement_id)", "id")
       .addSelect("MAX(ei.description)", "name")
       .addSelect(kindExpr, "kind")
@@ -306,16 +317,16 @@ export class SalesInsightsService {
       .addSelect("COALESCE(SUM(ei.line_total),0)", "value")
       .where("event.company_id = :cid", { cid })
       .andWhere(statusWhere)
-      .andWhere("event.date BETWEEN :from AND :to", { from: f.from, to: f.to })
+      .andWhere(DELIVERY_DAY_IN_PERIOD, { from: f.from, to: f.to })
       .andWhere("COALESCE(ei.product_id, ei.arrangement_id) IS NOT NULL");
     applyEventListFilters(itemsQb, f, { skipDelivered: true });
     const items = await itemsQb
-      .groupBy("customer.id")
+      .groupBy("event.id")
       .addGroupBy("COALESCE(ei.product_id, ei.arrangement_id)")
       .addGroupBy(kindExpr)
       .addGroupBy("ei.unit")
       .getRawMany<{
-        customerId: string | null;
+        saleId: string;
         id: string;
         name: string;
         kind: "product" | "arrangement";
@@ -324,20 +335,21 @@ export class SalesInsightsService {
         value: string;
       }>();
 
-    const byCustomer = new Map<string, PendingDeliveryCustomer>();
-    const keyOf = (id: string | null) => id ?? "__none__";
+    const bySale = new Map<string, PendingDeliverySale>();
     for (const s of sales) {
-      byCustomer.set(keyOf(s.customerId), {
-        id: s.customerId ?? null,
-        name: s.customerName ?? null,
-        salesCount: Number(s.salesCount) || 0,
+      bySale.set(s.id, {
+        id: s.id,
+        customerId: s.customerId ?? null,
+        customerName: s.customerName ?? null,
+        date: s.date,
+        deliveryDate: s.deliveryDate ?? null,
         totalValue: roundMoney(Number(s.totalValue) || 0),
         items: [],
       });
     }
     let totalQuantity = 0;
     for (const it of items) {
-      const entry = byCustomer.get(keyOf(it.customerId));
+      const entry = bySale.get(it.saleId);
       if (!entry) continue;
       const quantity = Number(it.quantity) || 0;
       totalQuantity += quantity;
@@ -351,19 +363,22 @@ export class SalesInsightsService {
       });
     }
 
-    const quantityOf = (c: PendingDeliveryCustomer) =>
-      c.items.reduce((sum, i) => sum + i.quantity, 0);
-    const customers = [...byCustomer.values()];
-    for (const c of customers) c.items.sort((a, b) => b.quantity - a.quantity);
-    customers.sort((a, b) => quantityOf(b) - quantityOf(a));
+    const dayOf = (s: PendingDeliverySale) => s.deliveryDate ?? s.date;
+    const result = [...bySale.values()];
+    for (const s of result) s.items.sort((a, b) => b.quantity - a.quantity);
+    result.sort(
+      (a, b) =>
+        dayOf(a).localeCompare(dayOf(b)) ||
+        (a.customerName ?? "").localeCompare(b.customerName ?? "", "pt-BR") ||
+        a.id.localeCompare(b.id),
+    );
 
     return {
-      salesCount: sales.reduce((s, r) => s + (Number(r.salesCount) || 0), 0),
+      salesCount: result.length,
       totalQuantity,
-      totalValue: roundMoney(
-        customers.reduce((s, c) => s + c.totalValue, 0),
-      ),
-      customers,
+      totalValue: roundMoney(result.reduce((sum, s) => sum + s.totalValue, 0)),
+      sales: result,
     };
   }
 }
+
