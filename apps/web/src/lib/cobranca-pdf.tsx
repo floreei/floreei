@@ -192,7 +192,7 @@ export function CobrancaPdf({
 
   return (
     <Document
-      title={`Cobrança ${doc.reference} — ${doc.customerName}`}
+      title={`Nota ${doc.reference} — ${doc.customerName}`}
       author={doc.company.name}
     >
       <Page size="A4" style={s.page}>
@@ -211,7 +211,7 @@ export function CobrancaPdf({
             </View>
           </View>
           <View style={s.right}>
-            <Text style={s.title}>Cobrança</Text>
+            <Text style={s.title}>Nota</Text>
             <Text style={s.small}>Referência nº {doc.reference}</Text>
             <Text style={[s.pill, { color: st.color, backgroundColor: st.bg }]}>{st.label}</Text>
           </View>
@@ -310,7 +310,7 @@ export function CobrancaPdf({
         ) : null}
 
         <Text style={{ marginTop: 14 }}>
-          Ver esta cobrança online: <Text style={{ color: C.primary }}>{doc.link}</Text>
+          Ver esta nota online: <Text style={{ color: C.primary }}>{doc.link}</Text>
         </Text>
 
         {doc.notes ? (
@@ -321,7 +321,7 @@ export function CobrancaPdf({
         ) : null}
 
         <Text style={s.footer} fixed>
-          Cobrança criada com Floreei · o sistema para floriculturas
+          Nota criada com Floreei · o sistema para floriculturas
         </Text>
       </Page>
     </Document>

@@ -1,4 +1,4 @@
-/** Nomes dos arquivos exportados da cobrança (PDF por venda e ZIP do lote). */
+/** Nomes dos arquivos exportados da cobrança (PDF por venda e ZIP do lote). O cliente vê "Nota", não "Cobrança". */
 
 /** Tira acentos e tudo que não é letra, número, espaço ou hífen; colapsa espaços. */
 function safeName(value: string): string {
@@ -10,16 +10,16 @@ function safeName(value: string): string {
     .trim();
 }
 
-/** "Cobranca - Mercado Flor - A1B2C3D4.pdf" — cliente curto o bastante para qualquer sistema de arquivos. */
+/** "Nota - Mercado Flor - A1B2C3D4.pdf" — cliente curto o bastante para qualquer sistema de arquivos. */
 export function cobrancaFileName(doc: { customerName: string; reference: string }): string {
   const customer = safeName(doc.customerName).slice(0, 60).trim() || "Cliente";
-  return `Cobranca - ${customer} - ${safeName(doc.reference)}.pdf`;
+  return `Nota - ${customer} - ${safeName(doc.reference)}.pdf`;
 }
 
-/** "Cobrancas atacado - 2026-10-01 a 2026-10-31.zip" (ou só a data de hoje sem período). */
+/** "Notas atacado - 2026-10-01 a 2026-10-31.zip" (ou só a data de hoje sem período). */
 export function cobrancasZipName(from: string, to: string, now = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const period = from && to ? `${from} a ${to}` : today;
-  return `Cobrancas atacado - ${period}.zip`;
+  return `Notas atacado - ${period}.zip`;
 }

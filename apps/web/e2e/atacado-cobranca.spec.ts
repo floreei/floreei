@@ -101,7 +101,7 @@ test("atacado: switch A cobrar/Cobrado, filtro de cobrança, Cobrar (PDF + mensa
   await page.getByRole("button", { name: "Baixar cobranças (PDF)" }).click();
   const zipFile = await zipDownload;
   expect(zipFile.suggestedFilename()).toMatch(
-    /^Cobrancas atacado - \d{4}-\d{2}-\d{2} a \d{4}-\d{2}-\d{2}\.zip$/,
+    /^Notas atacado - \d{4}-\d{2}-\d{2} a \d{4}-\d{2}-\d{2}\.zip$/,
   );
   const zip = await JSZip.loadAsync(readFileSync((await zipFile.path()) as string));
   const names = Object.keys(zip.files).sort();

@@ -65,7 +65,7 @@ export default function PublicCobrancaPage() {
         <div className="rounded-2xl border border-border bg-card p-10 text-center">
           <Flower2 className="mx-auto h-8 w-8 text-primary" />
           <h1 className="mt-4 font-serif text-xl font-semibold">
-            Cobrança não encontrada
+            Nota não encontrada
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             O link pode ter expirado ou está incorreto. Peça um novo à
@@ -124,7 +124,7 @@ export default function PublicCobrancaPage() {
             <PrintLetterhead settings={settings} company={cobranca.company.name} />
             <div className="sm:text-right">
               <p className="font-serif text-lg font-semibold text-primary">
-                Cobrança
+                Nota
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Referência nº {cobranca.reference}
@@ -255,7 +255,7 @@ export default function PublicCobrancaPage() {
           <footer className="mt-10 flex items-center justify-center gap-1.5 border-t border-border pt-4 text-center text-[11px] text-muted-foreground">
             <Flower2 className="h-3 w-3 text-primary" aria-hidden />
             <span>
-              Cobrança criada com{" "}
+              Nota criada com{" "}
               <span className="font-semibold text-primary">Floreei</span> · o
               sistema para floriculturas
             </span>
