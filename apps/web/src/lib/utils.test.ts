@@ -4,6 +4,7 @@ import {
   currentMonthRange,
   formatCurrency,
   formatDate,
+  formatDateTime,
   formatDateWithWeekday,
   formatPercent,
   formatWeekdayShort,
@@ -65,6 +66,19 @@ describe("formatDateWithWeekday", () => {
   it("segunda-feira sai com inicial minúscula, como no pt-BR", () => {
     // 2026-10-12 é uma segunda-feira.
     expect(formatDateWithWeekday("2026-10-12")).toBe("segunda-feira, 12/10/2026");
+  });
+});
+
+describe("formatDateTime", () => {
+  it("formata um instante ISO (UTC) como data e hora no fuso local", () => {
+    const instant = new Date(2026, 9, 14, 15, 7); // 14/10/2026 15:07 local
+    expect(normalizeSpaces(formatDateTime(instant.toISOString()))).toBe(
+      "14/10/2026 às 15:07",
+    );
+  });
+
+  it("devolve travessão quando vazio", () => {
+    expect(formatDateTime(null)).toBe("—");
   });
 });
 

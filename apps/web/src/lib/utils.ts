@@ -62,6 +62,26 @@ export function formatDate(value: string | null | undefined): string {
 }
 
 /**
+ * "14/10/2026 às 15:07" — instante ISO (com fuso, ex.: created_at do banco)
+ * mostrado como data e hora no fuso local. Para carimbos do sistema, não para
+ * datas de negócio ("AAAA-MM-DD"), que usam `formatDate`.
+ */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  const day = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+  const time = new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+  return `${day} às ${time}`;
+}
+
+/**
  * "qua 14/10" — dia da semana abreviado + dia/mês, para listas por dia. O Intl
  * pt-BR abrevia com ponto ("qua."), que sai para ficar mais limpo.
  */

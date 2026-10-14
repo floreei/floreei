@@ -3,6 +3,7 @@
 import type { Payment } from "@sistema-flores/types";
 import {
   ArrowLeft,
+  Clock,
   FileText,
   HandCoins,
   Lock,
@@ -68,7 +69,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api/client";
 import { unitLabels } from "@/lib/labels";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 
 const methodLabels: Record<string, string> = {
   PIX: "Pix",
@@ -232,6 +233,13 @@ export default function EventDetailPage() {
                 )
               }
             />
+            <Detail
+              label="Cadastrado no sistema"
+              value={formatDateTime(event.createdAt)}
+              icon={<Clock className="h-4 w-4" />}
+              hint="Quando o pedido foi salvo — ajuda a achar lançamentos recentes."
+              testId="detail-created-at"
+            />
             {event.notes ? (
               <div className="sm:col-span-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -350,20 +358,28 @@ function Detail({
   label,
   value,
   icon,
+  hint,
+  testId,
 }: {
   label: string;
   value: React.ReactNode;
   icon?: React.ReactNode;
+  /** Explicação curta abaixo do valor. */
+  hint?: string;
+  testId?: string;
 }) {
   return (
-    <div>
+    <div data-testid={testId}>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+      <p className="mt-1 flex items-center gap-1.5 text-sm font-medium tabular-nums">
         {icon}
         {value}
       </p>
+      {hint ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }

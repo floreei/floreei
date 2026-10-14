@@ -47,6 +47,10 @@ test("nota do pedido: abre pelo detalhe da venda e imprime", async ({ page }) =>
 
   // Abre o detalhe da venda → botão "Nota do pedido" → nota.
   await page.goto(`/vendas/${eventId}`);
+  // Carimbo do sistema: quando o pedido foi salvo no banco (data e hora).
+  const created = page.getByTestId("detail-created-at");
+  await expect(created.getByText("Cadastrado no sistema")).toBeVisible();
+  await expect(created).toContainText(/\d{2}\/\d{2}\/\d{4} às \d{2}:\d{2}/);
   await page.getByRole("link", { name: "Nota do pedido" }).click();
   await page.waitForURL(new RegExp(`/vendas/${eventId}/imprimir`));
 
