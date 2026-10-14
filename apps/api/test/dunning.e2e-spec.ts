@@ -150,6 +150,11 @@ describe("Régua de cobrança (e2e)", () => {
     expect(res.body.message).toContain(res.body.link);
     // Envio manual não leva o rodapé de descadastro.
     expect(res.body.message).not.toContain("SAIR");
+    // A nota vem junto, para o front gerar o PDF sem outra chamada.
+    expect(res.body.document.eventId).toBe(sale.body.id);
+    expect(res.body.document.link).toBe(res.body.link);
+    expect(res.body.document.customerName).toBe("Carla");
+    expect(res.body.document.amountDue).toBe(90);
 
     // Página pública (sem auth) devolve os dados da cobrança.
     const pub = await http.get(`/api/dunning/public/${sale.body.id}`).expect(200);
@@ -167,6 +172,50 @@ describe("Régua de cobrança (e2e)", () => {
       .post(`/api/dunning/send/${sale.body.id}`)
       .set(bearer(token))
       .expect(400);
+  });
+
+  it("exporta as notas de cobrança em lote: só vendas em aberto do próprio tenant", async () => {
+    const cust = await http
+      .post("/api/customers")
+      .set(bearer(token))
+      .send({ name: "Mercado Flor" })
+      .expect(201);
+    const quick = (body: Record<string, unknown>) =>
+      http.post("/api/events/quick").set(bearer(token)).send(body).expect(201);
+    const open1 = await quick({ amount: 100, customerId: cust.body.id, channel: "WHOLESALE" });
+    const open2 = await quick({ amount: 200, customerId: cust.body.id, channel: "WHOLESALE" });
+    const paid = await quick({ amount: 50, customerId: cust.body.id, channel: "WHOLESALE" });
+    await http
+      .post(`/api/finance/events/${paid.body.id}/payments`)
+      .set(bearer(token))
+      .send({ amount: 50, method: "PIX" })
+      .expect(201);
+
+    // Venda de OUTRA empresa: nunca sai, mesmo com o id em mãos.
+    const other = (await registerCompany(http, { email: "outra@cobranca.com" }))
+      .accessToken;
+    const foreign = await http
+      .post("/api/events/quick")
+      .set(bearer(other))
+      .send({ amount: 999 })
+      .expect(201);
+
+    const res = await http
+      .post("/api/dunning/documents")
+      .set(bearer(token))
+      .send({ eventIds: [open1.body.id, open2.body.id, paid.body.id, foreign.body.id] })
+      .expect(201);
+
+    const ids = res.body.documents.map((d: { eventId: string }) => d.eventId);
+    expect(ids).toEqual([open1.body.id, open2.body.id]);
+    const first = res.body.documents[0];
+    expect(first.link).toContain(`/c/${open1.body.id}`);
+    expect(first.customerName).toBe("Mercado Flor");
+    expect(first.amountDue).toBe(100);
+    expect(first.reference).toHaveLength(8);
+    // Exportar não marca a venda como cobrada — isso é do botão "Cobrar".
+    const ev = await http.get(`/api/events/${open1.body.id}`).set(bearer(token)).expect(200);
+    expect(ev.body.chargedAt).toBeNull();
   });
 
   it("bloqueia /dunning/run sem token", async () => {

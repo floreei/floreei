@@ -9,7 +9,10 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { dunningSettingsSchema } from "@sistema-flores/types";
+import {
+  dunningSettingsSchema,
+  exportCobrancasSchema,
+} from "@sistema-flores/types";
 import { createZodDto } from "nestjs-zod";
 import { RequiresFeature } from "../../../common/auth/feature.guard";
 import { Public } from "../../../common/auth/public.decorator";
@@ -20,6 +23,7 @@ import { DunningService } from "../application/dunning.service";
 import { DunningRunTokenGuard } from "./dunning-run-token.guard";
 
 class DunningSettingsDto extends createZodDto(dunningSettingsSchema) {}
+class ExportCobrancasDto extends createZodDto(exportCobrancasSchema) {}
 
 @Controller("dunning")
 export class DunningController {
@@ -52,6 +56,12 @@ export class DunningController {
   @Post("send/:eventId")
   manualCobranca(@Param("eventId", ParseUUIDPipe) eventId: string) {
     return this.dunning.buildManualCobranca(eventId);
+  }
+
+  /** Notas de cobrança em lote (vendas em aberto do tenant), para exportar os PDFs. */
+  @Post("documents")
+  documents(@Body() dto: ExportCobrancasDto) {
+    return this.dunning.buildCobrancaDocuments(dto.eventIds);
   }
 
   /** Página pública da cobrança (fatura). Sem auth — o id UUID é a chave. */

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { idSchema } from "./common";
 
 /**
  * Um passo da régua de cobrança: quantos dias em relação ao vencimento dispara
@@ -50,13 +51,38 @@ export interface DunningSettings {
   extraLine: string | null;
 }
 
-/** Mensagem de cobrança pronta para envio manual (abrir no WhatsApp). */
+/**
+ * Cobrança de uma venda montada para envio MANUAL: o lojista baixa a nota em
+ * PDF (gerada no navegador a partir de `document`) e cola a mensagem no
+ * WhatsApp. `message` é o texto completo da régua (compat); o front monta a
+ * saudação curta por conta própria.
+ */
 export interface CobrancaMessage {
   /** Telefone do cliente (só dígitos, com DDI) ou null se não houver. */
   phone: string | null;
   message: string;
   /** Link da página pública da cobrança (fatura salvável em PDF). */
   link: string;
+  /** Dados da nota, os mesmos da página pública, para gerar o PDF. */
+  document: CobrancaDocument;
+}
+
+/** Lote de vendas para exportar as notas de cobrança (só as em aberto saem). */
+export const exportCobrancasSchema = z.object({
+  eventIds: z.array(idSchema).min(1).max(200),
+});
+export type ExportCobrancasInput = z.infer<typeof exportCobrancasSchema>;
+
+/** Nota de cobrança de uma venda + identificação, para gerar o PDF no front. */
+export interface CobrancaDocument extends PublicCobranca {
+  eventId: string;
+  /** Link da página pública da cobrança. */
+  link: string;
+}
+
+/** Resposta da exportação em lote: uma nota por venda em aberto encontrada. */
+export interface CobrancaDocuments {
+  documents: CobrancaDocument[];
 }
 
 /** Uma linha de item na página pública da cobrança. */

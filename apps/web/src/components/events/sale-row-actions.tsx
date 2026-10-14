@@ -1,7 +1,7 @@
 "use client";
 
 import type { Event } from "@sistema-flores/types";
-import { Eye, HandCoins, MessageCircle, MoreHorizontal } from "lucide-react";
+import { Eye, FileDown, HandCoins, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useCobranca } from "@/components/events/cobranca-button";
@@ -52,8 +52,13 @@ export function SaleRowActions({
                 Receber
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => cobrar(event.id)}>
-                <MessageCircle className="text-muted-foreground" />
-                Cobrar no WhatsApp
+                <FileDown className="shrink-0 text-muted-foreground" />
+                <span className="flex flex-col">
+                  <span>Cobrar</span>
+                  <span className="text-xs text-muted-foreground">
+                    Baixa a nota em PDF e copia a mensagem
+                  </span>
+                </span>
               </DropdownMenuItem>
             </>
           ) : null}

@@ -1,33 +1,40 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { useSendCobranca } from "@/lib/api/dunning";
-import { whatsappHref } from "@/lib/whatsapp";
+import { cobrancaFileName } from "@/lib/cobranca-files";
+import { buildCobrancaText } from "@/lib/cobranca-message";
+import { copyText, downloadBlob } from "@/lib/download";
 
 /**
- * Ação "Cobrar": monta a cobrança da venda no backend (texto + PIX/link
- * conforme a régua) e abre o WhatsApp do dono com a mensagem pronta. Uso
- * manual, complementar à régua automática.
+ * Ação "Cobrar": a API monta a cobrança (e marca a venda como cobrada); aqui
+ * baixamos a nota em PDF e copiamos a mensagem curta com o link — o lojista
+ * cola no WhatsApp do cliente e anexa o arquivo. Não abre o WhatsApp sozinho.
  */
 export function useCobranca() {
   const send = useSendCobranca();
 
   const cobrar = async (eventId: string) => {
     try {
-      const { phone, message, link } = await send.mutateAsync(eventId);
-      const href = whatsappHref(phone, message);
-      if (!href) {
-        // Sem WhatsApp: cai no link da cobrança para o dono enviar como quiser.
-        await navigator.clipboard?.writeText(link).catch(() => undefined);
-        toast.info("Cliente sem WhatsApp — link da cobrança copiado.", {
-          action: { label: "Abrir", onClick: () => window.open(link, "_blank") },
+      const { link, document: nota } = await send.mutateAsync(eventId);
+      const text = buildCobrancaText({ saleDate: nota.date, link });
+      // Copia antes de gerar o PDF: quanto mais perto do clique, mais navegadores aceitam.
+      const copied = await copyText(text);
+      const { renderCobrancaPdf } = await import("@/lib/cobranca-pdf");
+      downloadBlob(await renderCobrancaPdf(nota), cobrancaFileName(nota));
+      if (copied) {
+        toast.success("Nota baixada e mensagem copiada.", {
+          description: "Cole a mensagem no WhatsApp do cliente e anexe o PDF.",
         });
-        return;
+      } else {
+        toast.success("Nota baixada.", {
+          description: "Não deu para copiar a mensagem automaticamente.",
+          action: { label: "Copiar mensagem", onClick: () => void copyText(text) },
+        });
       }
-      window.open(href, "_blank", "noopener,noreferrer");
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Não foi possível montar a cobrança.",
@@ -50,7 +57,7 @@ export function CobrancaButton({ eventId }: { eventId: string }) {
       onClick={() => cobrar(eventId)}
       loading={isPending}
     >
-      <MessageCircle className="h-4 w-4" />
+      <FileDown className="h-4 w-4" />
       Cobrar
     </Button>
   );

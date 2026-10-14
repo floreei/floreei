@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { ChargeToggle } from "@/components/events/charge-toggle";
 import { DeliveryToggle } from "@/components/events/delivery-toggle";
+import { ExportCobrancasButton } from "@/components/events/export-cobrancas-button";
 import { ReceberButton } from "@/components/events/receber-button";
 import { SaleRowActions } from "@/components/events/sale-row-actions";
 import { SaleItemsInline } from "@/components/events/sale-items-inline";
@@ -236,6 +237,7 @@ export default function AtacadoPage() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
             Resultado do período
           </button>
+          <ExportCobrancasButton filters={insightFilters} />
         </div>
         {showInsights ? (
           <div className="mt-4">

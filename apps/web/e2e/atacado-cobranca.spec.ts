@@ -1,11 +1,15 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import JSZip from "jszip";
 import { firebaseIdToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
-test("atacado: switch A cobrar/Cobrado, filtro de cobrança e marcação pelo WhatsApp", async ({
+test("atacado: switch A cobrar/Cobrado, filtro de cobrança, Cobrar (PDF + mensagem) e exportação", async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const stamp = Date.now();
   const email = `atcb_${stamp}@flores.com`;
   const password = "Segredo123!";
@@ -23,7 +27,7 @@ test("atacado: switch A cobrar/Cobrado, filtro de cobrança e marcação pelo Wh
 
   const token = await firebaseIdToken(page.request, email, password);
   const auth = { Authorization: `Bearer ${token}` };
-  // Cliente sem WhatsApp: "Cobrar no WhatsApp" cai no link copiado (sem abrir aba).
+  // Cliente sem telefone: "Cobrar" não depende de WhatsApp (baixa a nota + copia o texto).
   const customer = await (
     await page.request.post(`${API}/customers`, {
       headers: auth,
@@ -73,12 +77,41 @@ test("atacado: switch A cobrar/Cobrado, filtro de cobrança e marcação pelo Wh
   await expect(row("Pedido Rosas")).toHaveCount(0);
   await expect(row("Pedido Quitado")).toHaveCount(0);
 
-  // 3) "Cobrar no WhatsApp" já marca a venda como cobrada: ela sai do "A cobrar".
+  // 3) "Cobrar" baixa a nota em PDF, copia a mensagem (saudação + dia + link) e
+  //    já marca a venda como cobrada: ela sai do "A cobrar".
   await row("Pedido Lírios").getByRole("button", { name: "Ações da venda" }).click();
-  await page.getByRole("menuitem", { name: "Cobrar no WhatsApp" }).click();
+  const pdfDownload = page.waitForEvent("download");
+  await page.getByRole("menuitem", { name: /^Cobrar/ }).click();
+  const pdf = await pdfDownload;
+  expect(pdf.suggestedFilename()).toMatch(/^Cobranca - Mercado das Flores - [A-Z0-9]{8}\.pdf$/);
+  const pdfPath = await pdf.path();
+  expect(pdfPath).toBeTruthy();
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+  expect(clipboard).toMatch(/^Olá, (bom dia|boa tarde|boa noite)! Tudo bem\?/);
+  expect(clipboard).toContain("sua nota do pedido do dia ");
+  expect(clipboard).toMatch(/Segue o link da nota para pagamento: http\S+\/c\/[0-9a-f-]{36}$/);
+  expect(clipboard).not.toContain("R$");
   await expect(row("Pedido Lírios")).toHaveCount(0);
   await page.getByRole("button", { name: "Cobrança: todas" }).click();
   await expect(chargeSwitch("Pedido Lírios")).toHaveAttribute("aria-checked", "true");
+
+  // 4) "Baixar cobranças (PDF)" exporta num ZIP só as vendas em aberto do filtro
+  //    (a quitada fica de fora) e não mexe na marcação de cobrança.
+  const zipDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Baixar cobranças (PDF)" }).click();
+  const zipFile = await zipDownload;
+  expect(zipFile.suggestedFilename()).toMatch(
+    /^Cobrancas atacado - \d{4}-\d{2}-\d{2} a \d{4}-\d{2}-\d{2}\.zip$/,
+  );
+  const zip = await JSZip.loadAsync(readFileSync((await zipFile.path()) as string));
+  const names = Object.keys(zip.files).sort();
+  expect(names).toHaveLength(2);
+  for (const name of names) {
+    expect(name).toMatch(/^Cobranca - Mercado das Flores - [A-Z0-9]{8}\.pdf$/);
+    const bytes = await zip.files[name].async("uint8array");
+    expect(Buffer.from(bytes.slice(0, 5)).toString()).toBe("%PDF-");
+  }
+  await expect(chargeSwitch("Pedido Rosas")).toHaveAttribute("aria-checked", "true");
 
   // Desmarcar devolve para "A cobrar".
   await chargeSwitch("Pedido Lírios").click();

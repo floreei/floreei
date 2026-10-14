@@ -1,4 +1,5 @@
 import type {
+  CobrancaDocuments,
   CobrancaMessage,
   DunningLogEntry,
   DunningSettings,
@@ -33,8 +34,8 @@ export function useDunningLog() {
 }
 
 /**
- * Monta a cobrança de uma venda para envio manual (abrir no WhatsApp). A API
- * já marca a venda como cobrada — por isso as listagens de vendas recarregam.
+ * Monta a cobrança de uma venda para envio manual (nota em PDF + mensagem). A
+ * API já marca a venda como cobrada — por isso as listagens de vendas recarregam.
  */
 export function useSendCobranca() {
   const qc = useQueryClient();
@@ -43,4 +44,12 @@ export function useSendCobranca() {
       api.post<CobrancaMessage>(`/dunning/send/${eventId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
   });
+}
+
+/**
+ * Notas de cobrança das vendas informadas (só as em aberto voltam), para gerar
+ * os PDFs em lote. Não marca nada como cobrado.
+ */
+export function fetchCobrancaDocuments(eventIds: string[]) {
+  return api.post<CobrancaDocuments>("/dunning/documents", { eventIds });
 }

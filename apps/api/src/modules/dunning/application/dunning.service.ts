@@ -6,11 +6,13 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type {
+  CobrancaDocument,
+  CobrancaDocuments,
   CobrancaMessage,
   DunningLogEntry,
   PublicCobranca,
 } from "@sistema-flores/types";
-import { IsNull, Repository } from "typeorm";
+import { In, IsNull, Repository } from "typeorm";
 import { todayISO } from "../../../common/date/today";
 import { roundMoney } from "../../../common/money/money";
 import { TenantContextService } from "../../../common/tenant/tenant-context.service";
@@ -57,6 +59,51 @@ function daysBetween(a: string, b: string): number {
   return Math.round(ms / 86_400_000);
 }
 
+/** Dados públicos da nota de cobrança de uma venda (sem custo, lucro ou telefone). */
+function toPublicCobranca(
+  event: EventEntity,
+  company: CompanyEntity,
+  dun: DunningSettingsEntity | null,
+): PublicCobranca {
+  // PIX: prioriza o configurado na régua; senão, cai no PIX da empresa (nota).
+  const pixKey =
+    dun?.paymentMethod === "PIX" && dun.pixKey ? dun.pixKey : company.pixKey;
+  const mpLink = dun?.paymentMethod === "MP_LINK" ? dun.mpLink : null;
+
+  const items = [...(event.items ?? [])]
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+    .map((i) => ({
+      description: i.description,
+      quantity: i.quantity,
+      unit: i.unit,
+      unitSalePrice: i.unitSalePrice,
+      lineTotal: i.lineTotal,
+    }));
+
+  return {
+    reference: event.id.slice(0, 8).toUpperCase(),
+    company: {
+      name: company.name,
+      document: company.document,
+      phone: company.phone,
+      email: company.email,
+      address: company.address,
+      logo: company.logo,
+    },
+    customerName: event.customer?.name ?? "Cliente",
+    date: event.date,
+    dueDate: event.dueDate ?? null,
+    soldValue: event.soldValue,
+    receivedValue: event.receivedValue,
+    amountDue: roundMoney(event.soldValue - event.receivedValue),
+    title: event.title,
+    items,
+    notes: event.notes,
+    pixKey: pixKey ?? null,
+    mpLink: mpLink ?? null,
+  };
+}
+
 interface Reminder {
   eventId: string;
   customerName: string;
@@ -85,14 +132,15 @@ export class DunningService {
   ) {}
 
   /**
-   * Monta a cobrança de uma venda para envio MANUAL (abrir no WhatsApp) e já
-   * marca a venda como cobrada — o lojista desmarca na listagem se desistir.
+   * Monta a cobrança de uma venda para envio MANUAL (o lojista baixa a nota em
+   * PDF e cola a mensagem no WhatsApp) e já marca a venda como cobrada — o
+   * lojista desmarca na listagem se desistir.
    */
   async buildManualCobranca(eventId: string): Promise<CobrancaMessage> {
     const companyId = this.tenant.getCompanyIdOrThrow();
     const event = await this.events.findOne({
       where: { id: eventId, companyId },
-      relations: ["customer"],
+      relations: ["customer", "items"],
     });
     if (!event) throw new NotFoundException("Venda não encontrada.");
     const balance = roundMoney(event.soldValue - event.receivedValue);
@@ -101,6 +149,8 @@ export class DunningService {
     }
     const dueDate = (event.dueDate ?? event.date).slice(0, 10);
     const company = await this.companies.findOne({ where: { id: companyId } });
+    if (!company) throw new NotFoundException("Venda não encontrada.");
+    const dun = await this.settings.findOne({ where: { companyId } });
     const link = cobrancaLink(event.id);
     const message = buildDunningMessage(
       {
@@ -120,7 +170,42 @@ export class DunningService {
       phone: toPhone(event.customer?.whatsapp ?? event.customer?.phone ?? null),
       message,
       link,
+      document: {
+        ...toPublicCobranca(event, company, dun),
+        eventId: event.id,
+        link,
+      },
     };
+  }
+
+  /**
+   * Notas de cobrança em lote (exportar PDFs da listagem): só as vendas do
+   * tenant, não canceladas e com saldo em aberto. Ids desconhecidos, de outra
+   * empresa ou quitados são ignorados em silêncio — a listagem do front pode
+   * estar defasada. Não marca como cobrada: isso é do botão "Cobrar".
+   */
+  async buildCobrancaDocuments(eventIds: string[]): Promise<CobrancaDocuments> {
+    const companyId = this.tenant.getCompanyIdOrThrow();
+    const company = await this.companies.findOne({ where: { id: companyId } });
+    if (!company) return { documents: [] };
+    const dun = await this.settings.findOne({ where: { companyId } });
+    const events = await this.events.find({
+      where: { id: In(eventIds), companyId },
+      relations: ["customer", "items"],
+    });
+    const byId = new Map(events.map((e) => [e.id, e]));
+    const documents: CobrancaDocument[] = [];
+    for (const id of eventIds) {
+      const event = byId.get(id);
+      if (!event || event.status === "CANCELED") continue;
+      if (roundMoney(event.soldValue - event.receivedValue) <= 0) continue;
+      documents.push({
+        ...toPublicCobranca(event, company, dun),
+        eventId: event.id,
+        link: cobrancaLink(event.id),
+      });
+    }
+    return { documents };
   }
 
   /**
@@ -140,44 +225,7 @@ export class DunningService {
     const dun = await this.settings.findOne({
       where: { companyId: event.companyId },
     });
-
-    // PIX: prioriza o configurado na régua; senão, cai no PIX da empresa (nota).
-    const pixKey =
-      dun?.paymentMethod === "PIX" && dun.pixKey ? dun.pixKey : company.pixKey;
-    const mpLink = dun?.paymentMethod === "MP_LINK" ? dun.mpLink : null;
-
-    const items = [...(event.items ?? [])]
-      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
-      .map((i) => ({
-        description: i.description,
-        quantity: i.quantity,
-        unit: i.unit,
-        unitSalePrice: i.unitSalePrice,
-        lineTotal: i.lineTotal,
-      }));
-
-    return {
-      reference: event.id.slice(0, 8).toUpperCase(),
-      company: {
-        name: company.name,
-        document: company.document,
-        phone: company.phone,
-        email: company.email,
-        address: company.address,
-        logo: company.logo,
-      },
-      customerName: event.customer?.name ?? "Cliente",
-      date: event.date,
-      dueDate: event.dueDate ?? null,
-      soldValue: event.soldValue,
-      receivedValue: event.receivedValue,
-      amountDue: roundMoney(event.soldValue - event.receivedValue),
-      title: event.title,
-      items,
-      notes: event.notes,
-      pixKey: pixKey ?? null,
-      mpLink: mpLink ?? null,
-    };
+    return toPublicCobranca(event, company, dun);
   }
 
   /** Roda a régua de todas as empresas com cobrança ligada. */

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Switch booleano de cobrança para marcar "Cobrado" direto na tabela, no mesmo
- * molde do de entrega. "Cobrar no WhatsApp" e a régua automática já marcam
+ * molde do de entrega. O botão "Cobrar" e a régua automática já marcam
  * sozinhos; aqui o lojista marca cobranças feitas por fora ou desfaz. Vendas
  * canceladas ou quitadas não têm toggle (não há o que cobrar).
  */
