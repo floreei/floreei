@@ -16,7 +16,8 @@ const PAGE_SIZE = 200;
 
 /** Ids de todas as vendas em aberto (não canceladas, com saldo) que batem com o filtro. */
 async function unpaidSaleIds(filters: SalesInsightsFilters): Promise<string[]> {
-  const ids: string[] = [];
+  // Set: uma venda que mude de página entre duas consultas não entra duas vezes.
+  const ids = new Set<string>();
   for (let page = 1; ; page++) {
     const res = await api.get<Paginated<Event>>("/events", {
       page,
@@ -31,11 +32,11 @@ async function unpaidSaleIds(filters: SalesInsightsFilters): Promise<string[]> {
       to: filters.to || undefined,
     });
     for (const e of res.data) {
-      if (e.status !== "CANCELED" && e.soldValue - e.receivedValue > 0.005) ids.push(e.id);
+      if (e.status !== "CANCELED" && e.soldValue - e.receivedValue > 0.005) ids.add(e.id);
     }
     if (page >= res.totalPages) break;
   }
-  return ids;
+  return [...ids];
 }
 
 /**

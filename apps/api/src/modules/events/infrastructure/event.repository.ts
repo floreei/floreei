@@ -49,6 +49,9 @@ export class EventRepository extends TenantScopedRepository<EventEntity> {
       column: "event.date",
       direction: "DESC",
     });
+    // Desempate estável: sem ele, vendas com a mesma data podem trocar de
+    // página entre duas consultas com OFFSET (a exportação em lote percorre todas).
+    qb.addOrderBy("event.createdAt", "DESC").addOrderBy("event.id", "DESC");
 
     if (query.type) {
       qb.andWhere("event.type = :type", { type: query.type });

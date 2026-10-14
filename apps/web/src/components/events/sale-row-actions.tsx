@@ -26,7 +26,7 @@ export function SaleRowActions({
   detailHref: string;
 }) {
   const [payOpen, setPayOpen] = useState(false);
-  const { cobrar } = useCobranca();
+  const { cobrar, isPending: charging } = useCobranca();
   const balanceDue = event.soldValue - event.receivedValue;
   const canCharge = event.status !== "CANCELED" && balanceDue > 0.005;
 
@@ -51,7 +51,7 @@ export function SaleRowActions({
                 <HandCoins className="text-muted-foreground" />
                 Receber
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => cobrar(event.id)}>
+              <DropdownMenuItem onClick={() => cobrar(event.id)} disabled={charging}>
                 <FileDown className="shrink-0 text-muted-foreground" />
                 <span className="flex flex-col">
                   <span>Cobrar</span>
