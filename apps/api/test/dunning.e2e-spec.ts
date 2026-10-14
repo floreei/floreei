@@ -134,7 +134,7 @@ describe("Régua de cobrança (e2e)", () => {
     const sale = await http
       .post("/api/events/quick")
       .set(bearer(token))
-      .send({ amount: 90, customerId: cust.body.id })
+      .send({ amount: 90, customerId: cust.body.id, deliveryDate: "2026-10-15" })
       .expect(201);
 
     const res = await http
@@ -155,6 +155,8 @@ describe("Régua de cobrança (e2e)", () => {
     expect(res.body.document.link).toBe(res.body.link);
     expect(res.body.document.customerName).toBe("Carla");
     expect(res.body.document.amountDue).toBe(90);
+    // Data de entrega vai na nota (nome do arquivo baixado usa ela).
+    expect(res.body.document.deliveryDate).toBe("2026-10-15");
 
     // Página pública (sem auth) devolve os dados da cobrança.
     const pub = await http.get(`/api/dunning/public/${sale.body.id}`).expect(200);
@@ -213,6 +215,8 @@ describe("Régua de cobrança (e2e)", () => {
     expect(first.customerName).toBe("Mercado Flor");
     expect(first.amountDue).toBe(100);
     expect(first.reference).toHaveLength(8);
+    // Sem data de entrega combinada, o campo vem null (o front cai na data da venda).
+    expect(first.deliveryDate).toBeNull();
     // Exportar não marca a venda como cobrada — isso é do botão "Cobrar".
     const ev = await http.get(`/api/events/${open1.body.id}`).set(bearer(token)).expect(200);
     expect(ev.body.chargedAt).toBeNull();

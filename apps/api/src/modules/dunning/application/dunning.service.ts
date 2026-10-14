@@ -92,6 +92,7 @@ function toPublicCobranca(
     },
     customerName: event.customer?.name ?? "Cliente",
     date: event.date,
+    deliveryDate: event.deliveryDate ?? null,
     dueDate: event.dueDate ?? null,
     soldValue: event.soldValue,
     receivedValue: event.receivedValue,

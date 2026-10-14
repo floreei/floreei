@@ -2,16 +2,30 @@ import { describe, expect, it } from "vitest";
 import { cobrancaFileName, cobrancasZipName } from "./cobranca-files";
 
 describe("cobrancaFileName", () => {
-  it("usa cliente e referência, sem acentos nem caracteres de caminho", () => {
+  it("usa cliente e data de entrega, sem acentos nem caracteres de caminho", () => {
     expect(
-      cobrancaFileName({ customerName: "Mercado São João / Filial", reference: "A1B2C3D4" }),
-    ).toBe("Nota - Mercado Sao Joao Filial - A1B2C3D4.pdf");
+      cobrancaFileName({
+        customerName: "Mercado São João / Filial",
+        date: "2026-10-09",
+        deliveryDate: "2026-10-15",
+      }),
+    ).toBe("Nota - Mercado Sao Joao Filial - 15-10-2026.pdf");
+  });
+
+  it("sem data de entrega, usa a data da venda", () => {
+    expect(
+      cobrancaFileName({ customerName: "Flor & Cia", date: "2026-10-09", deliveryDate: null }),
+    ).toBe("Nota - Flor Cia - 09-10-2026.pdf");
   });
 
   it("corta nomes muito longos", () => {
-    const name = cobrancaFileName({ customerName: "x".repeat(200), reference: "REF" });
+    const name = cobrancaFileName({
+      customerName: "x".repeat(200),
+      date: "2026-10-09",
+      deliveryDate: null,
+    });
     expect(name.length).toBeLessThanOrEqual(90);
-    expect(name.endsWith(" - REF.pdf")).toBe(true);
+    expect(name.endsWith(" - 09-10-2026.pdf")).toBe(true);
   });
 });
 

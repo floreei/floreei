@@ -34,15 +34,15 @@ test("atacado: switch A cobrar/Cobrado, filtro de cobrança, Cobrar (PDF + mensa
       data: { name: "Mercado das Flores" },
     })
   ).json();
-  const sale = async (title: string, amount: number) =>
+  const sale = async (title: string, amount: number, deliveryDate?: string) =>
     (
       await page.request.post(`${API}/events/quick`, {
         headers: auth,
-        data: { channel: "WHOLESALE", customerId: customer.id, title, amount },
+        data: { channel: "WHOLESALE", customerId: customer.id, title, amount, deliveryDate },
       })
     ).json();
-  await sale("Pedido Rosas", 100);
-  await sale("Pedido Lírios", 200);
+  await sale("Pedido Rosas", 100, "2026-10-15");
+  await sale("Pedido Lírios", 200, "2026-10-16");
   const paid = await sale("Pedido Quitado", 50);
   await page.request.post(`${API}/finance/events/${paid.id}/payments`, {
     headers: auth,
@@ -83,7 +83,7 @@ test("atacado: switch A cobrar/Cobrado, filtro de cobrança, Cobrar (PDF + mensa
   const pdfDownload = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: /^Cobrar/ }).click();
   const pdf = await pdfDownload;
-  expect(pdf.suggestedFilename()).toMatch(/^Cobranca - Mercado das Flores - [A-Z0-9]{8}\.pdf$/);
+  expect(pdf.suggestedFilename()).toMatch(/^Nota - Mercado das Flores - \d{2}-\d{2}-\d{4}\.pdf$/);
   const pdfPath = await pdf.path();
   expect(pdfPath).toBeTruthy();
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
@@ -105,9 +105,12 @@ test("atacado: switch A cobrar/Cobrado, filtro de cobrança, Cobrar (PDF + mensa
   );
   const zip = await JSZip.loadAsync(readFileSync((await zipFile.path()) as string));
   const names = Object.keys(zip.files).sort();
-  expect(names).toHaveLength(2);
+  // Uma nota por pedido, nomeada pela data de entrega combinada.
+  expect(names).toEqual([
+    "Nota - Mercado das Flores - 15-10-2026.pdf",
+    "Nota - Mercado das Flores - 16-10-2026.pdf",
+  ]);
   for (const name of names) {
-    expect(name).toMatch(/^Cobranca - Mercado das Flores - [A-Z0-9]{8}\.pdf$/);
     const bytes = await zip.files[name].async("uint8array");
     expect(Buffer.from(bytes.slice(0, 5)).toString()).toBe("%PDF-");
   }

@@ -113,6 +113,8 @@ export interface PublicCobranca {
   customerName: string;
   /** Data da venda (ISO). */
   date: string;
+  /** Data de entrega combinada (AAAA-MM-DD) ou null — nomeia o arquivo da nota. */
+  deliveryDate: string | null;
   /** Vencimento do saldo (ISO) ou null. */
   dueDate: string | null;
   soldValue: number;

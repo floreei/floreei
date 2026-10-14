@@ -10,10 +10,25 @@ function safeName(value: string): string {
     .trim();
 }
 
-/** "Nota - Mercado Flor - A1B2C3D4.pdf" — cliente curto o bastante para qualquer sistema de arquivos. */
-export function cobrancaFileName(doc: { customerName: string; reference: string }): string {
+/** "2026-10-15" → "15-10-2026" (barra não pode em nome de arquivo). */
+function fileDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}-${m}-${y}`;
+}
+
+/**
+ * "Nota - Mercado Flor - 15-10-2026.pdf" — cliente e data de entrega combinada
+ * (ou a data da venda, quando não há entrega marcada). Sem id do pedido: é
+ * assim que o lojista procura a nota depois. Cliente curto o bastante para
+ * qualquer sistema de arquivos.
+ */
+export function cobrancaFileName(doc: {
+  customerName: string;
+  date: string;
+  deliveryDate: string | null;
+}): string {
   const customer = safeName(doc.customerName).slice(0, 60).trim() || "Cliente";
-  return `Nota - ${customer} - ${safeName(doc.reference)}.pdf`;
+  return `Nota - ${customer} - ${fileDate(doc.deliveryDate ?? doc.date)}.pdf`;
 }
 
 /** "Notas atacado - 2026-10-01 a 2026-10-31.zip" (ou só a data de hoje sem período). */
